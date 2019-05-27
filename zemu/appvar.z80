@@ -1,0 +1,40 @@
+#include "ti84pce.inc"
+.assume ADL=1
+.org userMem-2
+
+.db tExtTok, tAsm84CeCmp
+
+#define APPVAR_SIZE 10
+
+start:
+detect_appvar:
+   ; get address of appvar
+   ld hl,appvar_name
+   call _Mov9ToOP1
+   call _ChkFindSym ; data address is in de
+   jr nc,write_appvar
+
+create_appvar:
+   ld hl,appvar_name
+   call _Mov9ToOP1
+   ld hl,APPVAR_SIZE
+   call _CreateAppVar
+   jr detect_appvar
+
+write_appvar:
+   ; store data to appvar
+   inc de
+   inc de ; skip over size bytes
+   xor a
+   ld b,APPVAR_SIZE
+   jp loop.cond
+loop:
+   ld (de),a
+   inc de
+loop.cond:
+   djnz loop
+   
+   ; done
+   ret
+
+appvar_name: .db AppVarObj,"TESTVAR",0

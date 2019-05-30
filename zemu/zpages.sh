@@ -3,13 +3,11 @@
 
 USAGE="usage: $0 [-n blk_size] story_file [outdir]"
 
-ZBLK_SIZE=0x1000
-
 while getopts "n:h" optchar
 do
     case "${optchar}" in
         n)
-            ZBLK_SIZE="${OPTARG}"
+            ZPAGE_SIZE="${OPTARG}"
             ;;
         h)
             echo $USAGE
@@ -33,7 +31,7 @@ STORY_PATH="$1"
 OUTDIR="$2"
 
 echo "story file = $STORY_PATH"
-echo "block size = $ZBLK_SIZE"
+echo "block size = $ZPAGE_SIZE"
 
 # get story filename
 STORY_FILENAME="${STORY_PATH##*/}"
@@ -54,7 +52,13 @@ echo "story filename = $STORY_FILENAME"
 echo "story dir = $STORY_DIR"
 echo "story stem = $STORY_STEM"
 
-split -b `printf %d $ZBLK_SIZE` "$STORY_PATH" "$OUTDIR/$STORY_STEM"
+# make sure directory exists
+if ! [ -d "$OUTDIR" ]
+then
+    mkdir "$OUTDIR"
+fi
+
+split -b `printf %d $ZPAGE_SIZE` "$STORY_PATH" "$OUTDIR/$STORY_STEM"
 
 # convert them into vars
 pushd "$OUTDIR"

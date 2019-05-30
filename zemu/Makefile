@@ -1,7 +1,6 @@
 %.8xp: %.z80
-	spasm -E $@ $^
+	spasm -E $^ $@
 
 .PHONY: clean
 clean:
-	rm -f *.8xp
-
+	rm -f *.8xp *.8xv

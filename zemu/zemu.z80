@@ -49,6 +49,8 @@ zemu_init.table_init:
    ld b,(ix+ZMAP_HDR_NPAGES)
    ld ix,(zmap_table)
 zemu_init.table_init.loop:
+   push ix
+   push.s bc
    ; move varname into OP1
    lea hl,ix+ZMAP_ENT_VARNAME
    call appvar_to_OP1
@@ -59,7 +61,10 @@ zemu_init.table_init.loop:
    cp b    ; CF set iff archived
    ccf     ; CF set iff in RAM
    rl (ix+ZMAP_ENT_FLAGS)
-      
+
+   pop.s bc
+   pop ix
+   lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
    djnz zemu_init.table_init.loop
    ret

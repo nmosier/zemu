@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -160,6 +161,12 @@ int main(int argc, char *argv[]) {
          ++stem;
       }
       stem_len = strcspn(stem, ".");
+
+      /* uppercase stem */
+      char *stem_end = stem + stem_len;
+      for (char *stem_it = stem; stem_it != stem_end; ++stem_it) {
+         *stem_it = toupper(*stem_it);
+      }
 
       /* copy strings into table entry */
       strncpy(tab[i].zme_varname, stem, stem_len);

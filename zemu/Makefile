@@ -1,7 +1,8 @@
 CFLAGS=-g -c -Wall -pedantic
 
 %.8xp: %.z80
-	spasm -E $^ $@
+	spasm -E -L $^ $@
+	sed -i "" 's/=/.equ/g' $*.lab
 
 zmap: zmap.o
 	gcc -o $@ $^

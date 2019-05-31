@@ -18,6 +18,7 @@ ZMAP_ENT_FLAGS_INRAM .equ 0
 
 .db tExtTok, tAsm84CeCmp
 
+;; TODO: change error handlers to use UNIX-like error propogation?
 
 start:
    ld hl,zork_zmap
@@ -85,7 +86,8 @@ zemu_error:
    ret
 
 ;; zemu_exit -- exit from zemu, performing necessary cleanup, etc.
-;; NOTE: returns to main's stack frame, so main cannot call zemu_exit.
+;; NOTE returns to main's stack frame, so main cannot call zemu_exit.
+
 zemu_exit:
 zemu_cleanup:
    ; check if zmap was found

@@ -1,0 +1,5 @@
+zemu TODO
+
+[X] Find out max size of app vars -- 256^2 bytes
+[X] Write program/script to split story file into multiple `zpages'
+[ ] Have script also generate master variable of `zpages'

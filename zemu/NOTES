@@ -1,0 +1,21 @@
+Z-Pages:
+ * appvars must be less than 256^2 bytes
+ * zork is 92K
+ * need to be able to experiment with different page sizes -- this should be
+   easily configurable at compile time.
+
+Should make it so zemu need not be recompiled for different block sizes.
+
+
+zmap format:
+* header
+* zpage table
+  * zpapge table entry:
+    * appvar name
+    * start address
+    * flags:
+      * whether currently in RAM
+      * perhaps some LRU info?
+
+Environment variables:
+ZPAGE_SIZE: default zpage size, used in all C programs, scripts, and assembly

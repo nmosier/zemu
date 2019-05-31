@@ -1,0 +1,31 @@
+#include "ti84pce.inc"
+.assume ADL=1
+.org userMem-2
+
+.db tExtTok,tAsm84CeCmp
+
+start:
+   ld.L hl,0 ; reset cursor position
+   ld.L (curRow),hl
+detect_appvar:
+   ; get address of appvar
+   ld hl,appvar_name
+   call _Mov9ToOP1
+   call _ChkFindSym ; data address is in de
+   jr c,appvar_notfound
+cat_appvar:
+   inc de \ inc de
+   ex de,hl
+   call _PutS
+   jr done
+
+appvar_notfound:
+   ld hl,notfound_msg
+   call _PutS
+   jr done
+
+done:
+   ret
+
+appvar_name: .db AppVarObj,"TESTVAR",0
+notfound_msg: .db "TESTVAR not found",0

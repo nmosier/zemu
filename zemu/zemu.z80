@@ -1,0 +1,87 @@
+#include "ti84pce.inc"
+.assume ADL=1
+.org userMem-2
+
+VARNAMELEN .equ 8
+ZMAP_TABENTLEN .equ (VARNAMELEN + 1 + 3) ; this should be manually updated
+
+ZMAP_HDR_HEADERSIZE .equ 0
+ZMAP_HDR_PAGESIZE .equ ZMAP_HDR_HEADERSIZE + 1
+ZMAP_HDR_STORYSIZE .equ ZMAP_HDR_PAGESIZE + 2
+ZMAP_HDR_NPAGES .equ ZMAP_HDR_STORYSIZE + 3
+
+ZMAP_ENT_VARNAME .equ 0
+ZMAP_ENT_FLAGS .equ ZMAP_ENT_VARNAME + VARNAMELEN
+ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + 1
+
+ZMAP_ENT_FLAGS_INRAM .equ 0
+
+.db tExtTok, tAsm84CeCmp
+     
+start:
+   ld hl,str_hello
+   ld.l de,4
+   ld.l (curRow),de
+   call _PutS
+   ret
+
+; perform initial setup of zemu
+; INPUTS:
+;  - hl = pointer to name of zmap appvar (should be 8 bytes)
+zemu_init:
+   ; find zmap appvar
+   call appvar_to_OP1
+   call _ChkFindSym
+   jp c,_ErrInvalid  ; zmap appvar not found
+   ; store zmap pointers
+   ex de,hl
+   ld (zmap_appvar),hl      ; store zmap ptr
+   inc hl
+   inc hl
+   ld (zmap_header),hl
+   ld de,0
+   ld e,(hl)         ; get header size
+   add hl,de         ; pointer to table
+   ld (zmap_table),hl
+zemu_init.table_init:
+   ld hl,(zmap_header)
+   ld de,ZMAP_HDR_NPAGES
+   add hl,de
+   ld b,(hl)  ; de = number of pages
+   ld ix,(zmap_table)
+zemu_init.table_init.loop:
+   ; move varname into OP1
+   lea hl,ix+ZMAP_ENT_VARNAME
+   call appvar_to_OP1
+   call _ChkFindSym
+   
+   ; set tabent flags
+   xor a ; ld a,0   
+   ld (ix+ZMAP_ENT_FLAGS),0
+
+   ; loop condition
+   djnz zemu_init.table_init.loop
+   ret
+
+zemu_error.missing_zpage:
+   ;;; too be continueeeed
+
+; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
+; INPUTS:
+;  hl = name string (8 chars)
+; OUTPUTS: (none)
+; DESTROYS: a, hl, bc, de
+appvar_to_OP1:
+   ld de,OP1
+   ld (de),AppVarObj
+   inc de
+   ld bc,VARNAMELEN
+   ldir
+   ret
+
+zmap_appvar: .long 1
+zmap_header: .long 1
+zmap_table:  .long 1
+
+str_hello: .db "Hello, world!",0
+   

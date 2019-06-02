@@ -23,3 +23,7 @@ ZPAGE_SIZE: default zpage size, used in all C programs, scripts, and assembly
 
 Notes on conventions:
  - carry flag (C) indicates error on function return.
+
+
+Reverse Engineering _ChkFindSym
+Debugging

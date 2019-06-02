@@ -1,0 +1,28 @@
+; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
+; INPUTS:
+;  hl = name string (8 chars)
+; OUTPUTS: (none)
+; DESTROYS: a, hl, bc, de
+appvar_to_OP1:
+   ld de,OP1
+   ld a,AppVarObj
+   ld (de),a
+   inc de
+   ld bc,VARNAMELEN
+   ldir
+   ret
+
+; appvar_to_RAM -- bring appvar into RAM
+; INPUTS:
+;  hl = name string (8 chars)
+; OUTPUTS:
+appvar_to_RAM:
+   call appvar_to_OP1
+   call _ChkFindSym
+   ret c ; appvar not found
+   call _ChkInRAM
+   jr z,appvar_to_RAM.done
+   call _Arc_Unarc
+appvar_to_RAM.done:
+   call _ChkFindSym
+   ret ; NOTE: CF will always be reset

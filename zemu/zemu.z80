@@ -21,23 +21,33 @@ ZMAP_ENT_FLAGS_INRAM .equ 0
 ;; TODO: change error handlers to use UNIX-like error propogation?
 
 start:
+   ; clear screen & reset cursor
+   call _ClrScrnFull
+   ld hl,0
+   ld.s (curRow),hl
    ld hl,zork_zmap
-   call zemu_init
+   call zemu_open
    ret
 
-; perform initial setup of zemu
+; zemu_open -- open zemu story file
 ; INPUTS:
 ;  - hl = pointer to name of zmap appvar (should be 8 bytes)
-zemu_init:
-   ; save bottom of stack for early exits
-   ld (zemu_stackbottom),sp
-   ; find zmap appvar
+zemu_open:
+zemu_open.find_zmap:
    call appvar_to_OP1
+   ; find zmap appvar
    call _ChkFindSym
-   jr nc,zemu_init.found_zmap
+   jr nc,zemu_open.found_zmap
    ld a,ZERR_NOZMAP
    jp zemu_perror
-zemu_init.found_zmap:
+zemu_open.found_zmap:
+   ; check if in RAM
+   call _ChkInRAM
+   jr z,zemu_open.zmap_inRAM
+   ; unarchive zmap
+   call _Arc_Unarc
+   call _ChkFindSym
+zemu_open.zmap_inRAM:
    ; store zmap pointers
    ex de,hl
    ld (zmap_appvar),hl      ; store zmap ptr
@@ -48,38 +58,36 @@ zemu_init.found_zmap:
    ld e,(hl)         ; get header size
    add hl,de         ; pointer to table
    ld (zmap_table),hl
-zemu_init.table_init:
+zemu_open.table_init:
    ld ix,(zmap_header)
    ld b,(ix+ZMAP_HDR_NPAGES)
    ld ix,(zmap_table)
-zemu_init.table_init.loop:
+zemu_open.table_init.loop:
    push ix
    push.s bc
    ; move varname into OP1
    lea hl,ix+ZMAP_ENT_VARNAME
    call appvar_to_OP1
    call _ChkFindSym
-   jr nc,zemu_init.table_init.found_zmap   
+   jr nc,zemu_open.table_init.found_zpage
    ld a,ZERR_NOZPAGE
+   pop de
+   pop de
    jp zemu_perror
-zemu_init.table_init.found_zpage:
+zemu_open.table_init.found_zpage:
    ld (ix+ZMAP_ENT_FLAGS),0
    xor a
    cp b    ; CF set iff archived
    ccf     ; CF set iff in RAM
    rl (ix+ZMAP_ENT_FLAGS)
-
    pop.s bc
    pop ix
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
-   djnz zemu_init.table_init.loop
+   djnz zemu_open.table_init.loop
    ret
 
-;; zemu_exit -- exit from zemu, performing necessary cleanup, etc.
-;; NOTE returns to main's stack frame, so main cannot call zemu_exit.
-
-zemu_exit:
+;; zemu_cleanup -- cleanup in preparation for exit
 zemu_cleanup:
    ; check if zmap was found
    ld hl,(zmap_appvar)
@@ -103,36 +111,16 @@ zemu_cleanup.table_loop.cond:
 zemu_cleanup.table_loop.end:
 zemu_cleanup.done:
 zemu_exit.done:
-   ld sp,(zemu_stackbottom)
+   scf \ ccf ; success
    ret
 
-zemu_error.missing_zmap:
-   ld hl,zemu_errmsg.missing_zpage
-   jp zemu_error
 
-; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
-; INPUTS:
-;  hl = name string (8 chars)
-; OUTPUTS: (none)
-; DESTROYS: a, hl, bc, de
-appvar_to_OP1:
-   ld de,OP1
-   ld a,AppVarObj
-   ld (de),a
-   inc de
-   ld bc,VARNAMELEN
-   ldir
-   ret
-
-zemu_stackbottom: .dl 0
 zmap_appvar: .dl 0
 zmap_header: .dl 0
 zmap_table:  .dl 0
 
-zemu_errmsg.missing_zpage: .db "zemu: missing zpage.",0
-
-
-
 ;; TESTING ;;
 zork_zmap: .db "ZORK",0,0,0,0
 
+#include "zerr.z80"
+#include "zutil.z80"

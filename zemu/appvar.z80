@@ -7,25 +7,20 @@
 #define APPVAR_SIZE 100000
 
 start:
-   call detect_appvar
-   jr c,create_appvar
-delete_appvar:
-   call _DelVar
-create_appvar:
-   ld hl,appvar_name
+   ld hl,0
+   ld.s (curRow),hl
+   ld hl,zork_zmap
    call _Mov9ToOP1
-   ld hl,APPVAR_SIZE
-   call _CreateAppVar
-   call detect_appvar
-done:
+   call _ChkFindSym
+   call _ChkInRAM
+   ld hl,msg_z
+   jr z,_
+   ld hl,msg_nz
+_:
+   call _PutS
    ret
 
-;; find appvar
-detect_appvar:
-   ; get address of appvar
-   ld hl,appvar_name
-   call _Mov9ToOP1
-   call _ChkFindSym ; data address is in de
-   ret
+zork_zmap: .db AppVarObj,"ZORK",0
 
-appvar_name: .db AppVarObj,"TESTVAR",0
+msg_z: .db "z",0
+msg_nz: .db "nz",0

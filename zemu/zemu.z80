@@ -36,22 +36,6 @@ zemu_open.find_zmap:
    call appvar_to_RAM
    ld a,ZERR_NOZMAP
    ret c
-   jr zemu_open.zmap_inRAM
-
-   call appvar_to_OP1
-   ; find zmap appvar
-   call _ChkFindSym
-   jr nc,zemu_open.found_zmap
-   ld a,ZERR_NOZMAP
-   jp zemu_perror
-zemu_open.found_zmap:
-   ; check if in RAM
-   call _ChkInRAM
-   jr z,zemu_open.zmap_inRAM
-   ; unarchive zmap
-   call _Arc_Unarc
-   call _ChkFindSym
-zemu_open.zmap_inRAM:
    ; store zmap pointers
    ex de,hl
    ld (zmap_appvar),hl      ; store zmap ptr
@@ -77,13 +61,13 @@ zemu_open.table_init.loop:
    ld a,ZERR_NOZPAGE
    pop de
    pop de
-   jp zemu_perror
+   ret
 zemu_open.table_init.found_zpage:
    ld (ix+ZMAP_ENT_FLAGS),0
-   xor a
-   cp b    ; CF set iff archived
-   ccf     ; CF set iff in RAM
-   rl (ix+ZMAP_ENT_FLAGS)
+   call _ChkInRAM
+   jr nz,zemu_open.table_init.loop_end
+   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+zemu_open.table_init.loop_end
    pop.s bc
    pop ix
    lea ix,ix+ZMAP_TABENTLEN

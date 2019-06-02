@@ -3,7 +3,7 @@
              ;; define categories of keywords
              (z-opcodes '("adc" "add" "cp" "daa" "dec" "inc" "mlt"
                           "neg" "sbc" "sub"
-                          "bit" "res" "set" "cpd" "cpdr" "cpi" "cpir"
+                          "bit" "res" "[[:space:]]set[[:space:]]" "cpd" "cpdr" "cpi" "cpir"
                           "ldd" "lddr" "ldi" "ldir" "ex" "exx" "in"
                           "in0" "ind" "indr" "indrx" "ind2" "ind2r"
                           "indm" "indmr" "ini" "inir" "inirx" "ini2"

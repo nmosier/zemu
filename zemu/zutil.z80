@@ -16,6 +16,7 @@ appvar_to_OP1:
 ; INPUTS:
 ;  hl = name string (8 chars)
 ; OUTPUTS:
+;  de = pointer to appvar data in RAM
 appvar_to_RAM:
    call appvar_to_OP1
    call _ChkFindSym

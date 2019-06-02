@@ -18,8 +18,6 @@ ZMAP_ENT_FLAGS_INRAM .equ 0
 
 .db tExtTok, tAsm84CeCmp
 
-;; TODO: change error handlers to use UNIX-like error propogation?
-
 start:
    ; clear screen & reset cursor
    call _ClrScrnFull
@@ -27,6 +25,7 @@ start:
    ld.s (curRow),hl
    ld hl,zork_zmap
    call zemu_open
+   jp c,zemu_perror
    ret
 
 ; zemu_open -- open zemu story file
@@ -34,6 +33,11 @@ start:
 ;  - hl = pointer to name of zmap appvar (should be 8 bytes)
 zemu_open:
 zemu_open.find_zmap:
+   call appvar_to_RAM
+   ld a,ZERR_NOZMAP
+   ret c
+   jr zemu_open.zmap_inRAM
+
    call appvar_to_OP1
    ; find zmap appvar
    call _ChkFindSym

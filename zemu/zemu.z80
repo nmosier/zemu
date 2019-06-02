@@ -34,7 +34,10 @@ zemu_init:
    ; find zmap appvar
    call appvar_to_OP1
    call _ChkFindSym
-   jp c,_ErrInvalid  ; zmap appvar not found
+   jr nc,zemu_init.found_zmap
+   ld a,ZERR_NOZMAP
+   jp zemu_perror
+zemu_init.found_zmap:
    ; store zmap pointers
    ex de,hl
    ld (zmap_appvar),hl      ; store zmap ptr
@@ -56,7 +59,10 @@ zemu_init.table_init.loop:
    lea hl,ix+ZMAP_ENT_VARNAME
    call appvar_to_OP1
    call _ChkFindSym
-   jr c,zemu_error.missing_zmap
+   jr nc,zemu_init.table_init.found_zmap   
+   ld a,ZERR_NOZPAGE
+   jp zemu_perror
+zemu_init.table_init.found_zpage:
    ld (ix+ZMAP_ENT_FLAGS),0
    xor a
    cp b    ; CF set iff archived
@@ -68,21 +74,6 @@ zemu_init.table_init.loop:
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
    djnz zemu_init.table_init.loop
-   ret
-   
-;; zemu_error
-;; INPUTS:
-;;  hl = pointer to error message string
-;; NOTE: never returns.
-zemu_error:
-   ld.s de,0
-   ld.s (curRow),de
-   push hl
-   call _ClrScrnFull
-   pop hl
-   call _PutS
-   call _GetKey
-   call zemu_cleanup
    ret
 
 ;; zemu_exit -- exit from zemu, performing necessary cleanup, etc.

@@ -1,0 +1,37 @@
+
+ZERRCNT .equ 3
+
+ZERR_NOZMAP .equ 0
+ZERR_NOZPAGE .equ 1
+ZERR_NOMEM .equ 2
+
+zerrmsg_nozpage: .db "zpage not found",0
+zerrmsg_nozmap: .db "zmap not found",0
+zerrmsg_nomem: .db "not enough free RAM",0
+
+zerrtab:
+   .dl zerrmsg_nozmap
+   .dl zerrmsg_nozpage
+   .dl zerrmsg_nomem
+
+;; zemu_perror -- print error message given zerror code.
+;; INPUTS:
+;;  a = zerror code
+;; OUTPUTS: (none)
+;; DESTROYS: All
+;; NOTE: zemu_perror always sets the carry flag to indicate
+;;  error condition. This doesn't mean that zemu_perror failed
+;;  (it can't fail), but it is rather for convenience so that
+;;  error-handling code can jump to zemu_perror without having
+;;  to set the carry flag after calling zemu_perror.
+zemu_perror:
+   ld d,a
+   ld e,3
+   mlt de
+   ld ix,zerrtab
+   add ix,de
+   ld hl,(ix+0)
+   call _PutS
+   call _NewLine
+   scf ; set carry flag 
+   ret

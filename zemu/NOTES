@@ -1,4 +1,4 @@
-Z-Pages:
+
  * appvars must be less than 256^2 bytes
  * zork is 92K
  * need to be able to experiment with different page sizes -- this should be
@@ -19,3 +19,7 @@ zmap format:
 
 Environment variables:
 ZPAGE_SIZE: default zpage size, used in all C programs, scripts, and assembly
+
+
+Notes on conventions:
+ - carry flag (C) indicates error on function return.

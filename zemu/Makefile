@@ -1,8 +1,11 @@
 CFLAGS=-g -c -Wall -pedantic
+ZSOURCES=zemu.z80 zerr.z80
+ZMAIN=zemu.z80
+ZTARGET=$(ZMAIN:.z80=.8xp)
 
-%.8xp: %.z80
-	spasm -E -L $^ $@
-	sed -i "" 's/=/.equ/g' $*.lab
+$(ZTARGET): $(ZSOURCES)
+	spasm -E -L $(ZMAIN) $@
+	sed -i "" 's/=/.equ/g' $(ZTARGET:.lab=.8xp)
 
 zmap: zmap.o
 	gcc -o $@ $^

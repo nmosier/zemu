@@ -15,20 +15,19 @@
 #define EZ80_WORDSIZE 3
 
 struct zmap_header {
-   uint8_t zmh_headersize;
    uint16_t zmh_pagesize;
-   uint8_t zmh_storysize[EZ80_WORDSIZE];
+   unsigned int zmh_storysize: 24;
    uint8_t zmh_npages;
 };
 
 struct zmap_tabent {
    char zme_varname[VARNAMELEN];
    uint8_t zme_flags;
-   uint8_t zme_ptr[EZ80_WORDSIZE];
+   unsigned int zme_ptr: 24;
 };
 
-int zmap_header_write(FILE *outf, const struct zmap_header *hdr);
-int zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt);
+void zmap_header_write(FILE *outf, const struct zmap_header *hdr);
+void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt);
 
 int main(int argc, char *argv[]) {
    const char *usage = "usage: %s [-n page_size] [-o outfile] storyfile [zpagefile...]\n";
@@ -122,11 +121,8 @@ int main(int argc, char *argv[]) {
 
    /* construct header */
    struct zmap_header hdr;
-   hdr.zmh_headersize = sizeof(hdr);
    hdr.zmh_pagesize = zpage_size;
-   for (int i = 0; i < EZ80_WORDSIZE; ++i) {
-      hdr.zmh_storysize[i] = (uint8_t) ((storystat.st_size >> (i * 8)) & 0xff);
-   }
+   hdr.zmh_storysize = storystat.st_size;
    hdr.zmh_npages = (storystat.st_size + hdr.zmh_pagesize - 1) / zpage_size;
 
    /* construct table */
@@ -207,10 +203,29 @@ int main(int argc, char *argv[]) {
    return exitno;
 }
 
-int zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
-   return fwrite(hdr, sizeof(*hdr), 1, outf);
+#define BYTE(val,n) ((uint8_t) (((val) >> ((n) * 8)) & 0xff))
+
+void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
+   /* write page sizes */
+   for (int i = 0; i < 2; ++i) {
+      fputc(BYTE(hdr->zmh_pagesize, i), outf);
+   }
+
+   /* write story size */
+   for (int i = 0; i < 3; ++i) {
+      fputc(BYTE(hdr->zmh_storysize, i), outf);
+   }
+
+   /* write npages */
+   fputc(hdr->zmh_npages, outf);
 }
 
-int zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {
-   return fwrite(tab, sizeof(*tab), cnt, outf);
+void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {
+   for (int i = 0; i < cnt; ++i) {
+      fwrite(tab[i].zme_varname, 1, VARNAMELEN, outf);
+      fputc(tab[i].zme_flags, outf);
+      for (int j = 0; j < 3; ++j) {
+         fputc(BYTE(tab[i].zme_ptr, j), outf);
+      }
+   }
 }

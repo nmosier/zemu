@@ -20,10 +20,13 @@ zmap format:
 Environment variables:
 ZPAGE_SIZE: default zpage size, used in all C programs, scripts, and assembly
 
-
 Notes on conventions:
  - carry flag (C) indicates error on function return.
 
-
-Reverse Engineering _ChkFindSym
-Debugging
+The Memory Map
+ * Need AppVar for the call state & the user stack.
+   (One can grow down; the other can grow up.)
+ * Start out with 1024 for call state.
+ * Ideas for quick caching
+   - Remember address range of last page written to.
+   - Swap out when out of mem.

@@ -1,17 +1,13 @@
-
 ZERRCNT .equ 3
 
-ZERR_NOZMAP .equ 0
-ZERR_NOZPAGE .equ 1
-ZERR_NOMEM .equ 2
+ZERR_NOVAR .equ 0
+ZERR_NOMEM .equ 1
 
-zerrmsg_nozpage: .db "zpage not found",0
-zerrmsg_nozmap: .db "zmap not found",0
+zerrmsg_novar: .db "appvar not found",0
 zerrmsg_nomem: .db "not enough free RAM",0
 
 zerrtab:
-   .dl zerrmsg_nozmap
-   .dl zerrmsg_nozpage
+   .dl zerrmsg_novar
    .dl zerrmsg_nomem
 
 ;; zemu_perror -- print error message given zerror code.

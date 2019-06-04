@@ -8,8 +8,18 @@ appvar_to_OP1:
    ld a,AppVarObj
    ld (de),a
    inc de
+   xor a
    ld bc,VARNAMELEN
-   ldir
+appvar_to_OP1.loop:
+   ldi
+   ret po
+   cp (hl)
+   jr nz,appvar_to_OP1.loop
+   ld b,c ; remainder bytes to zero out
+appvar_to_OP1.zero:
+   ld (de),a
+   inc de
+   djnz appvar_to_OP1.zero
    ret
 
 ; appvar_to_RAM -- bring appvar into RAM
@@ -17,13 +27,25 @@ appvar_to_OP1:
 ;  hl = name string (8 chars)
 ; OUTPUTS:
 ;  de = pointer to appvar data in RAM
+; DESTROYS: (all), OP1
 appvar_to_RAM:
    call appvar_to_OP1
    call _ChkFindSym
+   ld a,ZERR_NOVAR
    ret c ; appvar not found
    call _ChkInRAM
    jr z,appvar_to_RAM.done
-   call _Arc_Unarc
+   ex de,hl
+   ld de,0 ; ld deu,0
+   ld e,(hl)
+   inc hl
+   ld d,(hl)
+   call _MemChk
+   scf \ ccf
+   sbc hl,de
+   ld a,ZERR_NOMEM
+   ret c
+   call _Arc_Unarc   ; TODO: check if enough memory first to avoid ERR:MEMORY
 appvar_to_RAM.done:
    call _ChkFindSym
    ret ; NOTE: CF will always be reset

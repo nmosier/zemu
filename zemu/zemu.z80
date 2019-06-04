@@ -30,11 +30,14 @@ start:
 
 ; zemu_open -- open zemu story file
 ; INPUTS:
-;  - hl = pointer to name of zmap appvar (should be 8 bytes)
+;  - hl = pointer to name of zmap appvar
+; OUTPUTS:
+;  zemu_appvar, zemu_header, zemu_table set
+; DESTROYS: (all)
 zemu_open:
 zemu_open.find_zmap:
    call appvar_to_RAM
-   ld a,ZERR_NOZMAP
+   ld a,ZERR_NOVAR
    ret c
    ; store zmap pointers
    ex de,hl
@@ -58,12 +61,18 @@ zemu_open.table_init.loop:
    call _ChkFindSym
    pop.s bc
    pop ix
-   ld a,ZERR_NOZPAGE
+   ld a,ZERR_NOVAR
    ret c  ; return if no page found
    ld (ix+ZMAP_ENT_FLAGS),0
    call _ChkInRAM
    jr nz,zemu_open.table_init.loop_end
+   ; set RAM flag
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+   ; save pointer
+   inc de
+   inc de
+   ld (ix+ZMAP_ENT_PTR),de
+   ;;; DEBUG ;;;
    lea hl,ix+ZMAP_ENT_VARNAME
    push ix
    push bc
@@ -71,14 +80,14 @@ zemu_open.table_init.loop:
    call _NewLine
    pop bc
    pop ix
+   ;;; DEBUG ;;;
 zemu_open.table_init.loop_end
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
    djnz zemu_open.table_init.loop
-   scf \ ccf
+   scf \ ccf ; success
    ret
    
-
 ;; zemu_cleanup -- cleanup in preparation for exit
 zemu_cleanup:
    ; check if zmap was found

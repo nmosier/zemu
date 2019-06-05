@@ -4,23 +4,23 @@
 
 .db tExtTok, tAsm84CeCmp
 
+#define VARNAMELEN 8
 #define APPVAR_SIZE 100000
 
 start:
-   ld hl,0
-   ld.s (curRow),hl
-   ld hl,zork_zmap
+   ;ld hl,name
+   ;ld de,$2002
+   ;call appvar_touch
+   ;ret
+
+   ld hl,name
    call _Mov9ToOP1
-   call _ChkFindSym
-   call _ChkInRAM
-   ld hl,msg_z
-   jr z,_
-   ld hl,msg_nz
-_:
-   call _PutS
+   call _MemChk
+   ld hl,$2002
+   call _CreateAppVar
    ret
 
-zork_zmap: .db AppVarObj,"ZORK",0
+name: .db AppVarObj,"ZEMUMEM",0
 
-msg_z: .db "z",0
-msg_nz: .db "nz",0
+#include "zutil.z80"
+#include "zerr.z80"

@@ -24,7 +24,9 @@ start:
    ld hl,0
    ld.s (curRow),hl
    ld hl,zork_zmap
-   call zemu_open
+   call zemu_open ; open story file
+   jp c,zemu_perror
+   call zmem_init ; initialize memory
    jp c,zemu_perror
    ret
 
@@ -124,3 +126,4 @@ zork_zmap: .db "ZORK",0,0,0,0
 
 #include "zerr.z80"
 #include "zutil.z80"
+#include "zmem.z80"

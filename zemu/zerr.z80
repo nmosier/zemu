@@ -1,4 +1,4 @@
-ZERRCNT .equ 3
+ZERRCNT .equ 2
 
 ZERR_NOVAR .equ 0
 ZERR_NOMEM .equ 1
@@ -21,13 +21,40 @@ zerrtab:
 ;;  error-handling code can jump to zemu_perror without having
 ;;  to set the carry flag after calling zemu_perror.
 zemu_perror:
+   call zemu_perror_bare
+   call _NewLine   
+   scf
+   ret
+
+zemu_perror_bare:
+   call zemu_strerror
+   call _PutS
+   ret
+
+zemu_perror_OP1:
+   call zemu_perror_bare
+   ld hl,zemu_perror_sep
+   call _PutS
+   ld hl,OP1+1
+   call _PutS
+   scf
+   ret
+
+zemu_perror_sep: .db ": ",0
+
+;; zemu_strerror -- return error string given error code.
+;; INPUTS:
+;;  a = zerror code
+;; OUTPUTS:
+;;  hl = error string (null-terminated)
+;;  CF is set
+;; DESTROYS: de, ix
+zemu_strerror:
    ld d,a
    ld e,3
    mlt de
    ld ix,zerrtab
    add ix,de
    ld hl,(ix+0)
-   call _PutS
-   call _NewLine
-   scf ; set carry flag 
+   scf
    ret

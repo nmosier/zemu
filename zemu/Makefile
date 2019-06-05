@@ -1,5 +1,5 @@
 CFLAGS=-g -c -Wall -pedantic
-ZSOURCES=zemu.z80 zerr.z80 zutil.z80
+ZSOURCES=zemu.z80 zerr.z80 zutil.z80 zmem.z80
 ZMAIN=zemu.z80
 ZTARGET=$(ZMAIN:.z80=.8xp)
 

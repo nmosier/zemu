@@ -30,3 +30,4 @@ The Memory Map
  * Ideas for quick caching
    - Remember address range of last page written to.
    - Swap out when out of mem.
+

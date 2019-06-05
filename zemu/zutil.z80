@@ -24,9 +24,10 @@ appvar_to_OP1.zero:
 
 ; appvar_to_RAM -- bring appvar into RAM
 ; INPUTS:
-;  hl = name string (8 chars)
+;  hl = name string
 ; OUTPUTS:
 ;  de = pointer to appvar data in RAM
+; ERROR: a = error code, CF set
 ; DESTROYS: (all), OP1
 appvar_to_RAM:
    call appvar_to_OP1
@@ -45,7 +46,32 @@ appvar_to_RAM:
    sbc hl,de
    ld a,ZERR_NOMEM
    ret c
-   call _Arc_Unarc   ; TODO: check if enough memory first to avoid ERR:MEMORY
+   call _Arc_Unarc
 appvar_to_RAM.done:
    call _ChkFindSym
    ret ; NOTE: CF will always be reset
+
+;; appvar_touch -- create appvar (if doens't already exist) and move it into RAM. 
+;; INPUTS:
+;;  hl = name string
+;;  de.s = size of appvar
+;; OUTPUTS:
+;;  de = pointer to appvar data
+;; ERROR: yes.
+appvar_touch:
+   push.s de
+   call appvar_to_RAM
+   pop.s hl   ; appvar size now in hl.s
+   ret nc ; found appvar and is in RAM
+   ; check if enough RAM
+   push.s hl
+   call _MemChk
+   pop.s de
+   sbc.s hl,de
+   ld a,ZERR_NOMEM
+   ret c
+   ; create var
+   ex.s de,hl
+   call _CreateAppVar
+   scf \ ccf ; success
+   ret

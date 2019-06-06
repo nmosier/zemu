@@ -13,6 +13,7 @@ zerrtab:
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:
 ;;  a = zerror code
+;;  hl = string
 ;; OUTPUTS: (none)
 ;; DESTROYS: All
 ;; NOTE: zemu_perror always sets the carry flag to indicate
@@ -21,10 +22,14 @@ zerrtab:
 ;;  error-handling code can jump to zemu_perror without having
 ;;  to set the carry flag after calling zemu_perror.
 zemu_perror:
+   call _PutS
+   ld hl,zemu_perror.sep
+   call _PutS
    call zemu_perror_bare
    call _NewLine   
    scf
    ret
+zemu_perror.sep: .db ": ",0
 
 zemu_perror_bare:
    call zemu_strerror

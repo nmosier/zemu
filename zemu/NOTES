@@ -31,3 +31,7 @@ The Memory Map
    - Remember address range of last page written to.
    - Swap out when out of mem.
 
+The Save State
+ * Contents of memory map.
+ * Name of zmap (story file).
+ * 

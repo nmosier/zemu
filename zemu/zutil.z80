@@ -75,3 +75,46 @@ appvar_touch:
    call _CreateAppVar
    scf \ ccf ; success
    ret
+
+;; appvar_create -- create appvar (deleting existing one of same name).
+;; INPUTS:
+;;  hl = name string
+;;  de.s = size of appvar
+;; OUTPUTS:
+;;  de = pointer to appvar data
+;; DESTROYS: (all)
+;; ERROR: yes.
+appvar_create:
+   push.s de
+   call appvar_to_OP1
+   call _ChkFindSym
+   jr c,appvar_create.deleted
+   call _DelVarArc
+appvar_create.deleted:
+   call _MemChk
+   pop.s de
+   sbc.s hl,de
+   ld a,ZERR_NOMEM
+   ret c ; not enough mem
+   ex.s de,hl ; hl = size
+   call _CreateAppVar
+   ; de = ptr to appvar
+   ret
+
+
+;; strncpy -- copy at most n bytes of null-terminated string
+;; INPUTS:
+;;  hl = src
+;;  de = dst
+;;  bc = n
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; NOTE: n must be positive. Also, string cannot be empty.
+strncpy:
+   xor a
+strncpy.loop:
+   ldi
+   ret po
+   cp (hl)
+   jr nz,strncpy.loop
+   ret

@@ -25,10 +25,20 @@ start:
    ld.s (curRow),hl
    ld hl,zork_zmap
    call zemu_open ; open story file
+   ld hl,zemu_open_str
    jp c,zemu_perror
    call zmem_init ; initialize memory
+   ld hl,zmem_init_str
+   jp c,zemu_perror
+   ld hl,zork_save
+   call zsave_create
+   ld hl,zsave_create_str
    jp c,zemu_perror
    ret
+
+zemu_open_str: .db "zemu_open",0
+zmem_init_str: .db "zmem_init",0
+zsave_create_str: .db "zsave_create",0
 
 ; zemu_open -- open zemu story file
 ; INPUTS:
@@ -37,6 +47,12 @@ start:
 ;  zemu_appvar, zemu_header, zemu_table set
 ; DESTROYS: (all)
 zemu_open:
+   ; save name
+   push hl
+   ld de,zmap_name
+   ld bc,VARNAMELEN
+   call strncpy
+   pop hl
 zemu_open.find_zmap:
    call appvar_to_RAM
    ld a,ZERR_NOVAR
@@ -117,13 +133,15 @@ zemu_exit.done:
    scf \ ccf ; success
    ret
 
+zmap_name: .byte VARNAMELEN
 zmap_appvar: .dl 0
 zmap_header: .dl 0
 zmap_table:  .dl 0
 
 ;; TESTING ;;
-zork_zmap: .db "ZORK",0,0,0,0
+zork_zmap: .db "ZORK",0
+zork_save: .db "SAVE1",0
 
 #include "zerr.z80"
 #include "zutil.z80"
-#include "zmem.z80"
+#include "zmem.z80"B

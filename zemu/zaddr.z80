@@ -1,0 +1,41 @@
+; zaddr.z80 -- routines for zaddresses
+
+;; zaddr_to_phys -- convert logical address to physical CPU address.
+;; INPUTS:
+;;  hl = logical address
+;;  zmap_header, zmap_table set
+;; OUTPUTS:
+;;  hl = physical address
+zaddr_to_phys:
+   ld ix,(zmap_header)
+   ld e,(ix+ZMAP_HDR_PAGEMASK)
+   ld d,(ix+ZMAP_HDR_PAGEMASK+1)
+   ; and hl,~de => page number * page size
+   push hl
+   push de
+   ld a,d
+   cpl
+   and h
+   ld d,a
+   ld a,e
+   cpl
+   and l
+   ld e,a
+   ; NOTE: we don't need to invert the highest bit of de
+   ; because it will always be 0 (since page sizes are less
+   ; than 0xffff).
+   ld b,(ix+ZMAP_HDR_PAGEBITS)
+   ld (zaddr_to_phys.long),hl ; need to get upper byte
+   ld hl,zaddr_to_phys.long+2
+zaddr_to_phys.page_num_shift:
+   ; (zaddr_to_phys.long+2):d:e >>= 1
+   srl (hl)
+   rr d
+   rr e
+   djnz zaddr_to_phys.page_num_shift
+zaddr_to_phys.page_ent:
+   pop de
+   pop hl
+   ;; TODO
+
+zaddr_to_phys.long: .dl 0

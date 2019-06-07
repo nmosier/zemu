@@ -15,7 +15,7 @@
 #define EZ80_WORDSIZE 3
 
 struct zmap_header {
-   uint16_t zmh_pagesize;
+   uint16_t zmh_pagemask;
    unsigned int zmh_storysize: 24;
    uint8_t zmh_npages;
 };
@@ -108,6 +108,17 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "%s: invalid zpage size (must be set with `-n' option or "\
               "through environment variable %s)\n", argv[0], ZPAGE_SIZE_ENV);
       goto cleanup;
+   } else {
+      /* verify that zpage_size is power of 2 */
+      int zpage_size_shifted;
+      for (zpage_size_shifted = zpage_size;
+           (zpage_size_shifted & 0x1) == 0;
+           zpage_size_shifted >>= 1)
+         {}
+      if (zpage_size_shifted != 1) {
+         fprintf(stderr, "%s: zpage size must be a power of 2\n", argv[0]);
+         goto cleanup;
+      }
    }
 
    /* parse arguments */
@@ -121,9 +132,9 @@ int main(int argc, char *argv[]) {
 
    /* construct header */
    struct zmap_header hdr;
-   hdr.zmh_pagesize = zpage_size;
+   hdr.zmh_pagemask = zpage_size - 1;
    hdr.zmh_storysize = storystat.st_size;
-   hdr.zmh_npages = (storystat.st_size + hdr.zmh_pagesize - 1) / zpage_size;
+   hdr.zmh_npages = (storystat.st_size + zpage_size - 1) / zpage_size;
 
    /* construct table */
 
@@ -175,7 +186,8 @@ int main(int argc, char *argv[]) {
 
    /* print verbose configuration information */
    if (verbose) {
-      printf("zpage size (B): %lu\n", (unsigned long) hdr.zmh_pagesize);
+      printf("zpage size (B): %lu\n", (unsigned long) zpage_size);
+      printf("zpage mask: %2lx\n", (unsigned long) hdr.zmh_pagemask);
       printf("story size (B): %lu\n", (unsigned long) storystat.st_size);
       printf("number of zpages: %lu\n", (unsigned long) hdr.zmh_npages);
       printf("zpage appvars:\n");
@@ -206,11 +218,11 @@ int main(int argc, char *argv[]) {
 #define BYTE(val,n) ((uint8_t) (((val) >> ((n) * 8)) & 0xff))
 
 void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
-   /* write page sizes */
+   /* write page mask */
    for (int i = 0; i < 2; ++i) {
-      fputc(BYTE(hdr->zmh_pagesize, i), outf);
+      fputc(BYTE(hdr->zmh_pagemask, i), outf);
    }
-
+   
    /* write story size */
    for (int i = 0; i < 3; ++i) {
       fputc(BYTE(hdr->zmh_storysize, i), outf);

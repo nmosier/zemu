@@ -118,3 +118,41 @@ strncpy.loop:
    cp (hl)
    jr nz,strncpy.loop
    ret
+
+
+;; div -- divide
+;; INPUTS:
+;;  hl.s = 16-bit dividend
+;;  de.s = 16-bit divisor
+;; OUTPUTS:
+;; DESTROYS: (all)
+
+div:
+   ld bc,0
+   push bc ; initialize remainder
+   ld b,16
+div.loop:
+   add.s hl,hl
+   ex (sp),hl
+   rl l
+   rl h
+   jr c,div.overflow
+   ld a,h
+   cp d
+   jr c,div.skip
+   ld a,l
+   cp e
+   jr c,div.skip
+div.overflow:
+   xor a ; faster than scf \ ccf
+   sbc.s   hl,de
+   ex (sp),hl
+   inc.s   hl
+   djnz  div.loop
+   jr div.done
+div.skip:
+   ex (sp),hl
+   djnz div.loop
+div.done:
+   pop de ; remainder
+   ret

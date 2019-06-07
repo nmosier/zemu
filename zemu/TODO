@@ -5,4 +5,5 @@ zemu TODO
 [ ] Have script also generate master variable of `zpages'
 [ ] Write caching / page management code.
 [ ] Write function for reading/writing to z-addresses.
-[ ] Rename zemu_open to zmap_open.
+[X] Rename zemu_open to zmap_open.
+[ ] Convert zpage size from actual bytes to n, where actual page size is 2^n.

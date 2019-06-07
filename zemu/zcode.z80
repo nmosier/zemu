@@ -1,0 +1,85 @@
+;; zcode.z80
+;; Nicholas Mosier 2019
+
+ZOPCODE_OPTYPE_H .equ 7
+ZOPCODE_OPTYPE_L .equ 6
+ZOPCODE_EXTENDED .equ $be
+
+Z_2OP .equ 2
+Z_1OP .equ 1
+Z_0OP .equ 0
+Z_VAR .equ -1
+
+;; zcode_decode -- decode single instruction
+;; INPUTS:
+;;  hl = pointer to instruction
+;; OUTPUTS:
+;; ERROR:
+;; DESTROYS:
+;; TODO: needs to accept LOGICAL ZADDR, not physical address.
+zcode_decode:
+   ; determine opcode type
+   ld a,(hl)
+   cp ZOPCODE_EXTENDED
+   jp z,zcode_decode_extended
+   bit ZOPCODE_OPTYPE_H,a
+   jp z,zcode_decode_long ; $$0x -> long
+   bit ZOPCODE_OPTYPE_L,a
+   jp z,zcode_decode_short ; $$10
+   jp nz,zcode_decode_variable ; $$11
+   ;; never reaches this point
+
+
+;; Upon entry, a = first byte of opcode.
+;; These four routines corresponding to each of 4 types
+;; (short, long, extended, variable) all assign the following
+;; values to registers:
+;;   b = opcount
+;;   c = opnum
+;; 
+zcode_decode_short:
+   ; 4.3.1 opcode count is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
+   ld b,a
+   cpl
+   and $30
+   ld a,b
+   ld b,Z_1OP
+   jr nz,zcode_decode_short.opcntset
+   ld b,Z_0OP
+zcode_decode_short.opcntset:
+   and a,$0f
+   ld c,a
+zcode_decode_short.opnumset:
+   ;; TODO
+   
+
+zcode_decode_long:
+   ; 4.3.2 opcode count is always 2OP
+   ld b,Z_2OP
+zcode_decode_long.opcntset:
+   and a,$1f
+   ld c,a
+zcode_decode_long.opnumset:
+   ;; TODO
+
+zcode_decode_extended:
+   ; 4.3.4 opcode count is VAR
+   ld b,Z_VAR
+zcode_decode_extended.opcntset:
+   inc hl ;; TODO: THIS MIGHT NOT BE ON THE SAME PAGE
+   ld c,(hl)
+zcode_decode_extended.opnumset:
+   ;; TODO
+
+zcode_decode_variable:
+   ; 4.3.3 if bit 5 is 0, then 2OP; otherwise VAR
+   ld b,Z_2OP
+   bit 5,a
+   jr z,zcode_decode_variable.opcntset
+   ld b,Z_VAR
+zcode_decode_variable.opcntset:
+   and a,$1f
+   ld c,a
+zcode_decode_variable.opnumset:
+   ;; TODO
+   

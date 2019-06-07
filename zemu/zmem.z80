@@ -1,0 +1,117 @@
+;; zmem.z80 -- memory management for zemu & save states
+
+ZMEM_SIZE .equ $2000
+
+;; struct zsave {
+;;   char map_name[VARNAMELEN];
+;;   uint24_t callstate_top;
+;;   uint24_t stack_top;
+;;   uint8_t mem_data[ZMEM_SIZE];
+;; }
+
+ZSAVE_MAP_NAME .equ 0
+ZSAVE_CALLSTATE_TOP .equ ZSAVE_MAP_NAME + VARNAMELEN
+ZSAVE_STACK_TOP .equ ZSAVE_CALLSTATE_TOP + 3
+ZSAVE_MEM_DATA .equ ZSAVE_STACK_TOP + 3
+
+ZSAVE_SIZE .equ ZSAVE_MEM_DATA + ZMEM_SIZE
+
+;; zmem_init -- initialize memory for zemu. Empty call state and program stack.
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  Sets zmem_appvar, zmem_callstate_top, zmem_stack_top.
+;; ERROR: a = error code, CF set
+;; DESTROYS: (all), OP1
+zmem_init:
+   ; get appvar in RAM
+   ld hl,zmem_name
+   ld de,ZMEM_SIZE+2 ; +2 for size bytes
+   call appvar_touch
+   ret c
+   ex de,hl
+   inc hl ; skip size bytes
+   inc hl
+   ld (zmem_begin),hl
+   ld (zmem_callstate_top),hl
+   ld de,ZMEM_SIZE
+   add hl,de
+   ld (zmem_stack_top),hl
+   scf \ ccf
+   ret
+   
+;; NOTE: callstate grows up, stack grows down.
+zmem_begin: .dl 0
+zmem_callstate_top: .dl 0
+zmem_stack_top: .dl 0
+
+zmem_name: .db "ZEMUM",0
+
+;; zsave_open -- open save file (and perform any call state / stack init.)
+;; INPUTS:
+;;  hl = name of save
+;; OUTPUTS:
+;;  zmem_callstate_top, zmem_stack_top, zmap_header, zmap_table
+;; ERROR: yes.
+;; TODO: better error handling.
+zsave_open:
+   call appvar_to_RAM
+   ret c
+   inc de
+   inc de ; skip size bytes
+   push de
+   call zmem_init
+   pop ix ; ix points to save appvar
+   ret c
+   ; restore mem (call state & stack)
+   lea hl,ix+ZSAVE_MEM_DATA
+   ld de,(zmem_callstate_top)
+   ld bc,ZMEM_SIZE
+   ldir
+   ; restore pointers
+   ld hl,(ix+ZSAVE_CALLSTATE_TOP)
+   ld (zmem_callstate_top),hl
+   ld hl,(ix+ZSAVE_STACK_TOP)
+   ld (zmem_stack_top),hl
+   ; open zmap file
+   lea hl,ix+ZSAVE_MAP_NAME
+   call zemu_open
+   ret c
+   scf \ ccf
+   ret
+
+;; zsave_create -- create new save file from current memory state.
+;; INPUTS:
+;;  hl = new save name
+;; OUTPUTS: (none)
+;; ERROR: yes.
+;; NOTE: zmem_init must alreay have been called.
+zsave_create:
+   ld.s de,ZSAVE_SIZE+2 ; +2 for size bytes
+   push hl
+   call appvar_create
+   pop hl
+   ret c
+   push de
+   pop ix
+   lea ix,ix+2 ; skip size bytes
+   ; store name
+   ld hl,zmap_name
+   lea de,ix+ZSAVE_MAP_NAME
+   ld bc,VARNAMELEN
+   call strncpy
+   ; store callstate ptr
+   lea hl,ix+ZSAVE_CALLSTATE_TOP
+   ld de,(zmem_callstate_top)
+   ld (hl),de
+   ; store stack ptr
+   lea hl,ix+ZSAVE_STACK_TOP
+   ld de,(zmem_stack_top)
+   ld (hl),de
+   ; store state data
+   lea de,ix+ZSAVE_MEM_DATA
+   ld hl,(zmem_begin)
+   ld bc,ZMEM_SIZE
+   ldir
+   scf \ ccf ; success
+   ret
+

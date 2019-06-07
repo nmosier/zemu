@@ -27,6 +27,25 @@ then
     exit 1
 fi
 
+# verify that page size is power of 2
+MAX_ZPAGE_SIZE=65535
+i=0
+acc=1
+while (( $acc < $MAX_ZPAGE_SIZE ))
+do
+    if [ $ZPAGE_SIZE -eq $acc ]
+    then
+        break
+    fi
+    i=$((i+1))
+    acc=$((acc*2))
+done
+if (( $acc >= $MAX_ZPAGE_SIZE ))
+then
+    echo "$0: zpage size must be power of 2"
+    exit 1
+fi
+
 STORY_PATH="$1"
 OUTDIR="$2"
 

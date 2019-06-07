@@ -21,8 +21,9 @@ ZMAP_ENT_FLAGS_INRAM .equ 0
 start:
    ; clear screen & reset cursor
    call _ClrScrnFull
-   ld hl,0
-   ld.s (curRow),hl
+   ld ix,curRow
+   ld (ix+0),0
+   ld (ix+1),0
    ld hl,zork_zmap
    call zemu_open ; open story file
    ld hl,zemu_open_str

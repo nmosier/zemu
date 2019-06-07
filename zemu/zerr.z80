@@ -2,6 +2,7 @@ ZERRCNT .equ 2
 
 ZERR_NOVAR .equ 0
 ZERR_NOMEM .equ 1
+ZERR_BADADDR .equ 2
 
 zerrmsg_novar: .db "appvar not found",0
 zerrmsg_nomem: .db "not enough free RAM",0

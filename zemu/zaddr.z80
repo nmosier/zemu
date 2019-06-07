@@ -33,9 +33,32 @@ zaddr_to_phys.page_num_shift:
    rr d
    rr e
    djnz zaddr_to_phys.page_num_shift
+zaddr_to_phys.page_num_check:
+   ; check if page num < NPAGES
+   xor a
+   cp d
+   jr c,zaddr_to_phys.err_addr
+   cp (hl)
+   jr c,zaddr_to_phys.err_addr
+   ld a,e
+   ld e,(ix+ZMAP_HDR_NPAGES)
+   cp e
+   ccf
+   jr c,zaddr_to_phys.err_addr
 zaddr_to_phys.page_ent:
-   pop de
+   call zmap_fetchpage
+   
+   
+   
+zaddr_to_phys.page_inram:
+   
+   
+
+zaddr_to_phys.err_addr:
    pop hl
-   ;; TODO
+   pop hl
+   ld a,ZERR_BADADDR
+   ret c
 
 zaddr_to_phys.long: .dl 0
+

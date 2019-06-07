@@ -16,6 +16,7 @@
 
 struct zmap_header {
    uint16_t zmh_pagemask;
+   uint8_t zmh_pagebits;
    unsigned int zmh_storysize: 24;
    uint8_t zmh_npages;
 };
@@ -37,6 +38,7 @@ int main(int argc, char *argv[]) {
    
    /* parameters */
    unsigned long zpage_size = 0;
+   unsigned zpage_bits = 0;
    FILE *outf; /* output binary */
    struct stat storystat; /* story file */
    struct zmap_tabent *tab = NULL;
@@ -113,8 +115,9 @@ int main(int argc, char *argv[]) {
       int zpage_size_shifted;
       for (zpage_size_shifted = zpage_size;
            (zpage_size_shifted & 0x1) == 0;
-           zpage_size_shifted >>= 1)
-         {}
+           zpage_size_shifted >>= 1) {
+         ++zpage_bits;
+      }
       if (zpage_size_shifted != 1) {
          fprintf(stderr, "%s: zpage size must be a power of 2\n", argv[0]);
          goto cleanup;
@@ -133,6 +136,7 @@ int main(int argc, char *argv[]) {
    /* construct header */
    struct zmap_header hdr;
    hdr.zmh_pagemask = zpage_size - 1;
+   hdr.zmh_pagebits = zpage_bits;
    hdr.zmh_storysize = storystat.st_size;
    hdr.zmh_npages = (storystat.st_size + zpage_size - 1) / zpage_size;
 
@@ -188,6 +192,7 @@ int main(int argc, char *argv[]) {
    if (verbose) {
       printf("zpage size (B): %lu\n", (unsigned long) zpage_size);
       printf("zpage mask: %2lx\n", (unsigned long) hdr.zmh_pagemask);
+      printf("zpage bits: %lu\n", (unsigned long) hdr.zmh_pagebits);
       printf("story size (B): %lu\n", (unsigned long) storystat.st_size);
       printf("number of zpages: %lu\n", (unsigned long) hdr.zmh_npages);
       printf("zpage appvars:\n");
@@ -222,6 +227,9 @@ void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
    for (int i = 0; i < 2; ++i) {
       fputc(BYTE(hdr->zmh_pagemask, i), outf);
    }
+
+   /* write page bits */
+   fputc(hdr->zmh_pagebits, outf);
    
    /* write story size */
    for (int i = 0; i < 3; ++i) {

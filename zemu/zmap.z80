@@ -23,6 +23,8 @@ zmap_fetchpage:
    call appvar_to_RAM
    pop ix
    ret c ; error
+   inc de
+   inc de ; skip size bytes
    ; update table entry
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
    ld (ix+ZMAP_ENT_PTR),de

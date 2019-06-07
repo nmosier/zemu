@@ -149,4 +149,6 @@ zork_save: .db "SAVE1",0
 
 #include "zerr.z80"
 #include "zutil.z80"
-#include "zmem.z80"B
+#include "zmem.z80"
+#include "zaddr.z80"
+#include "zmap.z80"

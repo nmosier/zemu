@@ -6,8 +6,18 @@
 ;;  zmap_header, zmap_table set
 ;; OUTPUTS:
 ;;  hl = physical address
+;; TODO: check if logical addr < story size, then don't need to do page # checks.
 zaddr_to_phys:
    ld ix,(zmap_header)
+zaddr_to_phys.check_size:
+   push hl
+   ld de,(ix+ZMAP_HDR_STORYSIZE)
+   call cp_hl_de
+   pop hl
+   ld a,ZERR_BADADDR
+   ccf
+   ret c ; if logaddr >= storysize, then bad addr
+zaddr_to_phys.page_num:
    ld e,(ix+ZMAP_HDR_PAGEMASK)
    ld d,(ix+ZMAP_HDR_PAGEMASK+1)
    ; and hl,~de => page number * page size
@@ -33,32 +43,27 @@ zaddr_to_phys.page_num_shift:
    rr d
    rr e
    djnz zaddr_to_phys.page_num_shift
-zaddr_to_phys.page_num_check:
-   ; check if page num < NPAGES
-   xor a
-   cp d
-   jr c,zaddr_to_phys.err_addr
-   cp (hl)
-   jr c,zaddr_to_phys.err_addr
    ld a,e
-   ld e,(ix+ZMAP_HDR_NPAGES)
-   cp e
-   ccf
-   jr c,zaddr_to_phys.err_addr
 zaddr_to_phys.page_ent:
    call zmap_fetchpage
-   
-   
-   
-zaddr_to_phys.page_inram:
-   
-   
-
-zaddr_to_phys.err_addr:
-   pop hl
-   pop hl
-   ld a,ZERR_BADADDR
+   pop bc ; page mask
+   pop de ; offset
    ret c
+zaddr_to_phys.get_offset:
+   ;; NOTE: since the zpage size is less than 2^16,
+   ;; the offset will be contained in the lower 16 bits
+   ;; of register de.
+   ; de <- bc & de
+   ld a,b
+   and d
+   ld d,a
+   ld a,c
+   and e
+   ld e,a
+   add hl,de ; hl = physical address
+   scf \ ccf
+   ret
 
 zaddr_to_phys.long: .dl 0
+
 

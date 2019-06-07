@@ -156,3 +156,36 @@ div.skip:
 div.done:
    pop de ; remainder
    ret
+
+;; cp_hl_de -- compare hl to de
+;; INPUTS:
+;;  hl, de
+;; OUTPUTS:
+;;  C if hl < de (NC if hl >= de)
+;;  Z if hl = de (NZ if hl != de)
+;; DESTROYS:
+cp_hl_de:
+   ld (cp_hl_de.hl),hl
+   ld (cp_hl_de.de),de
+   ld hl,cp_hl_de.hl+2
+   ld de,cp_hl_de.de+2
+   ld b,3
+cp_hl_de.loop:
+   ; if (hl) > (de) or (de) > (hl), easy
+   ld a,(de)
+   cp (hl) ; cp (de),(hl), i.e. (de) - (hl)
+   jr nz,cp_hl_de.nz
+   ; (hl) = (de)
+   dec hl
+   dec de
+   djnz cp_hl_de
+   ; but then (hl+i)=(de+i) for all i in 0..2, so hl = de
+   ; furthermore, Z and NC already set, so we are done
+   ret
+cp_hl_de.nz:
+   ; if C, then (hl) > (de), so hl > de
+   ccf ; so we flip the carry flag
+   ret ; and the flags are properly set now
+
+cp_hl_de.hl: .dl 0
+cp_hl_de.de: .dl 0

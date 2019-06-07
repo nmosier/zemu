@@ -1,0 +1,34 @@
+;; zmap.z80 -- zmap routines
+;; Nicholas Mosier 2019
+
+;; zmap_fetchpage -- fetch pointer to zpage in RAM. Brings into RAM if necessary.
+;; INPUTS:
+;;  a = page number
+;; OUTPUT:
+;;  hl = pointer to zpage in RAM (skips over size bytes)
+;; DESTROYS: 
+;; ERRORS: yes.
+;; NOTE: performs no validation of page number.
+zmap_fetchpage:
+   ld e,a
+   ld d,ZMAP_TABENTLEN
+   mlt de   ; de = table offset
+   ld ix,(zmap_table)
+   add ix,de ; pointer to table entry
+   bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+   jr nz,zmap_fetchpage.inram ; already in RAM
+   ; bring page into RAM
+   lea hl,ix+ZMAP_ENT_VARNAME
+   push ix
+   call appvar_to_RAM
+   pop ix
+   ret c ; error
+   ; update table entry
+   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+   ld (ix+ZMAP_ENT_PTR),de
+zmap_fetchpage.inram:
+   ld hl,(ix+ZMAP_ENT_PTR)
+   scf \ ccf
+   ret
+
+;; TODO: add 2 to entry b/c of size bytes.

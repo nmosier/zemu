@@ -8,4 +8,5 @@ zemu TODO
 [X] Rename zemu_open to zmap_open.
 [X] Convert zpage size from actual bytes to n, where actual page size is 2^n.
 [X] Write function for translating laddrs to paddrs.
-[ ] Test function for translating laddrs to paddrs.
+[X] Test function for translating laddrs to paddrs.
+[ ] Rename function: zaddr_to_phys -> zaddr_to_paddr

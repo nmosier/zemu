@@ -1,15 +1,15 @@
 ; zaddr.z80 -- routines for zaddresses
 
-;; zaddr_to_phys -- convert logical address to physical CPU address.
+;; zaddr_to_paddr -- convert logical address to physical CPU address.
 ;; INPUTS:
 ;;  hl = logical address
 ;;  zmap_header, zmap_table set
 ;; OUTPUTS:
 ;;  hl = physical address
 ;; TODO: check if logical addr < story size, then don't need to do page # checks.
-zaddr_to_phys:
+zaddr_to_paddr:
    ld ix,(zmap_header)
-zaddr_to_phys.check_size:
+zaddr_to_paddr.check_size:
    push hl
    ld de,(ix+ZMAP_HDR_STORYSIZE)
    call cp_hl_de
@@ -17,7 +17,7 @@ zaddr_to_phys.check_size:
    ld a,ZERR_BADADDR
    ccf
    ret c ; if logaddr >= storysize, then bad addr
-zaddr_to_phys.page_num:
+zaddr_to_paddr.page_num:
    ld e,(ix+ZMAP_HDR_PAGEMASK)
    ld d,(ix+ZMAP_HDR_PAGEMASK+1)
    ; and hl,~de => page number * page size
@@ -35,21 +35,21 @@ zaddr_to_phys.page_num:
    ; because it will always be 0 (since page sizes are less
    ; than 0xffff).
    ld b,(ix+ZMAP_HDR_PAGEBITS)
-   ld (zaddr_to_phys.long),hl ; need to get upper byte
-   ld hl,zaddr_to_phys.long+2
-zaddr_to_phys.page_num_shift:
-   ; (zaddr_to_phys.long+2):d:e >>= 1
+   ld (zaddr_to_paddr.long),hl ; need to get upper byte
+   ld hl,zaddr_to_paddr.long+2
+zaddr_to_paddr.page_num_shift:
+   ; (zaddr_to_paddr.long+2):d:e >>= 1
    srl (hl)
    rr d
    rr e
-   djnz zaddr_to_phys.page_num_shift
+   djnz zaddr_to_paddr.page_num_shift
    ld a,e
-zaddr_to_phys.page_ent:
+zaddr_to_paddr.page_ent:
    call zmap_fetchpage
    pop bc ; page mask
    pop de ; offset
    ret c
-zaddr_to_phys.get_offset:
+zaddr_to_paddr.get_offset:
    ;; NOTE: since the zpage size is less than 2^16,
    ;; the offset will be contained in the lower 16 bits
    ;; of register de.
@@ -64,6 +64,6 @@ zaddr_to_phys.get_offset:
    scf \ ccf
    ret
 
-zaddr_to_phys.long: .dl 0
+zaddr_to_paddr.long: .dl 0
 
 

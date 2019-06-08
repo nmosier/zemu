@@ -67,7 +67,7 @@ test_addrs:
 
 addr_test:
    call addr_print
-   call zaddr_to_phys
+   call zaddr_to_paddr
    call addr_show
    ret
 
@@ -76,7 +76,7 @@ addr_show:
    jp nc,addr_println
 
 addr_err:
-   ld hl,zaddr_to_phys_str
+   ld hl,zaddr_to_paddr_str
    jp zemu_perror
 
 addr_print:
@@ -98,7 +98,7 @@ addr_println:
 zemu_open_str: .db "zemu_open",0
 zmem_init_str: .db "zmem_init",0
 zsave_create_str: .db "zsave_create",0
-zaddr_to_phys_str: .db "zaddr_to_phys",0
+zaddr_to_paddr_str: .db "zaddr_to_paddr",0
 
 ; zemu_open -- open zemu story file
 ; INPUTS:

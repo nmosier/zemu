@@ -6,10 +6,12 @@ ZERR_BADADDR .equ 2
 
 zerrmsg_novar: .db "appvar not found",0
 zerrmsg_nomem: .db "not enough free RAM",0
+zerrmsg_badaddr: .db "bad address",0
 
 zerrtab:
    .dl zerrmsg_novar
    .dl zerrmsg_nomem
+   .dl zerrmsg_badaddr
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

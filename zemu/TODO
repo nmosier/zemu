@@ -6,4 +6,6 @@ zemu TODO
 [ ] Write caching / page management code.
 [ ] Write function for reading/writing to z-addresses.
 [X] Rename zemu_open to zmap_open.
-[ ] Convert zpage size from actual bytes to n, where actual page size is 2^n.
+[X] Convert zpage size from actual bytes to n, where actual page size is 2^n.
+[X] Write function for translating laddrs to paddrs.
+[ ] Test function for translating laddrs to paddrs.

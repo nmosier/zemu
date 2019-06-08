@@ -35,15 +35,70 @@ start:
    call zmem_init ; initialize memory
    ld hl,zmem_init_str
    jp c,zemu_perror
-   ld hl,zork_save
-   call zsave_create
-   ld hl,zsave_create_str
-   jp c,zemu_perror
+   ;ld hl,zork_save
+   ;call zsave_create
+   ;ld hl,zsave_create_str
+   ;jp c,zemu_perror
+
+   call test_addrs
+   call _GetKey
+
+   ret
+
+test_addrs:
+   ld hl,0
+   call addr_test
+   ld hl,1
+   call addr_test
+   ld hl,$1000
+   call addr_test
+   ld hl,$4321
+   call addr_test
+   ld ix,(zmap_header)
+   ld hl,(ix+ZMAP_HDR_STORYSIZE)
+   push hl
+   dec hl
+   call addr_test
+   pop hl
+   call addr_test
+   ld hl,$FFFFFF
+   call addr_test
+   ret
+
+addr_test:
+   call addr_print
+   call zaddr_to_phys
+   call addr_show
+   ret
+
+addr_show:
+   jp c,addr_err
+   jp nc,addr_println
+
+addr_err:
+   ld hl,zaddr_to_phys_str
+   jp zemu_perror
+
+addr_print:
+   push hl
+   call _DispHL
+   ld hl,addr_print.sep
+   call _PutS
+   pop hl
+   ret
+addr_print.sep: .db "->",0
+
+addr_println:
+   push hl
+   call _DispHL
+   call _NewLine
+   pop hl
    ret
 
 zemu_open_str: .db "zemu_open",0
 zmem_init_str: .db "zmem_init",0
 zsave_create_str: .db "zsave_create",0
+zaddr_to_phys_str: .db "zaddr_to_phys",0
 
 ; zemu_open -- open zemu story file
 ; INPUTS:

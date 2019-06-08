@@ -178,9 +178,10 @@ cp_hl_de.loop:
    ; (hl) = (de)
    dec hl
    dec de
-   djnz cp_hl_de
+   djnz cp_hl_de.loop
    ; but then (hl+i)=(de+i) for all i in 0..2, so hl = de
-   ; furthermore, Z and NC already set, so we are done
+   ; furthermore, Z already set and NC
+   scf \ ccf
    ret
 cp_hl_de.nz:
    ; if C, then (hl) > (de), so hl > de

@@ -3,10 +3,12 @@ ZERRCNT .equ 2
 ZERR_NOVAR .equ 0
 ZERR_NOMEM .equ 1
 ZERR_BADADDR .equ 2
+ZERR_NOTAVAIL .equ 3
 
 zerrmsg_novar: .db "appvar not found",0
 zerrmsg_nomem: .db "not enough free RAM",0
 zerrmsg_badaddr: .db "bad address",0
+zerrmsg_notavail: .db "opcode not supported",0
 
 zerrtab:
    .dl zerrmsg_novar

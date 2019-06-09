@@ -34,4 +34,7 @@ The Memory Map
 The Save State
  * Contents of memory map.
  * Name of zmap (story file).
- * 
+ *
+
+
+Drop support for V6.

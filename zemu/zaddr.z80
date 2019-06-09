@@ -6,7 +6,8 @@
 ;;  zmap_header, zmap_table set
 ;; OUTPUTS:
 ;;  hl = physical address
-;; TODO: check if logical addr < story size, then don't need to do page # checks.
+;; ERROR: yes.
+;; DESTROYS: (all)
 zaddr_to_paddr:
    ld ix,(zmap_header)
 zaddr_to_paddr.check_size:
@@ -66,4 +67,19 @@ zaddr_to_paddr.get_offset:
 
 zaddr_to_paddr.long: .dl 0
 
-
+;; zaddr_fetch -- fetch byte at logical address
+;; INPUTS:
+;;  hl = zaddr (logical address)
+;; OUTPUTS:
+;;  a = byte at zaddr
+;; ERROR: yes.
+;; DESTROYS: everything but HL.
+zaddr_fetch:
+   push hl
+   call zaddr_to_paddr
+   ex de,hl
+   pop hl
+   ret c ; addr translation error
+   ld a,(de) ; load byte
+   inc hl  ; update ptr
+   ret

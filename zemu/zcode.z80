@@ -1,8 +1,8 @@
 ;; zcode.z80
 ;; Nicholas Mosier 2019
 
-ZOPCODE_OPTYPE_H .equ 7
-ZOPCODE_OPTYPE_L .equ 6
+ZOPCODE_TYPE_H .equ 7
+ZOPCODE_TYPE_L .equ 6
 ZOPCODE_EXTENDED .equ $be
 
 Z_2OP .equ 2
@@ -10,47 +10,57 @@ Z_1OP .equ 1
 Z_0OP .equ 0
 Z_VAR .equ -1
 
+ZOP_OMITTED .equ $03
+ZOP_VARIABLE .equ $02
+ZOP_SMALL .equ $01
+ZOP_LARGE .equ $00
+
 ;; zcode_decode -- decode single instruction
 ;; INPUTS:
-;;  hl = pointer to instruction
+;;  hl = zaddr of instruction (logical address)
 ;; OUTPUTS:
 ;; ERROR:
 ;; DESTROYS:
-;; TODO: needs to accept LOGICAL ZADDR, not physical address.
 zcode_decode:
+   ; fetch first byte
+   call zaddr_fetch
+   ret c ; addr translation error
+zcode_decode.type:
    ; determine opcode type
-   ld a,(hl)
    cp ZOPCODE_EXTENDED
    jp z,zcode_decode_extended
-   bit ZOPCODE_OPTYPE_H,a
+   bit ZOPCODE_TYPE_H,a
    jp z,zcode_decode_long ; $$0x -> long
-   bit ZOPCODE_OPTYPE_L,a
+   bit ZOPCODE_TYPE_L,a
    jp z,zcode_decode_short ; $$10
    jp nz,zcode_decode_variable ; $$11
-   ;; never reaches this point
+   ;--;
 
-
+;; Each of these functions (zcode_decode_{short,long,variable})
+;; decode and execute the instruction. Never called directly.
 ;; Upon entry, a = first byte of opcode.
-;; These four routines corresponding to each of 4 types
-;; (short, long, extended, variable) all assign the following
-;; values to registers:
-;;   b = opcount
-;;   c = opnum
-;; 
 zcode_decode_short:
    ; 4.3.1 opcode count is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
    ld b,a
-   cpl
-   and $30
+   rrca
+   rrca
+   rrca
+   rrca
+   and $03
+   ld (zcode_decode.optype),a
+   ; fetch operand
+   ;; TODO: write function for doing this.
+   ; 4.3.1 opcode number given in bottom 4 bits.
    ld a,b
-   ld b,Z_1OP
-   jr nz,zcode_decode_short.opcntset
-   ld b,Z_0OP
-zcode_decode_short.opcntset:
-   and a,$0f
+   and $0f
    ld c,a
 zcode_decode_short.opnumset:
-   ;; TODO
+   ; 4.4.1 bits 4-5 also give the operand type.
+   ; fetch operand and type
+   
+
+zcode_decode.optype: .db 0
+zcode_decode.opval: .dl 0
    
 
 zcode_decode_long:
@@ -62,14 +72,6 @@ zcode_decode_long.opcntset:
 zcode_decode_long.opnumset:
    ;; TODO
 
-zcode_decode_extended:
-   ; 4.3.4 opcode count is VAR
-   ld b,Z_VAR
-zcode_decode_extended.opcntset:
-   inc hl ;; TODO: THIS MIGHT NOT BE ON THE SAME PAGE
-   ld c,(hl)
-zcode_decode_extended.opnumset:
-   ;; TODO
 
 zcode_decode_variable:
    ; 4.3.3 if bit 5 is 0, then 2OP; otherwise VAR
@@ -82,4 +84,94 @@ zcode_decode_variable.opcntset:
    ld c,a
 zcode_decode_variable.opnumset:
    ;; TODO
+
+
+
+;;-- NOT SUPPORTED --;;
+
+;; TODO: support extended opcodes.
+zcode_decode_extended:
+   ld a,ZERR_NOTAVAIL
+   ret c ; NOT SUPPORTED YET
+   ; 4.3.4 opcode count is VAR
+   ld b,Z_VAR
+zcode_decode_extended.opcntset:
+   ld c,a
+   push bc
+   call zaddr_fetch
+   pop bc
+   ret c ; error
+   ld d,c
+   ld c,a
+   ld a,d ;; swp a,c
+zcode_decode_extended.opnumset:
+   ;; TODO
+
+
+;; zcode_fetch_op -- fetch operand from logical address.
+;; INPUTS:
+;;  hl = zaddr of operand
+;;  a = operand type
+;; OUTPUTS:
+;;  de = operand (if large or variable value)
+;;  a = small 
+;;  hl points to byte after operand
+;; ERRORS: yes.
+zcode_fetch_op:
+   ex de,hl
+   ld bc,$000003
+   ld b,a
+   mlt bc
+   ld hl,zcode_fetch_op.LUT
+   add hl,bc
+   ld hl,(hl)
+   jp (hl)
+   
+zcode_fetch_op.LUT:
+   .dl zcode_fetch_op.large
+   .dl zcode_fetch_op.small
+   .dl zcode_fetch_op.variable
+   .dl zcode_fetch_op.omitted
+
+;; NOTE: result contained in de.
+zcode_fetch_op.large:
+   ex de,hl
+   call zaddr_fetch
+   ret c
+   ld d,a
+   push de
+   call zaddr_fetch
+   pop de
+   ret c
+   ld e,a
+   ret
+
+;; NOTE: result contained in a.
+zcode_fetch_op.small:
+   ex de,hl
+   call zaddr_fetch
+   ret
+
+;; NOTE: result contained in ???
+;; TODO: write variable fetch code
+zcode_fetch_op.variable:
+   ex de,hl
+   call zaddr_fetch
+   ret c
+   ; fetch variable value
+   ;; TODO
+
+zcode_fetch_op.omitted:
+   ex de,hl
+   scf \ ccf
+   ret
+
+
+;; zvar_fetch -- fetch variable value.
+;; INPUTS:
+;;  a = variable number
+;; OUTPUTS:
+;;  hl = variable value (16-bit)
+;; TODO -- need to write some stack manip code first.
+zvar_fetch:
    

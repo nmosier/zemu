@@ -58,7 +58,6 @@ int main(int argc, char *argv[]) {
       }
    }
 
-
    /* parse options */
    int optchar;
    int optgood = 1;

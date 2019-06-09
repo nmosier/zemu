@@ -9,4 +9,8 @@ zemu TODO
 [X] Convert zpage size from actual bytes to n, where actual page size is 2^n.
 [X] Write function for translating laddrs to paddrs.
 [X] Test function for translating laddrs to paddrs.
-[ ] Rename function: zaddr_to_phys -> zaddr_to_paddr
+[X] Rename function: zaddr_to_phys -> zaddr_to_paddr
+[X] Write function for fetching & decoding one instruction
+[ ] Decode operand types.
+[ ] Fix all push.s
+[ ] Have zaddr_fetch update ptr (hl).

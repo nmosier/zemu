@@ -36,5 +36,16 @@ The Save State
  * Name of zmap (story file).
  *
 
+STACK FRAME:
+[0] RETADDR     |
+[3] FP          |
+[6] SP          |
+[9] NLOCALS     |
+[10] LOCALS...  | fp
+...             |
+                | sp
+
+Invariant: SP always points to next spot on stack.
+
 
 Drop support for V6.

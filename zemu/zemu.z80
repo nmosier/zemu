@@ -35,13 +35,6 @@ start:
    call zmem_init ; initialize memory
    ld hl,zmem_init_str
    jp c,zemu_perror
-   ;ld hl,zork_save
-   ;call zsave_create
-   ;ld hl,zsave_create_str
-   ;jp c,zemu_perror
-
-   call test_addrs
-   call _GetKey
 
    ret
 

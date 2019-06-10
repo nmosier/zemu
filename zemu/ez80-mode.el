@@ -29,6 +29,7 @@
              (z-comments-regexp '";.*$")
              (z-label-regexp '"^[^;\n]*:")
              (z-ref-regexp '"[[:alpha:]_][[:alnum:]_\.]*")
+             (z-ref2-regexp '"[[:alpha:]\.]*_[[:alnum:]_\.]*")
              (z-suffixes-regexp (regexp-opt z-suffixes 'words))
              (z-string-regexp '"\"\([^\\\"]\|\\\"\)*\"")
              (z-directive-regexp '"^[\.#][[:alpha:]]+")
@@ -38,13 +39,14 @@
              ;; weird part
         `(
           (,z-comments-regexp . font-lock-comment-face)
+          (,z-label-regexp . font-lock-variable-name-face)
+          (,z-ref2-regexp . font-lock-variable-name-face)
           (,z-opcodes-regexp . font-lock-type-face)
           (,z-suffixes-regexp . font-lock-type-face)
           (,z-directive-regexp . font-lock-preprocessor-face)
           (,z-directive2-regexp . font-lock-preprocessor-face)
           (,z-conds-regexp . font-lock-constant-face)
           (,z-regs-regexp . font-lock-function-name-face)
-          (,z-label-regexp . font-lock-variable-name-face)
           (,z-ref-regexp . font-lock-variable-name-face)
           (,z-string-regexp . font-lock-string-face)
           )))

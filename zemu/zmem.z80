@@ -152,19 +152,17 @@ zstack_enter:
    ld de,(zframe_sp)
    ld bc,ZFRAME_BASESIZE
    ldir
-   ld de,ZFRAME_BASESIZE
-   add hl,de
+   ; de == (zframe_sp) + ZFRAME_BASESIZE
    ; update frame pointer
-   ld (zframe_fp),hl
+   ld (zframe_fp),de
    ; update stack pointer
-   ld de,$000003
-   ld d,a
-   mlt de
+   ld hl,$000002
+   ld h,a
+   mlt hl
    add hl,de
    ld (zframe_sp),hl
    ; update number of locals (NL)
-   ld ix,(zframe_fp)
-   ld (ix+zframe_nl-zframe_end),a
+   ld (zframe_nl),a
    ret   
 
 ;; zstack_leave -- leave current stack frame
@@ -180,3 +178,4 @@ zstack_leave:
    ld bc,ZFRAME_BASESIZE
    ldir
    ret
+

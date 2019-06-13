@@ -67,19 +67,49 @@ zaddr_to_paddr.get_offset:
 
 zaddr_to_paddr.long: .dl 0
 
+;; TODO: consider parameterizing zaddr_fetch and zaddr_store,
+;;       since they only differ by a single instruction?
+
 ;; zaddr_fetch -- fetch byte at logical address
 ;; INPUTS:
 ;;  hl = zaddr (logical address)
 ;; OUTPUTS:
 ;;  a = byte at zaddr
+;;  hl <- hl + 1
 ;; ERROR: yes.
-;; DESTROYS: everything but HL.
+;; DESTROYS: everything but de
 zaddr_fetch:
    push hl
+   push de
    call zaddr_to_paddr
    ex de,hl
    pop hl
-   ret c ; addr translation error
+   jr c,zaddr_fetch.cleanup
    ld a,(de) ; load byte
    inc hl  ; update ptr
+   ; C reset (nc)
+zaddr_fetch.cleanup:
+   pop de
+   ret
+
+;; zaddr_store -- store byte at logical address
+;; INPUTS:
+;;  hl = zaddr (logical address)
+;; OUTPUTS:
+;;  a = byte to store at zaddr
+;;  hl <- hl + 1
+;; ERROR: yes.
+;; DESTROYS: everything but de
+zaddr_store:
+   push hl
+   push de
+   call zaddr_to_paddr
+   ex de,hl
+   pop hl
+   jr c,zaddr_fetch.cleanup
+   ld (de),a ; store byte
+   inc hl ; update ptr
+   ; C reset (nc)
+zaddr_store.cleanup:
+   pop de
    ret

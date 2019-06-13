@@ -16,3 +16,6 @@ zemu TODO
 [X] Have zaddr_fetch update ptr (hl).
 [ ] Unify stack and call state into same stack, updating save code.
 [ ] Update save routines to save all of dynamic memory.
+
+Optimizations
+[ ] zaddr_fetch -- remember how much is left on page

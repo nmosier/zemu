@@ -1,4 +1,6 @@
 #include "ti84pce.inc"
+#include "zhdr.inc"
+
 .assume ADL=1
 .org userMem-2
 
@@ -200,3 +202,4 @@ zork_save: .db "SAVE1",0
 #include "zmem.z80"
 #include "zaddr.z80"
 #include "zmap.z80"
+#include "zcode.z80"

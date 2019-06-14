@@ -1,0 +1,151 @@
+;; zvar.z80 -- variable manip routines
+
+#include "zvar.inc"
+
+;; zvar_localaddr -- get address of local variable
+;; INPUTS:
+;;  a = variable number
+;; OUTPUTS:
+;;  hl = pointer to local variable
+;; DESTROYS: a,de
+;; ERRORS: yes. (Checks bounds of var num)
+zvar_localaddr:
+   ; validate var num
+   dec a
+   ld de,2
+   ld d,a
+   ld hl,zframe_nl
+   cp (hl)
+   ld a,ZERR_NOLOCL
+   ret c
+   ; calculate address
+   mlt de
+   ld hl,(zframe_fp)
+   add hl,de
+   scf \ ccf ; success
+   ret
+
+;; zvar_globaladdr -- get address of global variable
+;; INPUTS:
+;;  a = global variable number
+;; OUTPUTS:
+;;  hl = logical address of global variable
+;; ERRORS: (none)
+;; DESTROYS: hl,ix
+zvar_globaladdr:
+   sub ZVAR_GLOBALMIN
+   ld ix,(zmap_header)
+   lea hl,ix
+   ld de,2
+   ld d,a
+   mlt de
+   add hl,de
+   ld d,(ix+ZHDR_GLOBALS)
+   ld e,(ix+ZHDR_GLOBALS+1)
+   add hl,de
+   ret
+
+;; zvar_fetch -- fetch variable value.
+;; INPUTS:
+;;  a = variable number
+;; OUTPUTS:
+;;  hl = variable value (16-bit)
+zvar_fetch:
+   cp ZVAR_STACK
+   jp z,zvar_fetch.stack
+   cp ZVAR_GLOBALMIN
+   jp c,zvar_fetch.local
+   jp zvar_fetch.global
+
+zvar_fetch.stack:
+   ; check if stack is empty
+   ld de,(zframe_sp)
+   ld hl,(zframe_fp)
+   call cp_hl_de  ; fp < sp <=> C
+   ccf
+   ld a,ZERR_STACKEMPTY
+   ret c
+   ; get value
+   ex de,hl
+   dec hl
+   ld e,(hl)
+   dec hl
+   ld d,(hl)
+   ; update stack ptr
+   ld (zframe_sp),hl
+   scf \ ccf
+   ret
+
+zvar_fetch.local:
+   ; get addr of local var (on stack)
+   dec a
+   call zvar_localaddr
+   ret c ; error
+   ; load var
+   ld d,(hl)
+   inc hl
+   ld e,(hl)
+   ex de,hl
+   scf \ ccf
+   ret
+
+zvar_fetch.global:
+   call zvar_globaladdr
+   call zaddr_fetch ; hl += 1
+   ret c ; fetch error
+   ld d,a
+   call zaddr_fetch
+   ret c
+   ld e,a
+   ex de,hl
+   ; C reset (nc)
+   ret
+
+;; zvar_store -- store value to variable
+;; INPUTS:
+;;  a = variable number
+;;  hl = value to store
+;; ERRORS: yes.
+zvar_store:
+   ex de,hl
+   cp ZVAR_STACK
+   jp z,zvar_store.stack
+   cp ZVAR_GLOBALMIN
+   jp c,zvar_store.local
+   jp zvar_store.global
+
+zvar_store.stack:
+   ld hl,(zframe_sp)
+   ld (hl),d
+   inc hl
+   ld (hl),e
+   inc hl
+   ld (zframe_sp),hl
+   scf \ ccf
+   ret
+
+zvar_store.local:
+   ; get addr
+   dec a
+   push de
+   call zvar_localaddr
+   pop de
+   ret c ; error
+   ; store val
+   ld (hl),d
+   inc hl
+   ld (hl),e
+   scf \ ccf
+   ret
+
+zvar_store.global:
+   push hl
+   call zvar_globaladdr
+   pop de
+   ld a,d
+   call zaddr_store ; hl++
+   ret c
+   ld a,e
+   call zaddr_store ; hl++
+   ret c
+   ret

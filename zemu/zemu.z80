@@ -203,3 +203,4 @@ zork_save: .db "SAVE1",0
 #include "zaddr.z80"
 #include "zmap.z80"
 #include "zcode.z80"
+#include "zvar.z80"

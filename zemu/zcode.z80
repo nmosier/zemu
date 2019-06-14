@@ -131,13 +131,10 @@ zcode_fetch_op:
 
 ;; NOTE: result contained in de.
 zcode_fetch_op.large:
-   ex de,hl
-   call zaddr_fetch
+   call zaddr_fetch ; hl++
    ret c
    ld d,a
-   push de
-   call zaddr_fetch
-   pop de
+   call zaddr_fetch ; hl++
    ret c
    ld e,a
    scf \ ccf
@@ -145,15 +142,13 @@ zcode_fetch_op.large:
 
 ;; NOTE: result contained in a.
 zcode_fetch_op.small:
-   ex de,hl
-   call zaddr_fetch
+   call zaddr_fetch ; hl++
    ret c
    scf \ ccf
    ret
 
 ;; NOTE: result contained in de
 zcode_fetch_op.variable:
-   ex de,hl
    call zaddr_fetch ; hl++
    ret c
    ; fetch variable value
@@ -162,8 +157,8 @@ zcode_fetch_op.variable:
    scf \ ccf
    ret
 
+;; NOTE: there is no result.
 zcode_fetch_op.omitted:
-   ex de,hl
    scf \ ccf
    ret
 
@@ -173,7 +168,7 @@ ZVAR_GLOBALMIN .equ 16
 
 ;; zvar_localaddr -- get address of local variable
 ;; INPUTS:
-;;  a = local variable number
+;;  a = variable number
 ;; OUTPUTS:
 ;;  hl = pointer to local variable
 ;; DESTROYS: a,de

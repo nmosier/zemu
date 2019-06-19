@@ -163,7 +163,7 @@ div.done:
 ;; OUTPUTS:
 ;;  C if hl < de (NC if hl >= de)
 ;;  Z if hl = de (NZ if hl != de)
-;; DESTROYS:
+;; DESTROYS: (all)
 cp_hl_de:
    ld (cp_hl_de.hl),hl
    ld (cp_hl_de.de),de
@@ -190,3 +190,47 @@ cp_hl_de.nz:
 
 cp_hl_de.hl: .dl 0
 cp_hl_de.de: .dl 0
+
+;; cp_hl_de_sgn -- compare hl to de, signed
+;; INPUTS:
+;;  hl, de
+;; OUTPUTS:
+;;  zero and carry flags properly set
+;; DESTROYS: (all)
+cp_hl_de_sgn:
+   ld (cp_hl_de.hl),hl
+   ld (cp_hl_de.de),de
+   ld a,(cp_hl_de.hl+2)
+   and $80
+   ld b,a
+   ld a,(cp_hl_de.de+2)
+   and $80
+   cp b ; sgn(de) - sgn(hl)
+   ; if sgn(de) == sgn(hl), then invert signs if necessary and compare
+   jr z,cp_hl_de_sgn.cmp
+   ; otherwise, sgn(de) != sgn(hl)
+   ; if C, then sgn(de) < sign(hl), so hl < de
+   ; otherwise NC, so sgn(de) > sgn(hl), so hl > de
+   ; therefore the carry flag is properly set
+   ; furthermore, NZ, which is always true if hl,de of opposite signs
+   ret
+cp_hl_de_sgn.cmp:
+   ; adjust signs if necessary
+   or a ; bit 7,a
+   jp z,cp_hl_de
+   push hl
+   pop bc
+   ld hl,0
+   scf \ ccf
+   sbc hl,bc
+   ex de,hl ; now lhs in rhs
+   push hl
+   pop bc
+   ld hl,0
+   scf \ ccf
+   sbc hl,bc ; NOTE: the operands have been swapped, which is what we want
+             ;       to do anyway after negating.
+   jp cp_hl_de
+
+
+

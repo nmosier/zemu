@@ -28,7 +28,6 @@ ZSAVE_SIZE .equ ZSAVE_END - ZSAVE_BEGIN
 zstack_begin: .dl 0
 
 zframe_begin:
-zframe_ra: .dl 0
 zframe_fp: .dl 0
 zframe_sp: .dl 0
 zframe_pc: .dl 0

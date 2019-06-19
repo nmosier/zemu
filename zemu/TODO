@@ -12,10 +12,11 @@ zemu TODO
 [X] Rename function: zaddr_to_phys -> zaddr_to_paddr
 [X] Write function for fetching & decoding one instruction
 [ ] Decode operand types.
-[ ] Fix all push.s
+[X] Fix all push.s
 [X] Have zaddr_fetch update ptr (hl).
-[ ] Unify stack and call state into same stack, updating save code.
+[X] Unify stack and call state into same stack, updating save code.
 [ ] Update save routines to save all of dynamic memory.
+[ ] Fix operand fetching code to sign-extend values
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

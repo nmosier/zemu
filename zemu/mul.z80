@@ -1,0 +1,80 @@
+#include "ti84pce.inc"
+
+.assume ADL=1
+.org userMem-2
+.db tExtTok,tAsm84CeCmp
+
+start:
+   call _ClrScrnFull
+   xor a
+   ld (curRow),a
+   ld (curCol),a
+   ld hl,255
+   ld de,255
+   call mul_hl_de
+   call _DispHL
+   ret   
+
+;; multiply hl by de
+mul_hl_de:
+   ld (mul_hl_de.lhs),hl
+   ld (mul_hl_de.rhs),de
+   ld hl,0 ; initialize acc on stack
+   push hl
+   ld a,$30
+   ld hl,mul_hl_de.lhs
+   ld ix,mul_hl_de.shift
+mul_hl_de.loop_outer:
+   ld de,mul_hl_de.rhs
+   or a,$03
+mul_hl_de.loop_inner:
+   ld b,(hl)
+   ex de,hl
+   ld c,(hl)
+   ex de,hl
+   mlt bc
+   ld (ix),bc              ; shift product
+   ld bc,(mul_hl_de.shift) ; get shifted product
+   ex (sp),hl
+   add hl,bc
+   ex (sp),hl
+mul_hl_de.loop_inner.done:
+   ld (ix),0 ; clear slot
+   inc de ; next rhs digit
+   inc ix ; next shift offset
+   dec a
+   tst a,$0f
+   jr nz,mul_hl_de.loop_inner
+mul_hl_de.loop_outer.done:
+   inc hl ; next lhs digit
+   dec ix
+   dec ix ; adjust shift offset
+   sub a,$10
+   jr nz,mul_hl_de.loop_outer
+mul_hl_de.done:
+   pop hl
+   ret
+
+mul_hl_de.lhs: .long 1
+mul_hl_de.rhs: .long 1
+mul_hl_de.shift: .long 3
+
+
+;; memset_short -- set up to 255 bytes of memory to a value
+;; INPUTS:
+;;  hl = pointer to memory
+;;  b = count (in bytes)
+;;  a = value
+;; OUTPUTS:
+;;  hl <- hl + b
+;;  b <- 0
+;; DESTROYS: hl, b
+;; ERRORS: no.
+memset_short:
+   or a
+   ret z
+memset_short.loop:
+   ld (hl),a
+   inc hl
+   djnz memset_short.loop
+   ret

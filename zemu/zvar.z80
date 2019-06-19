@@ -50,6 +50,8 @@ zvar_globaladdr:
 ;;  a = variable number
 ;; OUTPUTS:
 ;;  hl = variable value (16-bit)
+;; DESTROYS: (all)
+;; ERRORS: yes.
 zvar_fetch:
    cp ZVAR_STACK
    jp z,zvar_fetch.stack
@@ -67,6 +69,7 @@ zvar_fetch.stack:
    ret c
    ; get value
    ex de,hl
+   ld de,0 ; zero-padding
    dec hl
    ld e,(hl)
    dec hl
@@ -82,6 +85,7 @@ zvar_fetch.local:
    call zvar_localaddr
    ret c ; error
    ; load var
+   ld de,0 ; zero-padding
    ld d,(hl)
    inc hl
    ld e,(hl)
@@ -91,6 +95,7 @@ zvar_fetch.local:
 
 zvar_fetch.global:
    call zvar_globaladdr
+   ld de,0 ; zero-padding
    call zaddr_fetch ; hl += 1
    ret c ; fetch error
    ld d,a
@@ -148,4 +153,24 @@ zvar_store.global:
    ld a,e
    call zaddr_store ; hl++
    ret c
+   ret
+
+
+;; zvar_downcast -- cast unsigned value to 24 bits to 8 bits
+;; INPUTS:
+;;  hl = 24-bit unsigned value
+;; OUTPUTS:
+;;  a = 8-bit unsigned value
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zvar_downcast:
+   ; this should also report hl >= de if signed, which is what we want
+   ld de,$000100
+   push hl
+   call cp_hl_de
+   pop hl
+   ccf
+   ld a,ZERR_BADVARNO
+   ret c
+   ld a,l
    ret

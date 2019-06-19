@@ -22,6 +22,10 @@ ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + 1
 
 ZMAP_ENT_FLAGS_INRAM .equ 0
 
+ZTRUE .equ 1
+ZFALSE .equ 0
+
+
 .db tExtTok, tAsm84CeCmp
 
 start:

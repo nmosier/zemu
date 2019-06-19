@@ -1,4 +1,4 @@
-
+>
  * appvars must be less than 256^2 bytes
  * zork is 92K
  * need to be able to experiment with different page sizes -- this should be
@@ -48,4 +48,15 @@ STACK FRAME:
 Invariant: SP always points to next spot on stack.
 
 
-Drop support for V6.
+FETCHING INSTRUCTION OPERANDS:
+* Due to variable-operand instructions, it is not feasible to decode and save values at once.
+* Furthermore, operands should be evaluated as late as possible.
+
+typebyte: .byte 1 -- shift register, where top two bits are the next operand to decode. If $$00,
+                     then there are no more operands.
+typeptr: .long 1  -- points to next type byte. Must be logical address.
+opptr: .long 1    -- points to next operand (if there is one).
+
+zcode_decode should initialize these three fields, but it should not fetch any values.
+There will need to be another function, perhaps called zcode_nextop or the like, that will
+return the value of the next op.

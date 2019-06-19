@@ -9,6 +9,7 @@
 ;; OUTPUTS:
 ;; ERROR:
 ;; DESTROYS:
+;; VERSION: 1-3
 zcode_decode:
    ; fetch first byte
    call zaddr_fetch
@@ -24,59 +25,113 @@ zcode_decode.type:
    jp nz,zcode_decode_variable ; $$11
    ;--;
 
+zcode_decode.types: .db 0
+zcode_decode.op_laddr: .dl 0
+
 ;; Each of these functions (zcode_decode_{short,long,variable})
 ;; decode and execute the instruction. Never called directly.
 ;; Upon entry, a = first byte of opcode.
 zcode_decode_short:
-   ; 4.3.1 opcode count is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
-   ld b,a
-   rrca
-   rrca
-   rrca
-   rrca
-   and $03
-   ld (zcode_decode.optype),a
-   ; fetch operand
-   ;; TODO: write function for doing this.
+zcode_decode_short.operand:
+   ; 4.3.1 opcode type (& count) is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
+   ; left-justify opcode type, then set `omitted' terminator
+   rlca
+   rlca
+   and $c0 ; mask of op1 type
+   or $3f ; mask in 3 omitteds
+   ld (zcode_decode.types),a
+   ld (zcode_decode.op_laddr),hl
+zcode_decode_short.opnum:
    ; 4.3.1 opcode number given in bottom 4 bits.
    ld a,b
    and $0f
-   ld c,a
-zcode_decode_short.opnumset:
-   ; 4.4.1 bits 4-5 also give the operand type.
-   ; fetch operand and type
-   
+   ;; TODO: need to perform different operations based on opnum.
 
-zcode_decode.optype: .db 0
-zcode_decode.opval: .dl 0
-   
+
 
 zcode_decode_long:
    ; 4.3.2 opcode count is always 2OP
-   ld b,Z_2OP
-zcode_decode_long.opcntset:
-   and a,$1f
+   ; 4.4.2 In long form, bit 6 of the opcode gives the type of the first operand,
+   ;       bit 5 of the second. A value of 0 means a small constant and 1 means a variable.
+   ld b,a
+   ld a,$ff
+zcode_decode_long.op1:
+   bit 6,b
+   jr nz,zcode_decode_long.op1_var
+zcode_decode_long.op1_small:
+   res 7,a
+   jr zcode_decode_long.op2
+zcode_decode_long.op1_var:
+   res 6,a
+zcode_decode_long.op2:
+   bit 5,b
+   jr nz,zcode_decode_long.op2_var
+zcode_decode_long.op2_small:
+   res 5,a
+   jr zcode_decode_long.store_opinfo
+zcode_decode_long.op2_var
+   res 4,a
+zcode_decode_long.store_opinfo
+   ; store operand information
+   ld (zcode_decode.types),a
+   ld (zcode_decode.op_laddr),hl
+zcode_decode_long.opnum:
+   and $1f
    ld c,a
-zcode_decode_long.opnumset:
    ;; TODO
-
 
 zcode_decode_variable:
    ; 4.3.3 if bit 5 is 0, then 2OP; otherwise VAR
-   ld b,Z_2OP
-   bit 5,a
-   jr z,zcode_decode_variable.opcntset
-   ld b,Z_VAR
-zcode_decode_variable.opcntset:
+   ; 4.4.3 In variable or extended forms, a byte of 4 operand types is given next.
+   ;       This contains 4 2-bit fields: bits 6 and 7 are the first field, bits 0 and 1 the fourth.
+   ; NOTE: does bit 5 even matter?
+   ld d,a
+   call zaddr_fetch ; preserves de; hl++
+   ret c
+   ld (zcode_decode.types),a
+   ld (zcode_decode.op_laddr),hl
+zcode_decode_variable.opnum:
    and a,$1f
-   ld c,a
-zcode_decode_variable.opnumset:
    ;; TODO
 
+#if 0
+zcode_decode.2OP_LUT:
+   .dl zcode_err.bad       ; $00
+   .dl zexec.je            ; $01
+   .dl zexec.jl            ; $02
+   .dl zexec.jg            ; $03
+   .dl zexec.dec_chk       ; $04
+   .dl zexec.inc_chk       ; $05
+   .dl zexec.jin           ; $06
+   .dl zexec.test          ; $07
+   .dl zexec.or            ; $08
+   .dl zexec.and           ; $09
+   .dl zexec.test_attr     ; $0A
+   .dl zexec.set_attr      ; $0B
+   .dl zexec.clear_attr    ; $0C
+   .dl zexec.store         ; $0D
+   .dl zexec.insert_obj    ; $0E
+   .dl zexec.loadw         ; $0F
+   .dl zexec.loadb         ; $10
+   .dl zexec.get_prop      ; $11
+   .dl zexec.get_prop_addr ; $12
+   .dl zexec.get_next_prop ; $13
+   .dl zexec.add           ; $14
+   .dl zexec.sub           ; $15
+   .dl zexec.mul           ; $16
+   .dl zexec.div           ; $17
+   .dl zexec.mod           ; $18
+   .dl zcode_err.notavail  ; $19
+   .dl zcode_err.notavail  ; $1A
+   .dl zcode_err.notavail  ; $1B
+   .dl zcode_err.notavail  ; $1C
+   .dl zcode_err.bad       ; $1D
+   .dl zcode_err.bad       ; $1E
+   .dl zcode_err.bad       ; $1F
+#endif
 
 
 ;;-- NOT SUPPORTED --;;
-
 ;; TODO: support extended opcodes.
 zcode_decode_extended:
    ld a,ZERR_NOTAVAIL
@@ -101,11 +156,12 @@ zcode_decode_extended.opnumset:
 ;;  hl = zaddr of operand
 ;;  a = operand type
 ;; OUTPUTS:
-;;  de = operand (if large or variable value)
-;;  a = small 
+;;  de = operand
 ;;  hl points to byte after operand
 ;; ERRORS: yes.
+;; DESTROYS: (all)
 zcode_fetch_op:
+   ld de,0 ; for zero-padding
    cp ZOP_LARGE
    jp z,zcode_fetch_op.large
    cp ZOP_SMALL
@@ -114,10 +170,6 @@ zcode_fetch_op:
    jp z,zcode_fetch_op.variable
    jp zcode_fetch_op.omitted
 
-;; TODO: I changed the above function; need to verify that subroutines all obey
-;;       invariants.
-
-;; NOTE: result contained in de.
 zcode_fetch_op.large:
    call zaddr_fetch ; hl++
    ret c
@@ -128,25 +180,129 @@ zcode_fetch_op.large:
    scf \ ccf
    ret
 
-;; NOTE: result contained in a.
 zcode_fetch_op.small:
    call zaddr_fetch ; hl++
    ret c
+   ld e,a ; zero-extend 8-bit value to 16-bit reg de
    scf \ ccf
    ret
 
-;; NOTE: result contained in de
 zcode_fetch_op.variable:
    call zaddr_fetch ; hl++
    ret c
+   ; now %a contains variable no.
    ; fetch variable value
    call zvar_fetch ; hl++
-   ret c
-   scf \ ccf
+   ; result in %de, errflg set
    ret
 
 ;; NOTE: there is no result.
 zcode_fetch_op.omitted:
    scf \ ccf
    ret
+   
+zcode_err.bad:
+   ld a,ZERR_BADINSTR
+   scf
+   ret
 
+zcode_err.notavail:
+   ld a,ZERR_NOTAVAIL
+   scf
+   ret
+
+
+;; zcode_readop -- fetch the value of the next operand.
+;; INPUTS:
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;; OUTPUTS:
+;;  hl = 16-bit value of operand, zero-padded if 8-bits
+;;  zcode_decode.types, zcode_decode.op_laddr updated
+;;  Z if no more ops, NZ if op is returned
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zcode_readop:
+   ; read type
+   ld hl,zcode_decode.types
+   xor a
+   scf
+   rl (hl) ; (hl) = ((hl) << 1) | 0x1
+   rla
+   scf
+   rl (hl) ; (hl) = ((hl) << 1) | 0x1
+   rla
+   ; %a[0:1] contains type
+   ; (hl) = (hl) << 2 | OMITTED
+   cp ZOP_OMITTED
+   ccf
+   ret z
+   ld hl,(zcode_decode.op_laddr)
+   call zcode_fetch_op
+   ret c
+   ld (zcode_decode.op_laddr),hl ; update pointer
+   ex de,hl
+   or $ff ; NZ, NC
+   ret
+
+
+;; zcode_readop_force -- fetch value of the next operand.
+;;                       report an error if there is no operand.
+;; INPUTS:
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;; OUTPUTS:
+;;  hl = 16-bit value of operand, zero-padded if 8-bits
+;;  zcode_decode.types, zcode_decode.op_laddr updated
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zcode_readop_force:
+   call zcode_readop
+   ret nz
+   scf ; error if no more ops
+   ret
+
+;; zcode_decode_branch -- decode branch in opcode.
+;; INPUTS:
+;;  hl = logical pointer to branch byte(s).
+;; OUTPUTS:
+;;  de = offset (raw, 24 bits, signed)
+;;  hl points to logical address after branch info
+;;  Z if branch when false; NZ if branch when true
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zcode_decode_branch:
+   ; 4.7 If bit 6 is set, then the branch occupies 1 byte only, and the offset
+   ;     is in the range 0 to 63, given in the bottom 6 bits. If bit 6 is clear,
+   ;     then the offset is a signed 14-bit number given in bits 0 to 5 of the
+   ;     first byte followed by all 8 of the second.
+   ld de,0
+   call zaddr_fetch
+   ret c
+   ld b,a
+   bit 6,b
+   jr z,zcode_decode_branch.14bits
+zcode_decode_branch.6bits:
+   ; unsigned 6-bit offset
+   and $3f ; NC
+   ld e,a
+   bit 7,b
+   ret ; NC
+
+zcode_decode_branch.14bits:
+   ; signed 14-bit offset
+   ; test sign of offset
+   and $3f
+   bit 5,a
+   jr z,zcode_decode_branch.de_signed
+   ; offset < 0
+   dec de ; de = $ffffff
+   add a,$c0 ; set 7,a; set 6,a
+zcode_decode_branch.de_signed:
+   ld d,a
+   push bc
+   call zaddr_fetch
+   pop bc
+   ret c
+   ld e,a
+   scf \ ccf
+   bit 7,b
+   ret

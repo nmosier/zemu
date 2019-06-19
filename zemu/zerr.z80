@@ -6,6 +6,8 @@ ZERR_BADADDR .equ 2
 ZERR_NOTAVAIL .equ 3
 ZERR_NOLOCL .equ 4
 ZERR_STACKEMPTY .equ 5
+ZERR_BADINSTR .equ 6
+ZERR_BADVARNO .equ 7
 
 zerrmsg_novar: .db "appvar not found",0
 zerrmsg_nomem: .db "not enough free RAM",0
@@ -13,6 +15,8 @@ zerrmsg_badaddr: .db "bad address",0
 zerrmsg_notavail: .db "opcode not supported",0
 zerrmsg_nolocl: .db "invalid local variable",0
 zerrmsg_stackempty: .db "cannot pop from empty stack",0
+zerrmsg_badinstr: .db "illegal instruction",0
+zerrmsg_badvarno: .db "invalid variable number",0
 
 zerrtab:
    .dl zerrmsg_novar
@@ -21,6 +25,8 @@ zerrtab:
    .dl zerrmsg_notavail
    .dl zerrmsg_nolocl
    .dl zerrmsg_stackempty
+   .dl zerrmsg_badinstr
+   .dl zerrmsg_badvarno
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

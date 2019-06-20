@@ -9,19 +9,45 @@ start:
    xor a
    ld (curRow),a
    ld (curCol),a
-   ld hl,255
-   ld de,255
+
+   ld hl,-$ffff
+   ld de,$7f
    call mul_hl_de
-   call _DispHL
+   call DispHL_signed
    ret   
 
+DispHL_signed:
+   ld (DispHL_signed.val),hl
+   ld ix,DispHL_signed.val
+   bit 7,(ix+2)
+   jr z,DispHL_signed.pos
+   ld a,'-'
+   call _PutC
+   ld hl,DispHL_signed.val
+   ld b,3
+   call memneg_short
+DispHL_signed.pos:
+   ld hl,(DispHL_signed.val)
+   call _DispHL
+   ret
+   
+
+DispHL_signed.val: .long 1
+
 ;; multiply hl by de
+;; store sign bit in bit 7 of acc
 mul_hl_de:
    ld (mul_hl_de.lhs),hl
    ld (mul_hl_de.rhs),de
    ld hl,0 ; initialize acc on stack
    push hl
    ld a,$30
+mul_hl_de.signs:
+   ld hl,mul_hl_de.lhs
+   call mul_hl_de.sign_adj
+   ld hl,mul_hl_de.rhs
+   call mul_hl_de.sign_adj
+   ; %a:7 holds sign of answer
    ld hl,mul_hl_de.lhs
    ld ix,mul_hl_de.shift
 mul_hl_de.loop_outer:
@@ -43,24 +69,92 @@ mul_hl_de.loop_inner.done:
    inc de ; next rhs digit
    inc ix ; next shift offset
    dec a
-   tst a,$0f
+   tst a,$03
    jr nz,mul_hl_de.loop_inner
 mul_hl_de.loop_outer.done:
    inc hl ; next lhs digit
    dec ix
    dec ix ; adjust shift offset
    sub a,$10
+   tst a,$30
    jr nz,mul_hl_de.loop_outer
 mul_hl_de.done:
    pop hl
+   ; adjust signs
+   bit 7,a
+   ret z ; result it positive
+   ; otherwise, result is negative
+   ld (mul_hl_de.lhs),hl
+   ld hl,mul_hl_de.lhs
+   ld b,3
+   call memneg_short
+   ld hl,(mul_hl_de.lhs)
    ret
 
-mul_hl_de.lhs: .long 1
-mul_hl_de.rhs: .long 1
-mul_hl_de.shift: .long 3
+;; mul_hl_de.sign_adj
+;; INPUTS:
+;;  hl = pointer to var
+;;  a:7 sign parity
+;; OUTPUTS:
+;;  a:7 adjusted
+;;  24-bit signed integer at (hl) is absolute val
+mul_hl_de.sign_adj:
+      inc hl
+      inc hl
+      bit 7,(hl)
+      ret z
+      dec hl
+      dec hl
+      ld b,3
+      push af
+      call memneg_short
+      pop af
+      xor $80      
+      ret
+      
 
 
-;; memset_short -- set up to 255 bytes of memory to a value
+mul_hl_de.lhs: .dl 0
+mul_hl_de.rhs: .dl 0
+mul_hl_de.shift: .dl 0,0,0
+
+
+;; memcpl_short -- complement up to 256 bytes of memory
+;; INPUTS:
+;;  hl = pointer
+;;  b = count
+;; OUTPUTS:
+;;  hl <- hl + b
+;; DESTROYS: a, b, hl
+memcpl_short:
+memcpl_short.loop:
+   ld a,(hl)
+   cpl
+   ld (hl),a
+   inc hl
+   djnz memcpl_short.loop
+   ret
+
+;; memneg_short -- negate up to 256 bytes of memory
+;; INPUTS:
+;;  hl = pointer
+;;  b = count
+;; OUTPUTS:
+;; DESTROYS: a, bc, hl
+memneg_short:
+   ld c,b
+   push hl
+   call memcpl_short
+   pop hl
+memneg_short.loop:
+   inc (hl)
+   ret po ; no overflow
+   inc hl
+   dec c
+   jr nz,memneg_short.loop
+   ret
+
+;; memset_short -- set up to 256 bytes of memory to a value
 ;; INPUTS:
 ;;  hl = pointer to memory
 ;;  b = count (in bytes)
@@ -71,8 +165,6 @@ mul_hl_de.shift: .long 3
 ;; DESTROYS: hl, b
 ;; ERRORS: no.
 memset_short:
-   or a
-   ret z
 memset_short.loop:
    ld (hl),a
    inc hl

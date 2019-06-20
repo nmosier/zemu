@@ -20,3 +20,7 @@ zemu TODO
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page
+
+Bug Fixes
+[ ] Fix kepyad bug in CEMU
+[ ] Fix SPASM .long bug

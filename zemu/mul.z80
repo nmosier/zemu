@@ -10,11 +10,28 @@ start:
    ld (curRow),a
    ld (curCol),a
 
-   ld hl,-$ffff
-   ld de,$7f
-   call mul_hl_de
+   ld hl,-100007
+   ld de,-1000
+
+   call cp_hl_de
+   
+
+   call div_hl_de
+   push de
+   push hl
+   ld hl,str.div
+   call _PutS
+   pop hl
+   call DispHL_signed
+   call _NewLine
+   ld hl,str.mod
+   call _PutS
+   pop hl
    call DispHL_signed
    ret   
+
+str.div: .db "div:",0
+str.mod: .db "mod:",0
 
 DispHL_signed:
    ld (DispHL_signed.val),hl
@@ -33,90 +50,6 @@ DispHL_signed.pos:
    
 
 DispHL_signed.val: .long 1
-
-;; multiply hl by de
-;; store sign bit in bit 7 of acc
-mul_hl_de:
-   ld (mul_hl_de.lhs),hl
-   ld (mul_hl_de.rhs),de
-   ld hl,0 ; initialize acc on stack
-   push hl
-   ld a,$30
-mul_hl_de.signs:
-   ld hl,mul_hl_de.lhs
-   call mul_hl_de.sign_adj
-   ld hl,mul_hl_de.rhs
-   call mul_hl_de.sign_adj
-   ; %a:7 holds sign of answer
-   ld hl,mul_hl_de.lhs
-   ld ix,mul_hl_de.shift
-mul_hl_de.loop_outer:
-   ld de,mul_hl_de.rhs
-   or a,$03
-mul_hl_de.loop_inner:
-   ld b,(hl)
-   ex de,hl
-   ld c,(hl)
-   ex de,hl
-   mlt bc
-   ld (ix),bc              ; shift product
-   ld bc,(mul_hl_de.shift) ; get shifted product
-   ex (sp),hl
-   add hl,bc
-   ex (sp),hl
-mul_hl_de.loop_inner.done:
-   ld (ix),0 ; clear slot
-   inc de ; next rhs digit
-   inc ix ; next shift offset
-   dec a
-   tst a,$03
-   jr nz,mul_hl_de.loop_inner
-mul_hl_de.loop_outer.done:
-   inc hl ; next lhs digit
-   dec ix
-   dec ix ; adjust shift offset
-   sub a,$10
-   tst a,$30
-   jr nz,mul_hl_de.loop_outer
-mul_hl_de.done:
-   pop hl
-   ; adjust signs
-   bit 7,a
-   ret z ; result it positive
-   ; otherwise, result is negative
-   ld (mul_hl_de.lhs),hl
-   ld hl,mul_hl_de.lhs
-   ld b,3
-   call memneg_short
-   ld hl,(mul_hl_de.lhs)
-   ret
-
-;; mul_hl_de.sign_adj
-;; INPUTS:
-;;  hl = pointer to var
-;;  a:7 sign parity
-;; OUTPUTS:
-;;  a:7 adjusted
-;;  24-bit signed integer at (hl) is absolute val
-mul_hl_de.sign_adj:
-      inc hl
-      inc hl
-      bit 7,(hl)
-      ret z
-      dec hl
-      dec hl
-      ld b,3
-      push af
-      call memneg_short
-      pop af
-      xor $80      
-      ret
-      
-
-
-mul_hl_de.lhs: .dl 0
-mul_hl_de.rhs: .dl 0
-mul_hl_de.shift: .dl 0,0,0
 
 
 ;; memcpl_short -- complement up to 256 bytes of memory
@@ -169,4 +102,110 @@ memset_short.loop:
    ld (hl),a
    inc hl
    djnz memset_short.loop
+   ret
+
+
+
+
+;; div_hl_de -- divide hl by de using 24-bit signed division
+;; INPUTS:
+;;  hl (dividend), de (divisor)
+;; OUTPUTS:
+;;  hl <- hl / de
+;;  de <- hl % de
+;; DESTROYS: (all)
+;; ERRORS: no???
+;; TODO: divide by zero error
+div_hl_de:
+	xor a ; initialize A to store sign
+div_hl_de.signs:
+   ld (div_hl_de.hl),hl
+   ld (div_hl_de.de),de
+   ld hl,div_hl_de.hl
+   ld b,3
+   call memabs_short
+   ld hl,div_hl_de.de
+   ld b,3
+   call memabs_short
+   ld hl,(div_hl_de.hl)
+   ld de,(div_hl_de.de)
+div_hl_de.loopinit:
+	push af ; save sign bit
+	ld bc,0
+	push bc ; initialize accumulator on stack
+	xor a
+	ld	b,24
+div_hl_de.loop:
+   ; INVARIANTS:
+   ;  (sp) -- remainder
+   ;  hl -- dividend
+   ;  de -- divisor
+	add hl,hl ; sets/resets carry flag for rl
+	ex	(sp),hl
+   adc hl,hl ; rl h \ rl l
+	jr	c,div_hl_de.overflow
+   call cp_hl_de
+   jr c,div_hl_de.skip
+div_hl_de.overflow:
+   ; overflow and when rem > divisor
+	xor a ; faster
+	sbc	hl,de
+	ex	(sp),hl
+	inc	hl
+	djnz	div_hl_de.loop
+	jr div_hl_de.done
+div_hl_de.skip:
+	ex	(sp),hl
+	djnz div_hl_de.loop
+div_hl_de.done:
+	pop de ; remainder?
+	pop af ; restore sign of result
+	or a
+	ret z ; if positive, return result
+   push de
+	ex de,hl
+	ld hl,0
+	sbc hl,de ; else negate result
+   ex de,hl
+   pop bc ; restore remainder
+   ld hl,0
+   sbc hl,bc ; negate remainder
+   ex de,hl
+	ret
+
+div_hl_de.hl: .dl 0
+div_hl_de.de: .dl 0
+
+
+;; memabs_short -- find absolute value of up to 256-byte integer in memory
+;; INPUTS:
+;;  hl = pointer to little endian integer in memory
+;;  b = count (1 <= b <= 256)
+;; OUTPUTS:
+;;  if (hl) < 0, a <- ~a, (hl) <- ~(hl)
+;; DESTROYS: (all)
+;; ERRORS: no.
+memabs_short:
+   ld de,0
+   ld e,b
+   dec e
+   add hl,de
+   bit 7,(hl)
+   ret z ; (hl) >= 0
+   scf \ ccf
+   sbc hl,de
+   push af
+   call memneg_short
+   pop af
+   xor a,$ff
+   ret
+
+
+;; cp_hl_de
+cp_hl_de:
+   scf \ ccf
+   sbc hl,de
+   push af
+   add hl,de
+   pop af
    ret

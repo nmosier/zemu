@@ -20,7 +20,9 @@ zemu TODO
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page
+[ ] cp_hl_de -- use "scf \ ccf \ sbc hl,de \ push af \ add hl,de \ pop af"
 
 Bug Fixes
 [ ] Fix kepyad bug in CEMU
 [ ] Fix SPASM .long bug
+[ ] Modulus arithmetic might be buggy

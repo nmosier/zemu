@@ -312,3 +312,59 @@ cp_hl_de:
    add hl,de
    pop af
    ret
+
+;; wtols -- word to long, signed
+;; INPUTS:
+;;  hl[15:0] = 16-bit word, signed
+;; OUTPUTS:
+;;  de = 24-bit long, sign-extended from hl[15:0]
+;; DESTROYS: de
+wtols:
+   ld de,0
+   bit 7,h
+   jr z,wtols.transfer
+   dec de ; de <- $FFFFFF
+wtols.transfer:
+   ld d,h
+   ld e,l
+wtols.done:
+   ret
+
+;; wtolu -- word to long, unsigned
+;; INPUTS:
+;;  hl[15:0] = 16-bit word, unsigned
+;; OUTPUTS:
+;;  de = 24-bit unsigned long from hl[15:0]
+;; DESTROYS: de
+wtolu:
+   ld de,0
+   ld d,h
+   ld e,l
+   ret
+
+;; btols -- byte to long, signed
+;; INPUTS:
+;;  a = byte, signed
+;; OUTPUTS:
+;;  hl = 24-bit long, sign-extended from %a
+;; DESTROYS: hl
+btols:
+   ld hl,0
+   bit 7,a
+   jr z,btols.transfer
+   dec hl ; hl <- $FFFFFF
+btols.transfer:
+   ld l,a
+btols.done:
+   ret
+
+;; btolu -- byte to long, unsigned
+;; INPUTS:
+;;  a = byte, unsigned
+;; OUTPUTS:
+;;  hl = 24-bit unsigned long from %a
+;; DESTROYS: hl
+btolu:
+   ld hl,0
+   ld l,a
+   ret

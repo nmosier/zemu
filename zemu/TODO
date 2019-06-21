@@ -11,12 +11,14 @@ zemu TODO
 [X] Test function for translating laddrs to paddrs.
 [X] Rename function: zaddr_to_phys -> zaddr_to_paddr
 [X] Write function for fetching & decoding one instruction
-[ ] Decode operand types.
+[X] Decode operand types.
 [X] Fix all push.s
 [X] Have zaddr_fetch update ptr (hl).
 [X] Unify stack and call state into same stack, updating save code.
 [ ] Update save routines to save all of dynamic memory.
 [ ] Fix operand fetching code to sign-extend values
+[ ] Object tree -- function to return address of table, object
+[ ] Replace inline sign extension with new function calls
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

@@ -113,3 +113,18 @@ zaddr_store:
 zaddr_store.cleanup:
    pop de
    ret
+
+;; zaddr_fetchw -- fetch big-endian word at logical address
+;; INPUTS:
+;;  hl = logical address
+;; OUTPUTS:
+;;  hl <- hl + 2
+;;  de[15:0] = word
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zaddr_fetchw:
+   call zaddr_fetch
+   ld e,a
+   call nc,zaddr_fetch
+   ld d,a
+   ret ; errflg set

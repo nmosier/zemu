@@ -1,0 +1,396 @@
+;; zexec.z80 -- routines for executing instructions
+
+;; NOTE: each zexec.* function expects operands to be set properly
+;;       and to have %a hold the relevant opcode.
+
+;; zexec_cmp.* -- comparison function
+;; INPUTS:
+;;  hl = lhs
+;;  de = rhs
+;; OUTPUTS:
+;;  C if condition true
+;;  NC if condition false
+;; DESTROYS: (all)
+;; ERRORS: no.
+
+;; hl == de ?
+zexec_cmp.eq:
+   call cp_hl_de_sgn
+   scf
+   ret z ;; C if equal
+   ccf
+   ret   ;; NC if unequal
+
+;; hl < de ?
+zexec_cmp.lt:
+   jp cp_hl_de_sgn
+
+;; hl > de ?
+zexec_cmp.gt:
+   ex de,hl
+   jp cp_hl_de_sgn
+
+;; (hl & de) == hl ?
+zexec_cmp.tst:
+   push hl
+   call zexec_binop.and
+   pop de
+   sbc hl,de
+   scf
+   ret z ; (hl & de) == hl
+   ccf
+   ret   ; (hl & de) != hl
+   
+
+;---------------------------;
+;   modification functions  ;
+;---------------------------;
+; zexec_mod.* -- modification function
+; INPUTS:
+;  hl = value (24-bit, signed)
+; OUTPUTS:
+;  hl = modified value (24-bit, signed)
+; DESTROYS: (all)
+; ERRORS: no.
+
+zexec_mod.inc:
+   inc hl
+   ret
+
+zexec_mod.dec:
+   dec hl
+   ret
+
+;---------------------------;
+;     behavior functions    ;
+;---------------------------;
+
+;; zexec_cond_jump -- routine for executing conditional, branching jump,
+;;                    given condition as parameter.
+;; INPUT:
+;;  hl = pointer to comparison function
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;;  zframe_pc set
+;; OUTPUT:
+;;  zframe_pc updated
+;; DESTROYS: (all)
+;; ERRORS: yes
+zexec_cond_jump:
+   ; save function pointer
+   push hl
+   ; read first operand
+   call zcode_readop
+   jr c,zexec_cond_jump.err ; error
+   ret c
+   ld a,ZERR_BADINSTR
+   jr c,zexec_cond_jump.err ; error
+   ; read remaining operands, check for equality
+   ex de,hl
+   jr zexec_cond_jump.loop_entry
+zexec_cond_jump.loop:
+   ex de,hl
+   ; hl = root op, de = comparison op
+   pop ix
+   push ix
+   call zexec_cond_jump.jump    ; this is messy; I don't like it
+   ld b,1 ; take branch (maybe)
+   jr c,zexec_cond_jump.handle ; condition was true   
+zexec_cond_jump.loop_entry:
+   push de
+   call zcode_readop
+   pop de
+   jr c,zexec_cond_jump.err ; error
+   jr nz,zexec.je.loop ; if read op, then loop
+zexec_cond_jump.cont:
+   ; condition failed to be met
+   ld b,0 ; don't take branch
+zexec_cond_jump.handle:
+   ; decode branch
+   ld hl,(zframe_pc)
+   push bc
+   call zcode_decode_branch
+   pop bc
+   jr c,zexec_cond_jump.err ; error
+   ld a,b
+   jr nz,zexec_cond_jump.condition ; adjust result based on condition inversion bit
+   ; flip condition
+   xor $01
+zexec_cond_jump.condition:
+   ld (zframe_pc),hl ; store pc
+   ex de,hl
+   or a
+   call nz,zexec_branch
+   pop hl ; pop off function pointer
+   ret ; NOTE: carry flag will be properly set
+zexec_cond_jump.err:
+   pop hl ; pop off arg
+   scf
+   ret
+zexec_cond_jump.jump:
+   jp (ix)
+   
+;; zexec_branch: execute branch in running program.
+;; INPUTS:
+;;  hl = raw offset (24 bits)
+;; OUTPUTS:
+;; ERRORS: yes.
+;; NOTE: updates global state variables in zmem.z80.
+;; NOTE: zframe_pc MUST point to the address directly after the current instruction.
+;; TODO: this shouldn't directly modify zframe_pc. Ought to be parameterized
+zexec_branch:
+   ; 4.7.1 An offset of 0 means return false from the current routine, and 1 means
+   ;       return true from the current routine.
+   ld de,1
+   call cp_hl_de
+   jr c,zexec_branch.ret
+   jr z,zexec_branch.ret
+   ; apply offset to program counter
+   ld de,(zframe_pc)
+   dec de
+   dec de
+   add hl,de
+   ld (zframe_pc),hl
+   scf \ ccf
+   ret
+
+zexec_branch.ret:
+   push hl
+   call zstack_leave
+   pop hl
+   ret c
+   ld a,l
+   or a
+   ld.s hl,ZVAR_TRUE
+   jr nz,zexec_branch.ret_cont
+zexec_branch.ret_f:
+   ld.s hl,ZTRUE
+zexec_branch.ret_cont:
+   ld a,ZVAR_STACK
+   call zvar_store ; push return value onto stack
+   ret ; C or NC
+
+
+;; zexec_chk -- function used for *_chk opcodes
+;; INPUTS:
+;;  hl = pointer to function applied to variable value
+;;  de = pointer to comparison function
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;; OUTPUTS:
+;;  updates zframe_pc
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zexec_chk:
+   ; store parameters
+   ld (zexec_chk.modfn),hl
+   ld (zexec_chk.cmpfn),de
+   ; get variable number
+   call zcode_readop_force
+   ret c
+   ; convert variable number to 8 bits
+   call zvar_downcast
+   ret c
+   ; save variable number
+   ld (zexec_chk.varnum),a
+   ; fetch value
+   call zvar_fetch
+   ret c
+   ; apply fn to val
+   ld ix,(zexec_chk.modfn)
+   call zexec_chk.jump
+   ; save & store result
+   ld (zexec_chk.varval),hl
+   ld a,(zexec_chk.varnum)
+   call zvar_store
+   ret c
+   ; get comparison operator
+   call zcode_readop_force
+   ret c
+   ld (zexec_chk.cmpval),hl
+   ; decode branch
+   ld hl,(zframe_pc)
+   call zcode_decode_branch
+   ret c
+   ld (zframe_pc),hl
+   push de ; branch offset
+   ld hl,(zexec_chk.varval)
+   ld de,(zexec_chk.cmpval)
+   ld ix,(zexec_chk.cmpfn)
+   call zexec_chk.jump
+   pop hl
+   jr nc,zexec_chk.post_branch
+zexec_chk.branch:
+   call zexec_branch
+   ret c
+zexec_chk.post_branch:
+   ret
+   
+zexec_chk.jump:
+   jp (ix)
+
+zexec_chk.varnum: .db 0
+zexec_chk.varval: .dl 0
+zexec_chk.cmpval: .dl 0
+zexec_chk.modfn:  .dl 0
+zexec_chk.cmpfn:  .dl 0
+
+
+;; zexec_binop.* -- binary operations
+;; INPUTS:
+;;  hl = lhs
+;;  de = rhs
+;; OUTPUTS:
+;;  hl = result
+;; DESTROYS: (all)
+;; ERRORS: yes.
+
+zexec_binop.lhs: .dl 0
+zexec_binop.rhs: .dl 0
+
+zexec_binop.or:
+   ld (zexec_binop.lhs),hl
+   ld (zexec_binop.rhs),de
+   ld hl,zexec_binop.lhs
+   ld de,zexec_binop.rhs
+   ld b,3
+zexec_binop.or.loop:
+   ld a,(de)
+   or (hl)
+   ld (de),a
+   inc hl
+   inc de
+   djnz zexec_binop.or.loop
+zexec_binop.or.done:
+   ld hl,(zexec_binop.rhs)
+   scf \ ccf
+   ret
+
+zexec_binop.and:
+   ld (zexec_binop.lhs),hl
+   ld (zexec_binop.rhs),de
+   ld hl,zexec_binop.lhs
+   ld de,zexec_binop.rhs
+   ld b,3
+zexec_binop.and.loop:
+   ld a,(de)
+   or (hl)
+   ld (de),a
+   inc hl
+   inc de
+   djnz zexec_binop.and.loop
+zexec_binop.and.done:
+   ld hl,(zexec_binop.rhs)
+   scf \ ccf
+   ret
+
+zexec_binop.add:
+   add hl,de
+   scf \ ccf
+   ret
+
+zexec_binop.sub:
+   scf \ ccf
+   sbc hl,de
+   scf \ ccf
+   ret
+
+zexec_binop.mul:
+   call mul_hl_de
+   scf \ ccf
+   ret
+
+zexec_binop.div:
+   call div_hl_de
+   ret
+
+zexec_binop.mod:
+   call div_hl_de
+   ex de,hl
+   ret
+
+;; zexec_binop -- execute binop instruction
+;; INPUTS:
+;;  hl = pointer to binary operation function
+;;  zframe_pc, args set
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS: yes.
+zexec_binop:
+   ld (zexec_binop.fn),hl
+   call zcode_readop_force
+   ret c
+   push hl
+   call zcode_readop_force
+   ex de,hl
+   pop hl
+   ret c
+   ld ix,(zexec_binop.fn)
+   call zexec_binop.jmp
+   push hl
+   call zcode_readvarnum
+   pop hl
+   call zvar_store
+   ret ; carry flag set 
+
+zexec_binop.jmp:
+   jp (ix)
+
+zexec_binop.fn: .dl 0
+
+;------------------------------------;
+;           opcode handlers          ;
+;------------------------------------;
+;; INPUT:
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;;  zframe_pc set
+;; OUTPUT:
+;; DESTROYS:
+;; ERRORS: yes.
+
+zexec.je:
+   ld hl,zexec_cmp.eq
+   jp zexec_cond_jump
+
+zexec.jl:
+   ld hl,zexec_cmp.lt
+   jp zexec_cond_jump
+
+zexec.jg:
+   ld hl,zexec_cmp.gt
+   jp zexec_cond_jump
+
+zexec.dec_chk:
+   ld hl,zexec_mod.dec
+   ld de,zexec_cmp.lt
+   jp zexec_chk
+
+zexec.inc_chk:
+   ld hl,zexec_mod.inc
+   ld de,zexec_cmp.gt
+   jp zexec_chk
+
+zexec.jin:
+   ;; TODO
+
+zexec.test:
+   ld hl,zexec_cmp.tst
+   jp zexec_cond_jump
+
+zexec.or:
+   ld hl,zexec_binop.or
+   call zexec_binop
+   ret
+
+zexec.and:
+   ld hl,zexec_binop.and
+   call zexec_binop
+   ret
+
+zexec.store:
+   call zcode_readop_force ; variable number
+   push hl
+   call nc,zcode_readop_force ; value to store
+   call nc,zvar_downcast
+   pop hl
+   call nc,zvar_store
+   ret
+

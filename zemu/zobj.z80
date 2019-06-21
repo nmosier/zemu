@@ -1,0 +1,43 @@
+#include "zobj.inc"
+
+
+;; zobj_tabaddr -- return logical address of object table
+;; INPUTS:
+;;  zmap_header set
+;; OUTPUTS:
+;;  ix = logical address of object table
+;; ERRORS: yes.
+;; DESTROYS:
+zobj_tabaddr:
+   ld ix,(zmap_header)
+   lea hl,ix+ZHDR_OBJTAB
+   call zaddr_fetchw
+   ret nc ; error
+   call wtolu ; zero-extend address
+   add ix,de
+   lea ix,ix+ZOBJ_PROPDEFAULTS
+   scf \ ccf ; success
+   ret
+   
+;; zobj_objaddr -- return logical address of object
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  ix = logical address of object
+;; ERRORS: yes.
+;; DESTROYS:
+zobj_objaddr:
+   ld l,a
+   ld h,ZOBJSIZE
+   or a,a
+   ld a,ZERR_BADOBJ
+   ccf
+   ret z ; error: cannot take address of object 0
+   mlt hl
+   call wtolu
+   add ix,de
+   scf \ ccf
+   ret
+   
+   
+   

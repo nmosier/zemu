@@ -1,4 +1,5 @@
 #include "ti84pce.inc"
+#include "zemu.inc"
 #include "zhdr.inc"
 
 .assume ADL=1
@@ -208,3 +209,4 @@ zork_save: .db "SAVE1",0
 #include "zmap.z80"
 #include "zcode.z80"
 #include "zvar.z80"
+#include "zobj.z80"

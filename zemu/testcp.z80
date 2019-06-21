@@ -1,0 +1,66 @@
+#include "ti84pce.inc"
+.assume ADL=1
+.org userMem-2
+
+.db tExtTok,tAsm84CeCmp
+
+VARNAMELEN .equ 8
+
+main:
+   xor a
+   ld (curRow),a
+   ld (curCol),a
+   ld hl,0
+   ld de,0
+   call test_cp
+   ld hl,1
+   ld de,0
+   call test_cp
+   ld hl,$FFFFF
+   ld de,$FFFFF
+   call test_cp
+   ld hl,$FFEEDD
+   ld de,$FEEEDD
+   call test_cp
+   ld de,$FFEEDD
+   ld hl,$FEEEDD
+   call test_cp
+   ld hl,$FFEEDC
+   ld de,$FFEE00
+   call test_cp
+   ret
+
+test_cp:
+   push de
+   push hl
+   call cp_hl_de
+   pop hl
+   push af
+   call _DispHL
+   pop af
+   call print_cmp
+   call _PutC
+   pop hl
+   call _DispHL
+   call _NewLine
+   ret
+
+print_cmp:
+   jp c,print_lt
+   jp nz,print_gt
+   jp z,print_eq
+
+print_lt:
+   ld a,'<'
+   ret
+
+print_gt:
+   ld a,'>'
+   ret
+
+print_eq:
+   ld a,'='
+   ret
+
+#include "zerr.z80"
+#include "zutil.z80"

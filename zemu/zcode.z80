@@ -250,7 +250,7 @@ zcode_readop:
 ;; INPUTS:
 ;;  zcode_decode.types, zcode_decode.op_laddr set
 ;; OUTPUTS:
-;;  hl = 16-bit value of operand, zero-padded if 8-bits
+;;  hl = 24-bit value of operand, zero-padded if 8-bits
 ;;  zcode_decode.types, zcode_decode.op_laddr updated
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
@@ -258,6 +258,21 @@ zcode_readop_force:
    call zcode_readop
    ret nz
    scf ; error if no more ops
+   ret
+
+;; zcode_readvarnum -- read variable number (1 byte)
+;; INPUTS:
+;;  zframe_pc
+;; OUTPUTS:
+;;  zframe_pc <- zframe_pc + 1
+;;  %a contains variable number
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zcode_readvarnum:
+   ld hl,(zframe_pc)
+   call zaddr_fetch
+   ret c ; error
+   ld (zframe_pc),hl
    ret
 
 ;; zcode_decode_branch -- decode branch in opcode.

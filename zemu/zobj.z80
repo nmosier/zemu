@@ -238,10 +238,63 @@ zobj_remove:
    lea hl,ix+ZOBJ_CHILD
    call zaddr_fetch ; current first child
    ret c
+   dec hl ; use this later for updating
+   ;; TODO -- loop to traverse list.
+   ; update parent & sibling list
+   ; 2 cases: (i) obj is first child; (ii) otherwise
+   ex de,hl ; de = pointer to child byte of parent object
    ld hl,zobj_remove.obj
    cp a,(hl) ; check if current first child == object being removed
-   ;; TODO -- loop to traverse list.
-   
+   jr nz,zobj_remove.caseii
+   ; case (i)
+   ex de,hl
+   ld a,(zobj_remove.nextsib)
+   call zaddr_store
+   ret c
+   jr zobj_remove.update_obj
+zobj_remove.caseii:
+   ; case (ii)
+   call zobj_objaddr ; address of first sibling object -> ix
+   ret c
+   ; don't care about a -- loop will overwrite it before using it
+   ; loop invariants at special label:
+   ;  - hl points to child entry of previous sibling of current object
+   ;  - a contains current sibling number
+   ; loop terminates when a == object being removed
+   ; error if a == 0
+zobj_remove.loop:
+   lea hl,ix+ZOBJ_SIBLING
+   call zaddr_fetch
+   ret c
+   ex de,hl
+   ld hl,zobj_remove.obj
+   cp a,(hl)
+   ex de,hl
+   jr z,zobj_remove.found
+   call zobj_objaddr ; handles case when a = 0
+   ret c
+   jr zobj_remove.loop
+
+zobj_remove.found:
+   dec hl
+   ld a,(zobj_remove.nextsib)
+   call zaddr_store
+   ret c
+
+zobj_remove.update_obj:
+   ld a,(zobj_remove.obj)
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_FAMILY
+   xor a
+   call zaddr_store ; no parent
+   ret c
+   xor a
+   call zaddr_store ; no siblings
+   ret c
+zobj_remove.done:
+   scf \ ccf
+   ret
 
 zobj_remove.data:
 zobj_remove.obj:     .db 0

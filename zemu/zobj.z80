@@ -25,7 +25,7 @@ zobj_tabaddr:
 ;; OUTPUTS:
 ;;  ix = logical address of object
 ;; ERRORS: yes.
-;; DESTROYS: a,hl,de
+;; DESTROYS: hl,de
 zobj_objaddr:
    ld l,a
    ld h,ZOBJSIZE
@@ -33,6 +33,7 @@ zobj_objaddr:
    ld a,ZERR_BADOBJ
    ccf
    ret z ; error: cannot take address of object 0
+   ld a,l
    mlt hl
    call wtolu
    add ix,de
@@ -123,3 +124,126 @@ zobj_attrset:
    or a,(hl)
    ld (hl),a
    ret
+
+
+;; zobj_valid -- check whether object number is valid
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  NC if valid, C if valid
+;; ERRORS: see OUTPUTS.
+;; DESTROYS: (none)
+zobj_valid:
+   cp a,1
+   ret
+
+;; zobj_insert -- transfer childhood of object to another parent
+;; INPUTS:
+;;  a = child object number
+;;  c = new parent object number
+;; OUTPUTS:
+;;  modifies object table
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; TODO -- this doesn't account for the fact when the object is not the first child of parent
+zobj_insert:
+   ; get info about old parent & sibs
+   ld hl,zobj_insert.data
+   ld (hl),a ; child obj
+   call obj_valid
+   inc hl
+   ld (hl),c ; new parent
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_PARENT
+   call zaddr_fetch ; parent object number
+   ret c
+   ld (zobj_insert.oldparent),a
+   call zaddr_fetch ; first sibling object number
+   ret c
+   ld (zobj_insert.oldsib),a
+   ; remove from old parent
+   ;; change first child to old child's first sibling
+   ld a,(zobj_insert.oldparent)
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_CHILD
+   ld a,(zobj_insert.oldsib)
+   call zaddr_store
+   ret c
+   ; add to new parent
+   ;; update new charent's pild
+   ld a,(zobj_insert.newparent)
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_CHILD
+   call zaddr_fetch ; fetch new sibling
+   ret c
+   ld (zobj_insert.newsib),a
+   dec hl
+   ld a,(zobj_insert.obj)
+   call zaddr_store ; set new child
+   ret c
+   ;; update object's info
+   ld a,(zobj_insert.obj)
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_FAMILY
+   ld a,(zobj_insert.newparent)
+   call zaddr_store
+   ret c
+   ld a,(zobj_insert.newsib)
+   call zaddr_store
+   ret c
+zobj_insert.done:
+   scf \ ccf
+   ret
+
+zobj_insert.data:
+zobj_insert.obj:       .db 0
+zobj_insert.newparent: .db 0
+zobj_insert.oldparent: .db 0
+zobj_insert.oldsib:    .db 0
+zobj_insert.newsib:    .db 0
+
+
+;; zobj_remove -- remove object from parent
+;; INPUTS:
+;;  a = object
+;; OUTPUTS:
+;;  object table modified
+;; ERRORS: yes.
+;; DESTROYS:
+zobj_remove:
+   ; get object
+   call zobj_objaddr
+   ret c
+   ld de,zobj_remove.data
+   ld (de),a ; save obj no
+   inc de
+   ; get parent and sibling
+   lea hl,ix+ZOBJ_FAMILY
+   call zaddr_fetch
+   ret c
+   ld (de),a ; save parent no
+   inc de
+   call zaddr_fetch
+   ret c
+   ld (de),a ; save next sib no
+   ; find first child of parent
+   dec de
+   ld a,(de) ; parent no
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_CHILD
+   call zaddr_fetch ; current first child
+   ret c
+   ld hl,zobj_remove.obj
+   cp a,(hl) ; check if current first child == object being removed
+   ;; TODO -- loop to traverse list.
+   
+
+zobj_remove.data:
+zobj_remove.obj:     .db 0
+zobj_remove.parent:  .db 0
+zobj_remove.nextsib: .db 0

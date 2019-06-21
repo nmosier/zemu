@@ -25,7 +25,7 @@ zobj_tabaddr:
 ;; OUTPUTS:
 ;;  ix = logical address of object
 ;; ERRORS: yes.
-;; DESTROYS:
+;; DESTROYS: a,hl,de
 zobj_objaddr:
    ld l,a
    ld h,ZOBJSIZE
@@ -38,6 +38,88 @@ zobj_objaddr:
    add ix,de
    scf \ ccf
    ret
-   
-   
-   
+
+;; zobj_attr -- find attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS:
+;;  hl = logical address of byte containing attribute
+;;  a = mask for extracting bit
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_attr:
+   call zobj_objaddr
+   ret c
+   ; find bit offset within byte
+   ; boff <- 8 - (attrno % 8) == (8 - attrno) % 8
+   ld a,8
+   sub a,c
+   and a,$07 ; last 3 bits
+   call maskb ; 1 << (c % 8)
+   ld b,a
+   ld a,c
+   cp a,32
+   ccf
+   ld a,ZERR_BADATTR
+   ret c
+   ; get logical address of byte containing attribute
+   srl c
+   srl c
+   srl c
+   ld de,0
+   ld e,c
+   lea hl,ix+ZOBJ_ATTRS
+   add hl,de ; logical address
+   ld a,b ; mask
+   scf \ ccf
+   ret
+
+;; zobj_attrtest -- test attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS:
+;;  zero flag set (Z) if attribute is set, reset (NZ) otherwise
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_attrtest:
+   call zobj_attr
+   ret c
+   call zaddr_to_paddr
+   ret c
+   and a,(hl)
+   ret
+
+;; zobj_attrclear -- clear attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (All)
+zobj_attrclear:
+   call zobj_attr
+   ret c
+   call zaddr_to_paddr
+   ret c
+   cpl
+   and a,(hl)
+   ld (hl),a
+   ret
+
+;; zobj_attrset -- set attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_attrset:
+   call zobj_attr
+   ret c
+   call zaddr_to_paddr
+   ret c
+   or a,(hl)
+   ld (hl),a
+   ret

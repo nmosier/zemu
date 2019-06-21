@@ -368,3 +368,31 @@ btolu:
    ld hl,0
    ld l,a
    ret
+
+
+;; maskb/exp2b -- get bitmask / find 2^n
+;; INPUTS:
+;;  a = bit/power
+;; OUTPUTS:
+;;  a = 2^n / 1 << n
+;; ERRORS:
+;; DESTROYS: hl,de
+maskb:
+exp2b:
+   ld hl,exp2b.tab
+   ld de,0
+   ld e,a
+   add hl,de
+   ld a,(hl)
+   ret
+
+exp2b.tab:
+   .db $01
+   .db $02
+   .db $04
+   .db $08
+   .db $10
+   .db $20
+   .db $40
+   .db $80
+   

@@ -10,6 +10,7 @@ ZERR_BADINSTR .equ 6
 ZERR_BADVARNO .equ 7
 ZERR_DIVZERO .equ 8
 ZERR_BADOBJ .equ 9
+ZERR_BADATTR .equ 10
 
 zerrmsg_novar:      .db "appvar not found",0
 zerrmsg_nomem:      .db "not enough free RAM",0
@@ -21,6 +22,7 @@ zerrmsg_badinstr:   .db "illegal instruction",0
 zerrmsg_badvarno:   .db "invalid variable number",0
 zerrmsg_divzero:    .db "divide by 0",0
 zerrmsg_badobj:     .db "invalid object",0
+zerrmsg_badattr:    .db "attribute number out of range",0
 
 zerrtab:
    .dl zerrmsg_novar
@@ -33,6 +35,7 @@ zerrtab:
    .dl zerrmsg_badvarno
    .dl zerrmsg_divzero
    .dl zerrmsg_badobj
+   .dl zerrmsg_badattr
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

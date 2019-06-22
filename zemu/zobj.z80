@@ -285,3 +285,115 @@ zobj_remove.data:
 zobj_remove.obj:     .db 0
 zobj_remove.parent:  .db 0
 zobj_remove.nextsib: .db 0
+
+
+;; zobj_proptab -- get logical address of property table [header]
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  hl = logical address of object's property table
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_proptab:
+zobj_proptab_hdr:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_PROPS
+   call zaddr_fetchw ; fetch word
+   ret c
+   ; zero-extend address
+   ex de,hl
+   call wtolu
+zobj_proptab.done:
+   scf \ ccf
+   ret
+
+;; zobj_proptab_body -- get logical address of object's property table body
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  hl = logical address of object's property table body
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_proptab_body:
+   call zobj_proptab
+   ret c
+   call zaddr_fetch
+   ret c
+   ex de,hl
+   ld hl,0
+   ld l,a
+   add hl,hl
+   add hl,de
+zobj_proptab_body.done:
+   scf \ ccf
+   ret
+
+;; zobj_propaddr -- get logical address of object property data
+;; INPUTS:
+;;  a = object number
+;;  c = property number
+;; OUTPUTS:
+;;  hl = logical address of object property data
+;; ERRORS: yes.
+;; DESTROYS: 
+zobj_propaddr:
+   push bc
+   call zobj_proptab_body
+   pop de
+   ret c
+   ; loop invariants:
+   ;  - e holds target property number
+   ;  - hl holds address of next unexamined entry
+   ;  - hl may or may not point to 0
+   jr zobj_propaddr.entry
+zobj_propaddr.loop:
+   ld a,c
+   call zobj_propid_to_size
+   ld bc,0
+   ld c,a
+   add hl,bc
+zobj_propaddr.entry:
+   call zaddr_fetch
+   ret c
+   or a,a
+   jr z,zobj_propaddr.notfound
+   ld c,a
+   call zobj_propid_to_num
+   cp a,e ; are the property numbers equal?
+   jr z,zobj_propaddr.found
+   jr nc,zobj_propaddr.loop
+zobj_propaddr.notfound:
+   ; not found
+   ld hl,0
+zobj_propaddr.found:
+   ; found
+   scf \ ccf
+   ret
+
+;; zobj_propid_to_size -- extract raw byte size from property ID byte
+;; INPUTS:
+;;  a = property ID byte
+;; OUTPUTS:
+;;  a = byte size
+;; DESTROYS: a
+;; ERRORS: no.
+zobj_propid_to_size:
+   and a,$E0 ; 0b1110.0000
+   rlca
+   rlca
+   rlca
+   inc a
+   ret
+   
+
+;; zobj_propid_to_num -- extract property number from property ID byte
+;; INPUTS:
+;;  a = property ID byte
+;; OUTPUTS:
+;;  a = property number
+;; DESTROYS: a
+;; ERRORS: yes.
+zobj_propid_to_num:
+   and a,$1F
+   ret

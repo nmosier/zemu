@@ -1,16 +1,17 @@
 ZERRCNT .equ 8
 
-ZERR_NOVAR .equ 0
-ZERR_NOMEM .equ 1
-ZERR_BADADDR .equ 2
-ZERR_NOTAVAIL .equ 3
-ZERR_NOLOCL .equ 4
-ZERR_STACKEMPTY .equ 5
-ZERR_BADINSTR .equ 6
-ZERR_BADVARNO .equ 7
-ZERR_DIVZERO .equ 8
-ZERR_BADOBJ .equ 9
-ZERR_BADATTR .equ 10
+ZERR_NOVAR       .equ 0
+ZERR_NOMEM       .equ 1
+ZERR_BADADDR     .equ 2
+ZERR_NOTAVAIL    .equ 3
+ZERR_NOLOCL      .equ 4
+ZERR_STACKEMPTY  .equ 5
+ZERR_BADINSTR    .equ 6
+ZERR_BADVARNO    .equ 7
+ZERR_DIVZERO     .equ 8
+ZERR_BADOBJ      .equ 9
+ZERR_BADATTR     .equ 10
+ZERR_NOPROP      .equ 11
 
 zerrmsg_novar:      .db "appvar not found",0
 zerrmsg_nomem:      .db "not enough free RAM",0
@@ -23,6 +24,7 @@ zerrmsg_badvarno:   .db "invalid variable number",0
 zerrmsg_divzero:    .db "divide by 0",0
 zerrmsg_badobj:     .db "invalid object",0
 zerrmsg_badattr:    .db "attribute number out of range",0
+zerrmsg_noprop:     .db "object missing property",0
 
 zerrtab:
    .dl zerrmsg_novar
@@ -36,6 +38,7 @@ zerrtab:
    .dl zerrmsg_divzero
    .dl zerrmsg_badobj
    .dl zerrmsg_badattr
+   .dl zerrmsg_noprop
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

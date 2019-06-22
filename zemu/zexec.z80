@@ -40,7 +40,22 @@ zexec_cmp.tst:
    ret z ; (hl & de) == hl
    ccf
    ret   ; (hl & de) != hl
-   
+
+;; obj(de) is parent of obj(hl) ?
+zexec_cmp.in:
+   call zcode_readobj_force
+   ret c
+   call zobj_parent
+   ret c
+   push af
+   call zcode_readobj_force
+   pop bc
+   ret c
+   cp a,c
+   scf
+   ret z
+   ccf
+   ret
 
 ;---------------------------;
 ;   modification functions  ;
@@ -369,6 +384,12 @@ zexec.inc_chk:
    jp zexec_chk
 
 zexec.jin:
+   ld hl,zexec_cmp.in
+   jp zexec_cond_jump
+
+   
+   
+   
    ;; TODO
 
 zexec.test:

@@ -304,7 +304,13 @@ memabs_short:
    ret
 
 
-;; cp_hl_de
+;; cp_hl_de -- flags(hl - de)
+;; INPUTS:
+;;  hl, de
+;; OUTPUTS:
+;;  all flags
+;; DESTROYS: (none)
+;; ERRORS: no.
 cp_hl_de:
    scf \ ccf
    sbc hl,de
@@ -364,11 +370,25 @@ btols.done:
 ;; OUTPUTS:
 ;;  hl = 24-bit unsigned long from %a
 ;; DESTROYS: hl
+;; ERRORS: no.
 btolu:
    ld hl,0
    ld l,a
    ret
 
+;; ltobu -- long to byte, unsigned
+;; INPUTS:
+;;  hl = 24-bit unsigned long
+;; OUTPUTS:
+;;  a = hl[7:0]
+;;  C if downcast fails; NC otherwise
+;; DESTROYS: a,de
+;; ERRORS: no.
+ltobu:
+   ld a,l
+   ex de,hl
+   ld hl,$0000ff
+   jp cp_hl_de
 
 ;; maskb/exp2b -- get bitmask / find 2^n
 ;; INPUTS:

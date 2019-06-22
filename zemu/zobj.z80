@@ -485,29 +485,3 @@ zobj_child:
    ret c
    lea hl,ix+ZOBJ_CHILD
    jp zaddr_fetch
-
-
-;; zobj_ischild -- determine if object A is child of object B
-;; INPUTS:
-;;  a = parent object
-;;  c = potentially child object
-;; OUTPUTS:
-;;  a = if child, target child object
-;;  a = 0 otherwise
-;; DESTROYS: (all)
-;; ERRORS: yes.
-zobj_ischild:
-   push bc
-   call zobj_child
-   pop bc
-   ret c
-zobj_ischild.loop:
-   cp a,c ; is current child the target child?
-   ret c ; NC, found
-   or a,a
-   ret z ; NC, not found
-   push bc
-   call zobj_sibling   
-   pop bc
-   ret c
-   jr zobj_ischild.loop

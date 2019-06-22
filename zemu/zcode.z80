@@ -260,6 +260,24 @@ zcode_readop_force:
    scf ; error if no more ops
    ret
 
+;; zcode_readobj_force -- fetch operand containing object number
+;;                        report error if there is no operand.
+;; INPUTS:
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;; OUTPUTS:
+;;  a = 8-bit object number
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zcode_readobj_force:
+   call zcode_readop_force
+   ret c
+   call ltobu
+   ret nc
+zcode_readobj_force.err:
+   ld a,ZERR_BADOBJ
+   ret
+
+
 ;; zcode_readvarnum -- read variable number (1 byte)
 ;; INPUTS:
 ;;  zframe_pc

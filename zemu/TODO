@@ -20,6 +20,8 @@ zemu TODO
 [X] Object tree -- function to return address of table, object
 [ ] Replace inline sign extension with new function calls
 [X] Write function to check if object number is valid
+[ ] Merge/reconcile zvar_downcast and ltobu
+[ ] zexec_cmp.* ought to be failable
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

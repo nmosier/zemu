@@ -42,20 +42,25 @@ zexec_cmp.tst:
    ret   ; (hl & de) != hl
 
 ;; obj(de) is parent of obj(hl) ?
+;; TODO -- should perform downcasting checks. But if failure is not an option...
 zexec_cmp.in:
-   call zcode_readobj_force
-   ret c
+   ld a,l
+   push de
    call zobj_parent
-   ret c
-   push af
-   call zcode_readobj_force
-   pop bc
-   ret c
-   cp a,c
+   pop de
+   cp a,e
    scf
    ret z
    ccf
    ret
+
+;; does obj(hl) have attribute attr(de)?
+;; TODO -- should perform downcasting checks.
+zexec_cmp.attr:
+   ld a,l
+   ld c,e
+   call zobj_attrtest
+   ;; TODO
 
 ;---------------------------;
 ;   modification functions  ;
@@ -387,11 +392,6 @@ zexec.jin:
    ld hl,zexec_cmp.in
    jp zexec_cond_jump
 
-   
-   
-   
-   ;; TODO
-
 zexec.test:
    ld hl,zexec_cmp.tst
    jp zexec_cond_jump
@@ -405,6 +405,13 @@ zexec.and:
    ld hl,zexec_binop.and
    call zexec_binop
    ret
+
+zexec.test_attr:
+   ;; TODO -- this is a disguised binary jump
+
+zexec.set_attr:
+
+zexec.clear_attr:
 
 zexec.store:
    call zcode_readop_force ; variable number

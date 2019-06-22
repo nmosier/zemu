@@ -135,16 +135,16 @@ mul_hl_de:
 mul_hl_de.loop:
 	add hl,hl
 	ex (sp),hl
-	jr nc,_MUL_HL_DE.loop.skip
+	jr nc,mul_hl_de.loop.skip
 	add hl,hl
 	add hl,de
 	ex (sp),hl
-	djnz _MUL_HL_DE.loop
-	jr _MUL_HL_DE.done
+	djnz mul_hl_de.loop
+	jr mul_hl_de.done
 mul_hl_de.loop.skip:
 	add hl,hl
 	ex (sp),hl
-	djnz _MUL_HL_DE.loop
+	djnz mul_hl_de.loop
 mul_hl_de.done:
 	pop hl ; restore result
 	ret

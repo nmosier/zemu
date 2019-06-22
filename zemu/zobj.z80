@@ -287,6 +287,10 @@ zobj_remove.parent:  .db 0
 zobj_remove.nextsib: .db 0
 
 
+;--------------------------------;
+;        PROPERTY FUNCTIONS      ;
+;--------------------------------;
+
 ;; zobj_proptab -- get logical address of property table [header]
 ;; INPUTS:
 ;;  a = object number
@@ -336,7 +340,7 @@ zobj_proptab_body.done:
 ;; OUTPUTS:
 ;;  hl = logical address of object property data
 ;; ERRORS: yes.
-;; DESTROYS: 
+;; DESTROYS: (all)
 zobj_propaddr:
    push bc
    call zobj_proptab_body
@@ -397,3 +401,87 @@ zobj_propid_to_size:
 zobj_propid_to_num:
    and a,$1F
    ret
+
+
+;; zobj_propsize -- get size of object property data
+;; INPUTS:
+;;  a = object number
+;;  c = property number
+;; OUTPUTS:
+;;  a = size of object property data
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_propsize:
+   call zobj_propaddr
+   ret c
+   ld de,1
+   ; scf \ ccf
+   sbc hl,de ; dec hl with zero flag set
+   ld a,ZERR_NOPROP
+   ret c ; then hl = 0, so property wasn't found
+zobj_propsize.done:
+   scf \ ccf
+   ret
+
+
+;; zobj_nextprop -- compute logical address of next prop
+;; INPUTS:
+;;  hl = logical address of current prop data
+;; OUTPUTS:
+;;  hl = logical address of next prop data
+;; DESTROYS: all but de
+;; ERRORS: no.
+zobj_nextprop:
+   dec hl
+   call zaddr_fetch
+   ret c
+   call zobj_propid_to_size
+   inc a
+   ld bc,0
+   ld c,a
+   add hl,bc
+   ret
+
+;------------------------------;
+;        FAMILY FUNCTIONS      ;
+;------------------------------;
+
+;; zobj_parent -- get object's parent
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  a = object's parent (0 if no parent)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_parent:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_PARENT
+   jp zaddr_fetch
+
+;; zobj_sibling -- get object's sibling
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  a = object's first sibling (0 if no sibling)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_sibling:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_SIBLING
+   jp zaddr_fetch
+
+
+;; zobj_child -- get object's first child
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  a = object's first child
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_child:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_CHILD
+   jp zaddr_fetch

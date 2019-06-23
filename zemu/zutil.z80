@@ -1,3 +1,5 @@
+#include "zutil.inc"
+
 ; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
 ; INPUTS:
 ;  hl = name string (8 chars)
@@ -58,6 +60,7 @@ appvar_to_RAM.done:
 ;; OUTPUTS:
 ;;  de = pointer to appvar data
 ;; ERROR: yes.
+;; TODO: fix this -- shouldn't be using short instruction.
 appvar_touch:
    push.s de
    call appvar_to_RAM
@@ -319,6 +322,91 @@ cp_hl_de:
    pop af
    ret
 
+
+;; cp_hl_de_sgn -- signed flags(hl - de)
+;; TODO -- there must be a more elegant way to do this.
+cp_hl_de_sgn:
+   push ix
+   ld ix,cp_hl_de_sgn.tab
+cp_hl_de_sgn.lhs:
+   call sgnl ; sign of lhs
+   jr nc,cp_hl_de_sgn.rhs
+   lea ix,ix+(2*3)
+cp_hl_de_sgn.rhs:
+   ex de,hl
+   call sgnl
+   ex de,hl
+   jr nc,cp_hl_de_sgn.op
+   lea ix,ix+(1*3)
+cp_hl_de_sgn.op:
+   jp (ix)
+
+cp_hl_de_sgn.tab:
+   .dl cp_hl_de_sgn.pp
+   .dl cp_hl_de_sgn.pn
+   .dl cp_hl_de_sgn.np
+   .dl cp_hl_de_sgn.nn
+
+cp_hl_de_sgn.pp:
+   jp cp_hl_de
+   
+cp_hl_de_sgn.pn:
+   push de
+   ld de,0
+   inc hl
+   call cp_hl_de
+   dec hl
+   pop de
+   ret
+
+cp_hl_de_sgn.np:
+   push hl
+   ld hl,0
+   inc de
+   call cp_hl_de
+   dec de
+   pop hl
+   ret
+
+cp_hl_de_sgn.nn: ; flags(-1 - -2) == flags(1) == flags(2 - 1) 
+   call negl
+   ex de,hl
+   call negl
+   jp cp_hl_de
+
+
+;; sgnl -- sign of long
+;; INPUTS:
+;;  hl = long
+;; OUTPUTS:
+;;  C if negative
+;;  NC if nonnegative
+;; DESTROYS: (none)
+;; ERRORS: no.
+sgnl:
+   push de
+   ld de,LONG_MAX
+   call cp_hl_de
+   pop de
+   ccf
+   ret
+
+;; negl -- negate long
+;; INPUTS:
+;;  hl = long
+;; OUTPUTS:
+;;  hl <- -hl
+;; DESTROYS: (none)
+;; ERRORS: no.
+negl:
+   push de
+   ex de,hl
+   ld hl,0
+   sbc hl,de
+   pop de
+   ret
+
+
 ;; wtols -- word to long, signed
 ;; INPUTS:
 ;;  hl[15:0] = 16-bit word, signed
@@ -382,13 +470,16 @@ btolu:
 ;; OUTPUTS:
 ;;  a = hl[7:0]
 ;;  C if downcast fails; NC otherwise
-;; DESTROYS: a,de
+;; DESTROYS: a
 ;; ERRORS: no.
 ltobu:
    ld a,l
-   ex de,hl
-   ld hl,$0000ff
-   jp cp_hl_de
+   push de
+   ld de,$000100
+   call cp_hl_de
+   pop de
+   ccf
+   ret
 
 ;; maskb/exp2b -- get bitmask / find 2^n
 ;; INPUTS:
@@ -415,4 +506,18 @@ exp2b.tab:
    .db $20
    .db $40
    .db $80
-   
+
+
+;; cftoa -- carry flag to a
+;; INPUTS:
+;;  carry flag (CF)
+;; OUTUTS:
+;;   if C, a <- $FF
+;;   if NC, a <- $00
+;; DESTROYS: a
+;; ERRORS: no.
+cftoa:
+   ld a,$FF
+   ret c
+   xor a
+   ret

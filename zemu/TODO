@@ -22,6 +22,7 @@ zemu TODO
 [X] Write function to check if object number is valid
 [ ] Merge/reconcile zvar_downcast and ltobu
 [ ] zexec_cmp.* ought to be failable
+[ ] Rewrite zvar_cast and zobj_cast functions to retrieve unsigned byte.
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

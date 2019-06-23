@@ -1,15 +1,7 @@
-#macro rotl8(cnt)
-  #if cnt>4
-    call rotr8_+8-cnt
-  #else
-    call rotl8_+cnt
-  #endif
-#endmacro
+#ifndef __ZUTIL_INC
+#define __ZUTIL_INC
 
-#macro rotr8(cnt)
-  #if cnt>4
-    call rotl8_+8-cnt
-  #else
-    call rotr8_+cnt
-  #endif
-#endmacro
+LONG_MIN .equ $800000
+LONG_MAX .equ LONG_MIN - 1
+
+#endif

@@ -485,3 +485,18 @@ zobj_child:
    ret c
    lea hl,ix+ZOBJ_CHILD
    jp zaddr_fetch
+
+;---------------------------;
+;      UTIL FUNCTIONS       ;
+;---------------------------;
+;; zobj_downcast -- cast from long to unsigned object number
+;; INPUTS:
+;;  hl = signed long holding object number
+;; OUTPUTS:
+;;  a = object number (unsigned)
+;; DESTROYS:
+;; ERRORS: yes.
+zobj_downcast:
+   call ltob
+
+zobj_downcast.err:

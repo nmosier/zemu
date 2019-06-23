@@ -8,27 +8,32 @@
 ;;  hl = lhs
 ;;  de = rhs
 ;; OUTPUTS:
-;;  C if condition true
-;;  NC if condition false
+;;  a = 0 if false; a == $ff if true
 ;; DESTROYS: (all)
-;; ERRORS: no.
+;; ERRORS: yes.
 
 ;; hl == de ?
 zexec_cmp.eq:
    call cp_hl_de_sgn
-   scf
-   ret z ;; C if equal
-   ccf
-   ret   ;; NC if unequal
+   ld a,$FF
+   ret z
+   xor a
+   ret
 
 ;; hl < de ?
 zexec_cmp.lt:
-   jp cp_hl_de_sgn
+   call cp_hl_de_sgn
+   ld a,$FF
+   jr c,zexec_cmp.lt.clr
+   xor a,a
+zexec_cmp.lt.clr:
+   or a,a ; reset carry flag
+   ret
 
 ;; hl > de ?
 zexec_cmp.gt:
    ex de,hl
-   jp cp_hl_de_sgn
+   jp zexec_cmp.lt
 
 ;; (hl & de) == hl ?
 zexec_cmp.tst:
@@ -36,14 +41,19 @@ zexec_cmp.tst:
    call zexec_binop.and
    pop de
    sbc hl,de
-   scf
-   ret z ; (hl & de) == hl
-   ccf
-   ret   ; (hl & de) != hl
+   ld a,$FF
+   jr z,zexec_cmp.tst.clr
+   xor a,a
+zexec_cmp.tst.clr:
+   or a,a
+   ret
 
 ;; obj(de) is parent of obj(hl) ?
 ;; TODO -- should perform downcasting checks. But if failure is not an option...
 zexec_cmp.in:
+   call ltobu
+         
+
    ld a,l
    push de
    call zobj_parent
@@ -53,6 +63,8 @@ zexec_cmp.in:
    ret z
    ccf
    ret
+
+zexec_cmp.in:
 
 ;; does obj(hl) have attribute attr(de)?
 ;; TODO -- should perform downcasting checks.
@@ -95,32 +107,30 @@ zexec_mod.dec:
 ;;  zframe_pc updated
 ;; DESTROYS: (all)
 ;; ERRORS: yes
+;; TODO -- work in progress
 zexec_cond_jump:
    ; save function pointer
-   push hl
+   ld (zexec_cond_jump.fn),hl
    ; read first operand
-   call zcode_readop
-   jr c,zexec_cond_jump.err ; error
+   call zcode_readop_force
    ret c
-   ld a,ZERR_BADINSTR
-   jr c,zexec_cond_jump.err ; error
-   ; read remaining operands, check for equality
+   ; read remaining operands, check for true comparison
    ex de,hl
    jr zexec_cond_jump.loop_entry
 zexec_cond_jump.loop:
    ex de,hl
    ; hl = root op, de = comparison op
-   pop ix
-   push ix
+   ld ix,(zexec_cond_jump.fn)
    call zexec_cond_jump.jump    ; this is messy; I don't like it
-   ld b,1 ; take branch (maybe)
-   jr c,zexec_cond_jump.handle ; condition was true   
+   ret c ; comparison error
+   ld b,$ff ; take branch (unless inverted)
+   jr nz,zexec_cond_jump.handle ; condition was true   
 zexec_cond_jump.loop_entry:
-   push de
+   push hl
    call zcode_readop
-   pop de
-   jr c,zexec_cond_jump.err ; error
-   jr nz,zexec.je.loop ; if read op, then loop
+   pop de ; restore root op to de
+   ret c ; error
+   jr nz,zexec_cond_jump.loop
 zexec_cond_jump.cont:
    ; condition failed to be met
    ld b,0 ; don't take branch
@@ -134,21 +144,21 @@ zexec_cond_jump.handle:
    ld a,b
    jr nz,zexec_cond_jump.condition ; adjust result based on condition inversion bit
    ; flip condition
-   xor $01
+   xor $ff
 zexec_cond_jump.condition:
    ld (zframe_pc),hl ; store pc
    ex de,hl
    or a
    call nz,zexec_branch
-   pop hl ; pop off function pointer
    ret ; NOTE: carry flag will be properly set
-zexec_cond_jump.err:
-   pop hl ; pop off arg
-   scf
-   ret
+
 zexec_cond_jump.jump:
    jp (ix)
-   
+
+zexec_cond_jump.data:
+zexec_cond_jump.fn: .dl 0
+
+
 ;; zexec_branch: execute branch in running program.
 ;; INPUTS:
 ;;  hl = raw offset (24 bits)

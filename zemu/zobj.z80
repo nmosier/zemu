@@ -70,7 +70,7 @@ zobj_attr:
    srl c
    ld de,0
    ld e,c
-   lea hl,ix+ZOBJ_ATTRS
+   lea hl,ix+ZOBJ_O_ATTRS
    add hl,de ; logical address
    ld a,b ; mask
    scf \ ccf
@@ -145,7 +145,6 @@ zobj_valid:
 ;;  modifies object table
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
-;; TODO -- this doesn't account for the fact when the object is not the first child of parent
 zobj_insert:
    ; 0. Save params
    ld hl,zobj_insert.data
@@ -162,7 +161,7 @@ zobj_insert:
    call zobj_objaddr
    ret c
    ; 2.b  Fetch parent's current child
-   lea hl,ix+ZOBJ_CHILD
+   lea hl,ix+ZOBJ_O_CHILD
    call zaddr_fetch
    ret c
    ld (zobj_insert.newsib),a
@@ -175,7 +174,7 @@ zobj_insert:
    ld a,(zobj_insert.obj)
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_FAMILY
+   lea hl,ix+ZOBJ_O_FAMILY
    ld a,(zobj_insert.parent)
    call zaddr_store
    ret c
@@ -207,7 +206,7 @@ zobj_remove:
    ld (de),a ; save obj no
    inc de
    ; get parent and sibling
-   lea hl,ix+ZOBJ_FAMILY
+   lea hl,ix+ZOBJ_O_FAMILY
    call zaddr_fetch
    ret c
    ld (de),a ; save parent no
@@ -220,7 +219,7 @@ zobj_remove:
    ld a,(de) ; parent no
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_CHILD
+   lea hl,ix+ZOBJ_O_CHILD
    call zaddr_fetch ; current first child
    ret c
    dec hl ; use this later for updating
@@ -248,7 +247,7 @@ zobj_remove.caseii:
    ; loop terminates when a == object being removed
    ; error if a == 0
 zobj_remove.loop:
-   lea hl,ix+ZOBJ_SIBLING
+   lea hl,ix+ZOBJ_O_SIBLING
    call zaddr_fetch
    ret c
    ex de,hl
@@ -270,7 +269,7 @@ zobj_remove.update_obj:
    ld a,(zobj_remove.obj)
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_FAMILY
+   lea hl,ix+ZOBJ_O_FAMILY
    xor a
    call zaddr_store ; no parent
    ret c
@@ -302,7 +301,7 @@ zobj_proptab:
 zobj_proptab_hdr:
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_PROPS
+   lea hl,ix+ZOBJ_O_PROPS
    call zaddr_fetchw ; fetch word
    ret c
    ; zero-extend address
@@ -339,6 +338,7 @@ zobj_proptab_body.done:
 ;;  c = property number
 ;; OUTPUTS:
 ;;  hl = logical address of object property data
+;;  a = property data size
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zobj_propaddr:
@@ -372,6 +372,8 @@ zobj_propaddr.notfound:
    ld hl,0
 zobj_propaddr.found:
    ; found
+   ld a,c
+   call zobj_propid_to_size
    scf \ ccf
    ret
 
@@ -423,6 +425,35 @@ zobj_propsize.done:
    scf \ ccf
    ret
 
+;; zobj_propval -- retrieve object's property value
+;; INPUTS:
+;;  a = object number
+;;  c = property number
+;; OUTPUTS:
+;;  hl = property data, sign-extended
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_propval:
+   call zobj_propaddr
+   ret c
+   ld c,a
+   ld a,2
+   cp a,c
+   ld a,ZERR_BADPROP
+   ret c
+   push hl
+   add hl,hl
+   pop hl
+   jp z,zobj_propdefault ; hl == NULL
+   ;; TODO -- continue here
+zobj_propval.1:
+   call zaddr_fetch
+   ld d,a
+zobj_propval.2:
+
+zobj_propval.done:
+   
+   
 
 ;; zobj_nextprop -- compute logical address of next prop
 ;; INPUTS:
@@ -442,6 +473,18 @@ zobj_nextprop:
    add hl,bc
    ret
 
+
+;; zobj_propdefault -- lookup property default value
+;; INPUTS:
+;;  c = property number
+;; OUTPUTS:
+;;  hl = (sign-extended) value, long
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_propdefault:
+
+
+
 ;------------------------------;
 ;        FAMILY FUNCTIONS      ;
 ;------------------------------;
@@ -456,7 +499,7 @@ zobj_nextprop:
 zobj_parent:
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_PARENT
+   lea hl,ix+ZOBJ_O_PARENT
    jp zaddr_fetch
 
 ;; zobj_sibling -- get object's sibling
@@ -469,7 +512,7 @@ zobj_parent:
 zobj_sibling:
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_SIBLING
+   lea hl,ix+ZOBJ_O_SIBLING
    jp zaddr_fetch
 
 
@@ -483,20 +526,6 @@ zobj_sibling:
 zobj_child:
    call zobj_objaddr
    ret c
-   lea hl,ix+ZOBJ_CHILD
+   lea hl,ix+ZOBJ_O_CHILD
    jp zaddr_fetch
 
-;---------------------------;
-;      UTIL FUNCTIONS       ;
-;---------------------------;
-;; zobj_downcast -- cast from long to unsigned object number
-;; INPUTS:
-;;  hl = signed long holding object number
-;; OUTPUTS:
-;;  a = object number (unsigned)
-;; DESTROYS:
-;; ERRORS: yes.
-zobj_downcast:
-   call ltob
-
-zobj_downcast.err:

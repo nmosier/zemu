@@ -51,28 +51,22 @@ zexec_cmp.tst.clr:
 ;; obj(de) is parent of obj(hl) ?
 ;; TODO -- should perform downcasting checks. But if failure is not an option...
 zexec_cmp.in:
-   call ltobu
-         
-
-   ld a,l
+   ld a,l ; last byte
    push de
    call zobj_parent
    pop de
+   ret c ; obj tree error
    cp a,e
-   scf
-   ret z
-   ccf
-   ret
-
-zexec_cmp.in:
+   ret z ; NC
+   or a,a
+   ret   ; NC
 
 ;; does obj(hl) have attribute attr(de)?
 ;; TODO -- should perform downcasting checks.
 zexec_cmp.attr:
    ld a,l
    ld c,e
-   call zobj_attrtest
-   ;; TODO
+   jp zobj_attrtest ; sets flags properly
 
 ;---------------------------;
 ;   modification functions  ;
@@ -287,7 +281,7 @@ zexec_binop.or.loop:
    or (hl)
    ld (de),a
    inc hl
-   inc de
+   inc de-
    djnz zexec_binop.or.loop
 zexec_binop.or.done:
    ld hl,(zexec_binop.rhs)
@@ -337,6 +331,52 @@ zexec_binop.mod:
    ex de,hl
    ret
 
+zexec_binop.loadw:
+   ;; hl = array
+   ;; de = word-index
+   add hl,de
+   add hl,de ; hl <- hl + 2*de
+   ;; NOTE: stored in big-endian order.
+   call zaddr_fetch
+   ret c
+   ld d,a
+   call zaddr_fetch
+   ret c
+   ld e,a
+   call wtols
+   scf \ ccf
+   ret
+   
+zexec_binop.loadb:
+   ;; hl = array
+   ;; de = byte-index
+   add hl,de
+   call zaddr_fetch
+   ret c
+   call btols
+   scf \ ccf
+   ret
+
+zexec_binop.propval:
+   ;; hl = object
+   ;; de = property
+   ld a,l
+   ld c,e
+   call zobj_propaddr
+   ret c
+   ld c,a
+   ld a,2
+   cp a,c
+   ld a,ZERR_BADPROP
+   ret c
+   ;; TODO -- need to check if propaddr is null; if so, find default property.
+zexec_binop.propval.b1:
+
+zexec_binop.propval.b2:
+
+zexec_binop.propval.done:
+
+
 ;; zexec_binop -- execute binop instruction
 ;; INPUTS:
 ;;  hl = pointer to binary operation function
@@ -365,6 +405,31 @@ zexec_binop.jmp:
    jp (ix)
 
 zexec_binop.fn: .dl 0
+
+
+;; zexec_attrmod -- execute attribute modification instruction
+;; INPUTS:
+;;  hl = pointer to attribute modfication function
+;;  zframe_pc, args set
+;; OUTPUTS: 
+;;  zframe_pc updated
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; TODO: downcast vals.
+zexec_attrmod:
+   ld (zexec_attrmod.fn),hl
+   call zcode_readop_force
+   ret c
+   push hl
+   call zcode_readop_force
+   pop de
+   ret c
+   ld a,e ; object number
+   ld c,l ; attribute number
+   ld hl,(zexec_attrmod.fn)
+   jp (hl)
+
+zexec_attrmod.fn: .dl 0
 
 ;------------------------------------;
 ;           opcode handlers          ;
@@ -408,20 +473,23 @@ zexec.test:
 
 zexec.or:
    ld hl,zexec_binop.or
-   call zexec_binop
-   ret
+   jp zexec_binop
 
 zexec.and:
    ld hl,zexec_binop.and
-   call zexec_binop
-   ret
+   jp zexec_binop
 
 zexec.test_attr:
-   ;; TODO -- this is a disguised binary jump
+   ld hl,zexec_cmp.attr
+   jp zexec_cond_jump
 
 zexec.set_attr:
+   ld hl,zobj_attrset
+   jp zexec_attrmod
 
 zexec.clear_attr:
+   ld hl,zobj_attrset
+   jp zexec_attrmod
 
 zexec.store:
    call zcode_readop_force ; variable number
@@ -432,3 +500,26 @@ zexec.store:
    call nc,zvar_store
    ret
 
+zexec.insert_obj:
+   call zcode_readop_force ; child object
+   push hl
+   call nc,zcode_readop_force ; parent (dst.) object
+   pop de
+   ld b,e ; object
+   ld c,l ; new parent
+   jp zobj_insert
+
+zexec.loadw:
+   ld hl,zexec_binop.loadw
+   jp zexec_binop
+
+zexec.loadb:
+   ld hl,zexec_binop.loadb
+   jp zexec_binop
+
+zexec.get_prop:
+   
+
+zexec.get_prop_addr:
+
+zexec.get_next_prop:

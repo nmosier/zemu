@@ -60,3 +60,8 @@ opptr: .long 1    -- points to next operand (if there is one).
 zcode_decode should initialize these three fields, but it should not fetch any values.
 There will need to be another function, perhaps called zcode_nextop or the like, that will
 return the value of the next op.
+
+
+Sign-extension Controversy
+* Possible resolution: when downcasting to unsigned byte, do not detect overflow if negative
+  and within range.

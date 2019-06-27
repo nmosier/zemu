@@ -481,6 +481,8 @@ ltobu:
    ccf
    ret
 
+
+
 ;; maskb/exp2b -- get bitmask / find 2^n
 ;; INPUTS:
 ;;  a = bit/power

@@ -27,6 +27,7 @@ zemu TODO
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page
 [ ] cp_hl_de -- use "scf \ ccf \ sbc hl,de \ push af \ add hl,de \ pop af"
+[ ] Never need to upcast in binary operations, since result is always stored as a word in memory.
 
 Bug Fixes
 [ ] Fix kepyad bug in CEMU

@@ -1,0 +1,89 @@
+; zop.z80 -- utilities for reading/writing operands
+
+;; zcode_readop -- fetch the value of the next operand.
+;; INPUTS:
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;; OUTPUTS:
+;;  hl = 16-bit value of operand, zero-padded if 8-bits
+;;  zcode_decode.types, zcode_decode.op_laddr updated
+;;  Z if no more ops, NZ if op is returned
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zcode_readop:
+   ; read type
+   ld hl,zcode_decode.types
+   xor a
+   scf
+   rl (hl) ; (hl) = ((hl) << 1) | 0x1
+   rla
+   scf
+   rl (hl) ; (hl) = ((hl) << 1) | 0x1
+   rla
+   ; %a[0:1] contains type
+   ; (hl) = (hl) << 2 | OMITTED
+   cp ZOP_OMITTED
+   ccf
+   ret z
+   ld hl,(zcode_decode.op_laddr)
+   call zcode_fetch_op
+   ret c
+   ld (zcode_decode.op_laddr),hl ; update pointer
+   ex de,hl
+   or $ff ; NZ, NC
+   ret
+
+;; zcode_readop_force -- fetch value of the next operand.
+;;                       report an error if there is no operand.
+;; INPUTS:
+;;  zcode_decode.types, zcode_decode.op_laddr set
+;; OUTPUTS:
+;;  hl = 24-bit value of operand, zero-padded if 8-bits
+;;  zcode_decode.types, zcode_decode.op_laddr updated
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zcode_readop_force:
+   call zcode_readop
+   ret nz
+   scf ; error if no more ops
+   ret
+
+;; zop_readn -- read _n_ ops
+;; INPUTS:
+;;  a = number of ops
+;;  zframe_pc, op vars set
+;; OUTPUTS:
+;;  hl -- n >= 1
+;;  de -- n >= 2
+;;  bc -- n >= 3
+;;  ix -- n >= 4
+;; NOTE: supports up to 4 ops (0 <= %a <= 4).
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zop_readn:
+   ld b,a
+   ld c,a
+   ld ix,zop_readn.data
+zop_readn.loop:
+   push ix
+   push bc
+   call zcode_readop_force
+   pop bc
+   pop ix
+   ret c
+   ld (ix),hl
+   lea ix,ix+3
+   djnz zop_readn.loop
+zop_readn.load:
+   ld hl,(zop_readn.data+0*LONG_SIZE)
+   dec c
+   ret z
+   ld de,(zop_readn.data+1*LONG_SIZE)
+   dec c
+   ret z
+   ld bc,(zop_readn.data+2*LONG_SIZE)
+   dec c
+   ret z
+   ld ix,(zop_readn.data+3*LONG_SIZE)
+   ret
+
+zop_readn.data: .dl 0,0,0,0

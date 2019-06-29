@@ -221,10 +221,12 @@ zcode_err.notavail:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zcode_readvarnum:
+   push hl
    ld hl,(zframe_pc)
    call zaddr_fetch
    ret c ; error
    ld (zframe_pc),hl
+   pop hl
    ret
 
 ;; zcode_decode_branch -- decode branch in opcode.

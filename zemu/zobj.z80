@@ -139,7 +139,7 @@ zobj_valid:
 
 ;; zobj_insert -- transfer childhood of object to another parent
 ;; INPUTS:
-;;  b = object number
+;;  a = object number
 ;;  c = new parent object number
 ;; OUTPUTS:
 ;;  modifies object table
@@ -148,11 +148,11 @@ zobj_valid:
 zobj_insert:
    ; 0. Save params
    ld hl,zobj_insert.data
-   ld (hl),b
+   ld (hl),a
    inc hl
    ld (hl),c
    ; 1. Remove object from parent
-   ld a,b
+   ld b,a
    call zobj_remove
    ret c
    ; 2.   Insert object as first child of new parent

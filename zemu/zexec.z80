@@ -112,6 +112,7 @@ zexec_unop.jump:
 
 zexec_unop.fn: .dl 0
 
+
 ;---------------------------;
 ;     behavior functions    ;
 ;---------------------------;
@@ -453,8 +454,8 @@ zexec_binop.fn: .dl 0
 
 ;; zexec_attrmod -- execute attribute modification instruction
 ;; INPUTS:
-;;  hl = pointer to attribute modfication function
-;;  zframe_pc, args set
+;;  hl = object number
+;;  de = attribute number
 ;; OUTPUTS: 
 ;;  zframe_pc updated
 ;; DESTROYS: (all)
@@ -490,112 +491,197 @@ zexec_attrmod.fn: .dl 0
 ;-------------------------;
 
 zexec.je:
-   ld hl,zexec_cmp.eq
-   jp zexec_cond_jump
+   ld a,2
+   call zop.readn
+   call nc,zexec_cmp.eq
+   jp nc,zexec_cjmp
+   ret
 
 zexec.jl:
-   ld hl,zexec_cmp.lt
-   jp zexec_cond_jump
+   ld a,2
+   call zop.readn
+   call nc,zexec_cjmp.lt
+   jp nc,zexec_cjmp
+   ret
 
 zexec.jg:
-   ld hl,zexec_cmp.gt
-   jp zexec_cond_jump
+   ld a,2
+   call zop.readn
+   call nc,zexec_cmp.gt
+   jp nc,zexec_cjmp
+   ret
 
 zexec.dec_chk:
+   ld a,2
+   call zop.readn
+   call nc,zvar_downcast
    ld hl,zexec_unop.dec
-   ld de,zexec_cmp.lt
-   jp zexec_chk
+   push de
+   call nc,zvar_modify
+   pop de
+   call nc,zexec_cmp.lt
+   jp nc,zexec_cjmp
+   ret
 
 zexec.inc_chk:
+   ld a,2
+   call zop.readn
+   call nc,zvar_downcast
    ld hl,zexec_unop.inc
-   ld de,zexec_cmp.gt
-   jp zexec_chk
+   push de
+   call nc,zvar_modify
+   pop de
+   call nc,zexec_cmp.gt
+   jp nc,zexec_cjmp
+   ret
 
 zexec.jin:
-   ld hl,zexec_cmp.in
-   jp zexec_cond_jump
+   ld a,2
+   call zop.readn
+   call nc,zexec_cmp.in
+   jp nc,zexec_cjmp
+   ret
 
 zexec.test:
-   ld hl,zexec_cmp.tst
-   jp zexec_cond_jump
+   ld a,2
+   call zop.readn
+   call nc,zexec_cmp.tst
+   jp nc,zexec_cjmp
+   ret
 
 zexec.or:
-   ld hl,zexec_binop.or
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.or
+   call nc,zexec_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.and:
-   ld hl,zexec_binop.and
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.and
+   call nc,zexec_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.test_attr:
-   ld hl,zexec_cmp.attr
-   jp zexec_cond_jump
+   ld a,2
+   call zop.readn
+   call nc,zexec_cmp.attr
+   jp nc,zexec_cjmp
+   ret
 
+;; TODO -- continue from here.
 zexec.set_attr:
-   ld hl,zobj_attrset
-   jp zexec_attrmod
+   ld a,2
+   call zop.readn
+   ;; TODO -- obj downcast
+   ld a,l
+   ld c,e
+   jp nc,zobj_attrset
+   ret
 
 zexec.clear_attr:
-   ld hl,zobj_attrset
-   jp zexec_attrmod
+   ld a,2
+   call zop.readn
+   ;; TODO -- obj downcast
+   ld a,l
+   ld c,e
+   jp nc,zobj_attrclear
+   ret
 
 zexec.store:
-   call zcode_readop_force ; variable number
-   push hl
-   call nc,zcode_readop_force ; value to store
+   ld a,2
+   call zop.readn
    call nc,zvar_downcast
-   pop hl
-   call nc,zvar_store
+   ex de,hl
+   jp nc,zvar_store
    ret
 
 zexec.insert_obj:
-   call zcode_readop_force ; child object
-   push hl
-   call nc,zcode_readop_force ; parent (dst.) object
-   pop de
-   ld b,e ; object
-   ld c,l ; new parent
-   jp zobj_insert
+   ld a,2
+   call zop.readn
+   ;; TODO -- obj downcast
+   ld a,l
+   ld c,e
+   jp nc,zobj_insert
+   ret
 
 zexec.loadw:
-   ld hl,zexec_binop.loadw
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.loadw
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.loadb:
-   ld hl,zexec_binop.loadb
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.loadb
+   call nc,zexec_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.get_prop:
-   ld hl,zexec_binop.propval
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.propval
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.get_prop_addr:
-   ld hl,zexec_binop.propaddr
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.propaddr
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.get_next_prop:
-   ld hl,zexec_binop.nextprop
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.nextprop
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.add:
-   ld hl,zexec_binop.add
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.add
+   jp nc,zexec_binop
+   ret
 
 zexec.sub:
-   ld hl,zexec_binop.sub
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.sub
+   jp nc,zexec_binop
+   ret
 
 zexec.mul:
-   ld hl,zexec_binop.mul
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.mul
+   jp nc,zexec_binop
+   ret
 
 zexec.div:
-   ld hl,zexec_binop.div
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.div
+   jp nc,zexec_binop
+   ret
 
 zexec.mod:
-   ld hl,zexec_binop.mod
-   jp zexec_binop
+   ld a,2
+   call zop.readn
+   call nc,zexec_binop.mod
+   jp nc,zexec_binop
+   ret
 
 ;; 4 -- zexec.call_2s
 ;; 5 -- zexec.call_2n

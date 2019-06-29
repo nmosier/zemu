@@ -25,6 +25,7 @@ zemu TODO
 [ ] Rewrite zvar_cast and zobj_cast functions to retrieve unsigned byte.
 [ ] Fix zexec_cond_jump ???
 [ ] Replace zexec_cond_jump with function that parameterizes reading ops and calling funcs
+[ ] zmem_init ought to also look at first byte of routine and properly intialize stack.
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

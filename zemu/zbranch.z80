@@ -1,12 +1,54 @@
 ; zbranch.z80 -- branch & jump utility routines
 
 ;; zexec_cjmp -- execute conditional branches (jumps)
-;; INPUT:
+;; INPUTS:
+;;  a = predicate's truth value ($00 = false, $FF = true)
+;;  zframe_pc points to branch bytes within instruction
 ;; OUTPUTS:
+;;  zframe_pc updated (in yes-branch and no-branch cases)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zexec_cjmp:
-
-
-
-   
+   push af
+   ld hl,(zframe_pc)
+   call zcode_decode_branch
+   pop bc
+   ret c
+   ; apply branch inversion flag
+   jr nz,zexec_cjmp.inv
+   cpl ; branch when false
+zexec_cjmp.inv:
+   ; hl = no-branch PC
+   ; de = raw offset
+   or a,a
+   jr z,zexec_cjmp.store_pc ; don't take the branch
+   ex de,hl
+   ; de = no-branch PC
+   ; hl = raw offset
+   push de
+   ld de,1
+   call cp_hl_de
+   pop de
+   ; if offset in {0,1}, then return with appropriate bool
+   jr c,zexec_cjmp.ret
+   jr z,zexec_cjmp.ret
+   ; otherwise, apply offset
+   add hl,de
+   ; hl = new PC
+zexec_cjmp.store_pc:
+   ld (zframe_pc),hl
+   scf \ ccf
+   ret
+zexec_cjmp.ret:
+   push hl
+   call zstack_leave
+   pop hl
+   ret c
+   ld a,l
+   or a,a
+   ld hl,ZTRUE
+   jr nz,zexec_cjmp.ret.push
+   ld hl,ZFALSE
+zexec_cjmp.ret.push:
+   ld a,ZVAR_STACK
+   jp zvar_store

@@ -23,10 +23,6 @@ ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + 1
 
 ZMAP_ENT_FLAGS_INRAM .equ 0
 
-ZTRUE .equ 1
-ZFALSE .equ 0
-
-
 .db tExtTok, tAsm84CeCmp
 
 start:
@@ -42,8 +38,15 @@ start:
    call zmem_init ; initialize memory
    ld hl,zmem_init_str
    jp c,zemu_perror
-
+   call test
    ret
+
+
+test:
+   ld hl,$4e83
+   ;; to be continued
+   
+
 
 test_addrs:
    ld hl,0
@@ -210,3 +213,4 @@ zork_save: .db "SAVE1",0
 #include "zcode.z80"
 #include "zvar.z80"
 #include "zobj.z80"
+#include "zop.z80"

@@ -162,15 +162,43 @@ zvar_store.global:
 ;; OUTPUTS:
 ;;  a = 8-bit unsigned value
 ;; ERRORS: yes.
-;; DESTROYS: (all)
+;; DESTROYS: all but %de
 zvar_downcast:
    ; this should also report hl >= de if signed, which is what we want
+   push de
    ld de,$000100
-   push hl
    call cp_hl_de
-   pop hl
+   pop de
    ccf
    ld a,ZERR_BADVARNO
    ret c
    ld a,l
    ret
+
+
+;; zvar_modify -- modify variable in place
+;; INPUTS:
+;;  a = variable number
+;;  hl = pointer to unary function
+;; OUTPUTS:
+;;  (a) updated
+;;  hl = new value
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zvar_modify:
+   push af
+   push hl
+   call zvar_fetch
+   pop ix
+   call nc,zvar_modify.jump
+   pop bc
+   ld a,b
+   push hl
+   call nc,zvar_store
+   pop hl
+   ret
+
+zvar_modify.jump:
+   jp (ix)
+
+

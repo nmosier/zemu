@@ -65,3 +65,11 @@ return the value of the next op.
 Sign-extension Controversy
 * Possible resolution: when downcasting to unsigned byte, do not detect overflow if negative
   and within range.
+
+
+
+CALLING CONVENTION
+hl = first param
+de = second param
+bc = third param
+ix = fourth param

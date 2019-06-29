@@ -37,4 +37,7 @@ Bug Fixes
 [ ] Fix SPASM .long bug
 [ ] Modulus arithmetic might be buggy
 
-Future Work
+Testing
+[ ] zop_readn
+    [ ] zcode_readop_force
+        [ ] zcode_readop

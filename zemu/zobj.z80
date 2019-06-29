@@ -7,7 +7,7 @@
 ;; OUTPUTS:
 ;;  ix = logical address of object table
 ;; ERRORS: yes.
-;; DESTROYS:
+;; DESTROYS: (all)
 zobj_tabaddr:
    ld ix,(zmap_header)
    lea hl,ix+ZHDR_OBJTAB
@@ -430,7 +430,7 @@ zobj_propsize.done:
 ;;  a = object number
 ;;  c = property number
 ;; OUTPUTS:
-;;  hl = property data, sign-extended
+;;  de = property data, sign-extended
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zobj_propval:
@@ -444,45 +444,68 @@ zobj_propval:
    push hl
    add hl,hl
    pop hl
+   ; if hl is NULL, then fetch prop default val
    jp z,zobj_propdefault ; hl == NULL
-   ;; TODO -- continue here
-zobj_propval.1:
-   call zaddr_fetch
-   ld d,a
-zobj_propval.2:
+   dec a
+   jp z,zaddr_fetchb
+   jp zaddr_fetchw
 
-zobj_propval.done:
-   
-   
 
-;; zobj_nextprop -- compute logical address of next prop
+;; zobj_nextprop -- fetch next prop number
 ;; INPUTS:
-;;  hl = logical address of current prop data
+;;  a = object number
+;;  c = prop number (or 0 for 1st prop no)
 ;; OUTPUTS:
-;;  hl = logical address of next prop data
-;; DESTROYS: all but de
-;; ERRORS: no.
+;;  a = next prop number (0 if none)
+;; DESTROYS: 
+;; ERRORS: yes.
 zobj_nextprop:
-   dec hl
+   ld b,a
+   ld a,c
+   or a,a
+   ld a,b
+   jr nz,zobj_nextprop.next
+zobj_nextprop.first:
+   call zobj_proptab_body
+   ret c
+   jr zobj_nextprop.fetch
+zobj_nextprop.next:
+   call zobj_propaddr
+   ret c
+   ; %a contains current prop size
+   ld de,0
+   ld e,a
+   add hl,de
+zobj_nextprop.fetch:
    call zaddr_fetch
    ret c
-   call zobj_propid_to_size
-   inc a
-   ld bc,0
-   ld c,a
-   add hl,bc
+   call zobj_propid_to_num
+   scf \ ccf
    ret
 
 
 ;; zobj_propdefault -- lookup property default value
 ;; INPUTS:
-;;  c = property number
+;;  a = property number
 ;; OUTPUTS:
-;;  hl = (sign-extended) value, long
+;;  de = (sign-extended) value, long
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; TODO: check if property is valid.
 zobj_propdefault:
-
+   push af
+   call zobj_tabaddr
+   pop bc
+   ret c
+   dec b
+   ld de,0
+   ld e,b
+   lea hl,ix
+   add hl,de
+   add hl,de ; hl <- ix + de*WORD_SIZE
+   call zaddr_fetchw
+   ret ; errflg set
+   
 
 
 ;------------------------------;

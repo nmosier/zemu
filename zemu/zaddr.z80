@@ -119,12 +119,38 @@ zaddr_store.cleanup:
 ;;  hl = logical address
 ;; OUTPUTS:
 ;;  hl <- hl + 2
-;;  de[15:0] = word
+;;  de = word, sign-extended
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zaddr_fetchw:
    call zaddr_fetch
+   ret c
    ld e,a
-   call nc,zaddr_fetch
+   call zaddr_fetch
+   ret c
    ld d,a
-   ret ; errflg set
+   ex de,hl
+   push hl
+   call wtols ; upcast
+   pop hl
+   ex de,hl
+   scf \ ccf
+   ret
+
+;; zaddr_fetchb -- fetch byte at logical address and sign-extend
+;; INPUTS:
+;;  hl = logical address
+;; OUTPUTS:
+;;  hl <- hl + 1
+;;  de = byte, sign-extended
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zaddr_fetchb:
+   call zaddr_fetch
+   ret c
+   ex de,hl
+   call btols
+   ex de,hl
+   scf \ ccf
+   ret
+   

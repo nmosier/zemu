@@ -2,7 +2,7 @@
 
 #include "zvar.inc"
 
-;; zvar_localaddr -- get address of local variable
+;; localaddr -- get address of local variable
 ;; INPUTS:
 ;;  a = variable number
 ;; OUTPUTS:

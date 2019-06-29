@@ -69,9 +69,9 @@ zexec_cmp.attr:
    jp zobj_attrtest ; sets flags properly
 
 ;---------------------------;
-;   modification functions  ;
+;   unary operations        ;
 ;---------------------------;
-; zexec_mod.* -- modification function
+; zexec_unop.* -- modification function
 ; INPUTS:
 ;  hl = value (24-bit, signed)
 ; OUTPUTS:
@@ -79,13 +79,38 @@ zexec_cmp.attr:
 ; DESTROYS: (all)
 ; ERRORS: no.
 
-zexec_mod.inc:
+zexec_unop.inc:
    inc hl
    ret
 
-zexec_mod.dec:
+zexec_unop.dec:
    dec hl
    ret
+
+
+;; zexec_unop -- unary operation
+;; INPUTS:
+;;  hl = unary op function pointer
+;; OUTPUTS:
+;;  updates zframe_pc, variables, etc
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zexec_unop:
+   push hl
+   call zcode_readop_force
+   pop ix
+   ret c
+   call zexec_unop.jump
+   push hl
+   call zexec_readvarnum
+   pop hl
+   ret c
+   jp zvar_store
+
+zexec_unop.jump:
+   jp (ix)
+
+zexec_unop.fn: .dl 0
 
 ;---------------------------;
 ;     behavior functions    ;
@@ -102,6 +127,7 @@ zexec_mod.dec:
 ;; DESTROYS: (all)
 ;; ERRORS: yes
 ;; TODO -- work in progress
+;; TODO -- this really shouldn't loop
 zexec_cond_jump:
    ; save function pointer
    ld (zexec_cond_jump.fn),hl
@@ -138,7 +164,7 @@ zexec_cond_jump.handle:
    ld a,b
    jr nz,zexec_cond_jump.condition ; adjust result based on condition inversion bit
    ; flip condition
-   xor $ff
+   cpl
 zexec_cond_jump.condition:
    ld (zframe_pc),hl ; store pc
    ex de,hl
@@ -358,24 +384,42 @@ zexec_binop.loadb:
    ret
 
 zexec_binop.propval:
-   ;; hl = object
-   ;; de = property
+   ;; hl = object number
+   ;; de = property number
+   ld a,l
+   ld c,e
+   call zobj_propval
+   ex de,hl
+   ret
+
+zexec_binop.propaddr:
+   ;; hl = object number
+   ;; de = property number
+   ld a,l
+   ld c,e
+   jp zobj_propaddr
+   
+zexec_binop.propsize:
+   ;; hl = object number
+   ;; de = property number
    ld a,l
    ld c,e
    call zobj_propaddr
    ret c
-   ld c,a
-   ld a,2
-   cp a,c
-   ld a,ZERR_BADPROP
+   ld hl,0
+   ld l,a
+   ret
+
+zexec_binop.nextprop:
+   ;; hl = object
+   ;; de = property
+   ld c,e
+   ld a,c
+   call zobj_nextprop
    ret c
-   ;; TODO -- need to check if propaddr is null; if so, find default property.
-zexec_binop.propval.b1:
-
-zexec_binop.propval.b2:
-
-zexec_binop.propval.done:
-
+   call btols
+   scf \ ccf
+   ret
 
 ;; zexec_binop -- execute binop instruction
 ;; INPUTS:
@@ -441,6 +485,10 @@ zexec_attrmod.fn: .dl 0
 ;; DESTROYS:
 ;; ERRORS: yes.
 
+;-------------------------;
+;         2 OP            ;
+;-------------------------;
+
 zexec.je:
    ld hl,zexec_cmp.eq
    jp zexec_cond_jump
@@ -454,12 +502,12 @@ zexec.jg:
    jp zexec_cond_jump
 
 zexec.dec_chk:
-   ld hl,zexec_mod.dec
+   ld hl,zexec_unop.dec
    ld de,zexec_cmp.lt
    jp zexec_chk
 
 zexec.inc_chk:
-   ld hl,zexec_mod.inc
+   ld hl,zexec_unop.inc
    ld de,zexec_cmp.gt
    jp zexec_chk
 
@@ -518,8 +566,104 @@ zexec.loadb:
    jp zexec_binop
 
 zexec.get_prop:
-   
+   ld hl,zexec_binop.propval
+   jp zexec_binop
 
 zexec.get_prop_addr:
+   ld hl,zexec_binop.propaddr
+   jp zexec_binop
 
 zexec.get_next_prop:
+   ld hl,zexec_binop.nextprop
+   jp zexec_binop
+
+zexec.add:
+   ld hl,zexec_binop.add
+   jp zexec_binop
+
+zexec.sub:
+   ld hl,zexec_binop.sub
+   jp zexec_binop
+
+zexec.mul:
+   ld hl,zexec_binop.mul
+   jp zexec_binop
+
+zexec.div:
+   ld hl,zexec_binop.div
+   jp zexec_binop
+
+zexec.mod:
+   ld hl,zexec_binop.mod
+   jp zexec_binop
+
+;; 4 -- zexec.call_2s
+;; 5 -- zexec.call_2n
+;; 5 -- set_colour
+;; 6 -- throw
+
+
+;--------------------;
+;        1 OP        ;
+;--------------------;
+zexec.jz:
+   call zcode_readop_force
+   ret c
+   push hl
+   ld hl,(zframe_pc)
+   call zcode_decode_branch
+   ret c
+   ld (zframe_pc),hl
+   push de
+   push af ; save ZF for later
+   pop hl
+   xor a,a ; %a holds branching status (a=0 if no, a=$ff if yes)
+   add hl,hl
+   jr z,zexec.jz.skip
+   cpl
+zexec.jz.skip:
+   pop af
+   jr nz,zexec.jz.skip2
+   cpl
+zexec.jz.skip2:
+   ; now conditionally apply branch
+   or a,a
+   pop hl
+   call z,zexec_branch
+   ret ; CF properly set
+
+zexec.get_sibling:
+   
+
+zexec.get_child:
+
+zexec.get_parent:
+
+zexec.get_prop_len:
+
+zexec.inc:
+   ld hl,zexec_unop.inc
+   jp zexec_unop
+
+zexec.dec:
+   ld hl,zexec_unop.dec
+   jp zexec_unop
+
+zexec.print_addr:
+
+;; 4 -- zexec.call_1s
+
+zexec.remove_obj:
+
+zexec.print_obj:
+
+zexec.ret:
+
+zexec.jump:
+
+zexec.print_paddr:
+
+zexec.load:
+
+zexec.not:
+

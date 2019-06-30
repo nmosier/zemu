@@ -202,3 +202,14 @@ zvar_modify.jump:
    jp (ix)
 
 
+;; zvar_write -- read variable number from memory and then store value to that variable
+;; INPUTS:
+;;  hl = value to store
+;;  zframe_pc set
+;; OUTPUTS:
+;;  zframe_pc updated
+;; DESTROYS: (all)
+zvar_write:
+   call zcode_readvarnum
+   jp nc,zvar_store
+   ret

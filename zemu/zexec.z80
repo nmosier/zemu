@@ -68,6 +68,18 @@ zexec_cmp.attr:
    ld c,e
    jp zobj_attrtest ; sets flags properly
 
+;-----------------------;
+;    unary comparisons  ;
+;-----------------------;
+zexec_cmp.zero:
+   xor a,a
+   ld de,0
+   sbc hl,de
+   ; NOTE: CF reset always
+   ret nz
+   cpl
+   ret
+
 ;---------------------------;
 ;   unary operations        ;
 ;---------------------------;
@@ -81,208 +93,26 @@ zexec_cmp.attr:
 
 zexec_unop.inc:
    inc hl
+   scf \ ccf
    ret
 
 zexec_unop.dec:
    dec hl
+   scf \ ccf
    ret
 
-
-;; zexec_unop -- unary operation
-;; INPUTS:
-;;  hl = unary op function pointer
-;; OUTPUTS:
-;;  updates zframe_pc, variables, etc
-;; DESTROYS: (all)
-;; ERRORS: yes.
-zexec_unop:
-   push hl
-   call zcode_readop_force
-   pop ix
-   ret c
-   call zexec_unop.jump
-   push hl
-   call zexec_readvarnum
-   pop hl
-   ret c
-   jp zvar_store
-
-zexec_unop.jump:
-   jp (ix)
-
-zexec_unop.fn: .dl 0
-
+zexec_unop.not:
+   ex de,hl
+   ld hl,$ffffff
+   sbc hl,de
+   scf \ ccf
+   ret
 
 ;---------------------------;
 ;     behavior functions    ;
 ;---------------------------;
 
-;; zexec_cond_jump -- routine for executing conditional, branching jump,
-;;                    given condition as parameter.
-;; INPUT:
-;;  hl = pointer to comparison function
-;;  zcode_decode.types, zcode_decode.op_laddr set
-;;  zframe_pc set
-;; OUTPUT:
-;;  zframe_pc updated
-;; DESTROYS: (all)
-;; ERRORS: yes
-;; TODO -- work in progress
-;; TODO -- this really shouldn't loop
-zexec_cond_jump:
-   ; save function pointer
-   ld (zexec_cond_jump.fn),hl
-   ; read first operand
-   call zcode_readop_force
-   ret c
-   ; read remaining operands, check for true comparison
-   ex de,hl
-   jr zexec_cond_jump.loop_entry
-zexec_cond_jump.loop:
-   ex de,hl
-   ; hl = root op, de = comparison op
-   ld ix,(zexec_cond_jump.fn)
-   call zexec_cond_jump.jump    ; this is messy; I don't like it
-   ret c ; comparison error
-   ld b,$ff ; take branch (unless inverted)
-   jr nz,zexec_cond_jump.handle ; condition was true   
-zexec_cond_jump.loop_entry:
-   push hl
-   call zcode_readop
-   pop de ; restore root op to de
-   ret c ; error
-   jr nz,zexec_cond_jump.loop
-zexec_cond_jump.cont:
-   ; condition failed to be met
-   ld b,0 ; don't take branch
-zexec_cond_jump.handle:
-   ; decode branch
-   ld hl,(zframe_pc)
-   push bc
-   call zcode_decode_branch
-   pop bc
-   jr c,zexec_cond_jump.err ; error
-   ld a,b
-   jr nz,zexec_cond_jump.condition ; adjust result based on condition inversion bit
-   ; flip condition
-   cpl
-zexec_cond_jump.condition:
-   ld (zframe_pc),hl ; store pc
-   ex de,hl
-   or a
-   call nz,zexec_branch
-   ret ; NOTE: carry flag will be properly set
 
-zexec_cond_jump.jump:
-   jp (ix)
-
-zexec_cond_jump.data:
-zexec_cond_jump.fn: .dl 0
-
-
-;; zexec_branch: execute branch in running program.
-;; INPUTS:
-;;  hl = raw offset (24 bits)
-;; OUTPUTS:
-;; ERRORS: yes.
-;; NOTE: updates global state variables in zmem.z80.
-;; NOTE: zframe_pc MUST point to the address directly after the current instruction.
-;; TODO: this shouldn't directly modify zframe_pc. Ought to be parameterized
-zexec_branch:
-   ; 4.7.1 An offset of 0 means return false from the current routine, and 1 means
-   ;       return true from the current routine.
-   ld de,1
-   call cp_hl_de
-   jr c,zexec_branch.ret
-   jr z,zexec_branch.ret
-   ; apply offset to program counter
-   ld de,(zframe_pc)
-   dec de
-   dec de
-   add hl,de
-   ld (zframe_pc),hl
-   scf \ ccf
-   ret
-
-zexec_branch.ret:
-   push hl
-   call zstack_leave
-   pop hl
-   ret c
-   ld a,l
-   or a
-   ld.s hl,ZVAR_TRUE
-   jr nz,zexec_branch.ret_cont
-zexec_branch.ret_f:
-   ld.s hl,ZTRUE
-zexec_branch.ret_cont:
-   ld a,ZVAR_STACK
-   call zvar_store ; push return value onto stack
-   ret ; C or NC
-
-
-;; zexec_chk -- function used for *_chk opcodes
-;; INPUTS:
-;;  hl = pointer to function applied to variable value
-;;  de = pointer to comparison function
-;;  zcode_decode.types, zcode_decode.op_laddr set
-;; OUTPUTS:
-;;  updates zframe_pc
-;; DESTROYS: (all)
-;; ERRORS: yes.
-zexec_chk:
-   ; store parameters
-   ld (zexec_chk.modfn),hl
-   ld (zexec_chk.cmpfn),de
-   ; get variable number
-   call zcode_readop_force
-   ret c
-   ; convert variable number to 8 bits
-   call zvar_downcast
-   ret c
-   ; save variable number
-   ld (zexec_chk.varnum),a
-   ; fetch value
-   call zvar_fetch
-   ret c
-   ; apply fn to val
-   ld ix,(zexec_chk.modfn)
-   call zexec_chk.jump
-   ; save & store result
-   ld (zexec_chk.varval),hl
-   ld a,(zexec_chk.varnum)
-   call zvar_store
-   ret c
-   ; get comparison operator
-   call zcode_readop_force
-   ret c
-   ld (zexec_chk.cmpval),hl
-   ; decode branch
-   ld hl,(zframe_pc)
-   call zcode_decode_branch
-   ret c
-   ld (zframe_pc),hl
-   push de ; branch offset
-   ld hl,(zexec_chk.varval)
-   ld de,(zexec_chk.cmpval)
-   ld ix,(zexec_chk.cmpfn)
-   call zexec_chk.jump
-   pop hl
-   jr nc,zexec_chk.post_branch
-zexec_chk.branch:
-   call zexec_branch
-   ret c
-zexec_chk.post_branch:
-   ret
-   
-zexec_chk.jump:
-   jp (ix)
-
-zexec_chk.varnum: .db 0
-zexec_chk.varval: .dl 0
-zexec_chk.cmpval: .dl 0
-zexec_chk.modfn:  .dl 0
-zexec_chk.cmpfn:  .dl 0
 
 
 ;; zexec_binop.* -- binary operations
@@ -308,7 +138,7 @@ zexec_binop.or.loop:
    or (hl)
    ld (de),a
    inc hl
-   inc de-
+   inc de
    djnz zexec_binop.or.loop
 zexec_binop.or.done:
    ld hl,(zexec_binop.rhs)
@@ -422,59 +252,6 @@ zexec_binop.nextprop:
    scf \ ccf
    ret
 
-;; zexec_binop -- execute binop instruction
-;; INPUTS:
-;;  hl = pointer to binary operation function
-;;  zframe_pc, args set
-;; OUTPUTS:
-;; DESTROYS:
-;; ERRORS: yes.
-zexec_binop:
-   ld (zexec_binop.fn),hl
-   call zcode_readop_force
-   ret c
-   push hl
-   call zcode_readop_force
-   ex de,hl
-   pop hl
-   ret c
-   ld ix,(zexec_binop.fn)
-   call zexec_binop.jmp
-   push hl
-   call zcode_readvarnum
-   pop hl
-   call zvar_store
-   ret ; carry flag set 
-
-zexec_binop.jmp:
-   jp (ix)
-
-zexec_binop.fn: .dl 0
-
-
-;; zexec_attrmod -- execute attribute modification instruction
-;; INPUTS:
-;;  hl = object number
-;;  de = attribute number
-;; OUTPUTS: 
-;;  zframe_pc updated
-;; DESTROYS: (all)
-;; ERRORS: yes.
-;; TODO: downcast vals.
-zexec_attrmod:
-   ld (zexec_attrmod.fn),hl
-   call zcode_readop_force
-   ret c
-   push hl
-   call zcode_readop_force
-   pop de
-   ret c
-   ld a,e ; object number
-   ld c,l ; attribute number
-   ld hl,(zexec_attrmod.fn)
-   jp (hl)
-
-zexec_attrmod.fn: .dl 0
 
 ;------------------------------------;
 ;           opcode handlers          ;
@@ -492,28 +269,28 @@ zexec_attrmod.fn: .dl 0
 
 zexec.je:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_cmp.eq
    jp nc,zexec_cjmp
    ret
 
 zexec.jl:
    ld a,2
-   call zop.readn
-   call nc,zexec_cjmp.lt
+   call zop_readn
+   call nc,zexec_cmp.lt
    jp nc,zexec_cjmp
    ret
 
 zexec.jg:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_cmp.gt
    jp nc,zexec_cjmp
    ret
 
 zexec.dec_chk:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zvar_downcast
    ld hl,zexec_unop.dec
    push de
@@ -525,7 +302,7 @@ zexec.dec_chk:
 
 zexec.inc_chk:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zvar_downcast
    ld hl,zexec_unop.inc
    push de
@@ -537,37 +314,37 @@ zexec.inc_chk:
 
 zexec.jin:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_cmp.in
    jp nc,zexec_cjmp
    ret
 
 zexec.test:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_cmp.tst
    jp nc,zexec_cjmp
    ret
 
 zexec.or:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.or
-   call nc,zexec_readvarnum
+   call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.and:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.and
-   call nc,zexec_readvarnum
+   call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.test_attr:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_cmp.attr
    jp nc,zexec_cjmp
    ret
@@ -575,7 +352,7 @@ zexec.test_attr:
 ;; TODO -- continue from here.
 zexec.set_attr:
    ld a,2
-   call zop.readn
+   call zop_readn
    ;; TODO -- obj downcast
    ld a,l
    ld c,e
@@ -584,7 +361,7 @@ zexec.set_attr:
 
 zexec.clear_attr:
    ld a,2
-   call zop.readn
+   call zop_readn
    ;; TODO -- obj downcast
    ld a,l
    ld c,e
@@ -593,7 +370,7 @@ zexec.clear_attr:
 
 zexec.store:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zvar_downcast
    ex de,hl
    jp nc,zvar_store
@@ -601,7 +378,7 @@ zexec.store:
 
 zexec.insert_obj:
    ld a,2
-   call zop.readn
+   call zop_readn
    ;; TODO -- obj downcast
    ld a,l
    ld c,e
@@ -610,7 +387,7 @@ zexec.insert_obj:
 
 zexec.loadw:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.loadw
    call nc,zcode_readvarnum
    jp nc,zvar_store
@@ -618,15 +395,15 @@ zexec.loadw:
 
 zexec.loadb:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.loadb
-   call nc,zexec_readvarnum
+   call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.get_prop:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.propval
    call nc,zcode_readvarnum
    jp nc,zvar_store
@@ -634,7 +411,7 @@ zexec.get_prop:
 
 zexec.get_prop_addr:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.propaddr
    call nc,zcode_readvarnum
    jp nc,zvar_store
@@ -642,7 +419,7 @@ zexec.get_prop_addr:
 
 zexec.get_next_prop:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.nextprop
    call nc,zcode_readvarnum
    jp nc,zvar_store
@@ -650,37 +427,42 @@ zexec.get_next_prop:
 
 zexec.add:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.add
-   jp nc,zexec_binop
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
    ret
 
 zexec.sub:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.sub
-   jp nc,zexec_binop
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
    ret
 
 zexec.mul:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.mul
-   jp nc,zexec_binop
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
    ret
 
 zexec.div:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.div
-   jp nc,zexec_binop
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
    ret
 
 zexec.mod:
    ld a,2
-   call zop.readn
+   call zop_readn
    call nc,zexec_binop.mod
-   jp nc,zexec_binop
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
    ret
 
 ;; 4 -- zexec.call_2s
@@ -693,63 +475,233 @@ zexec.mod:
 ;        1 OP        ;
 ;--------------------;
 zexec.jz:
-   call zcode_readop_force
-   ret c
-   push hl
-   ld hl,(zframe_pc)
-   call zcode_decode_branch
-   ret c
-   ld (zframe_pc),hl
-   push de
-   push af ; save ZF for later
-   pop hl
-   xor a,a ; %a holds branching status (a=0 if no, a=$ff if yes)
-   add hl,hl
-   jr z,zexec.jz.skip
-   cpl
-zexec.jz.skip:
-   pop af
-   jr nz,zexec.jz.skip2
-   cpl
-zexec.jz.skip2:
-   ; now conditionally apply branch
-   or a,a
-   pop hl
-   call z,zexec_branch
-   ret ; CF properly set
+   ld a,1
+   call zop_readn
+   call nc,zexec_cmp.zero
+   jp nc,zexec_cjmp
 
 zexec.get_sibling:
-   
+   ld a,1
+   call zop_readn
+   ret c
+   ;; TODO -- obj downcast
+   ld a,l
+   call zobj_sibling
+   call nc,btolu ; upcast obj val
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.get_child:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; TODO -- obj downcast
+   ld a,l
+   call zobj_child
+   call nc,btolu ; upcast obj val
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.get_parent:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; TODO -- obj downcast
+   ld a,l
+   call zobj_parent
+   call nc,btolu
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.get_prop_len:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; NOTE -- this is an address, not an obj/prop number.
+   dec hl
+   call zaddr_fetch
+   ret c
+   call zobj_propid_to_size
+   call btolu
+   call zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.inc:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; TODO -- obj downcast
+   ld a,l
    ld hl,zexec_unop.inc
-   jp zexec_unop
+   jp zvar_modify
+   ret
 
 zexec.dec:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; TODO -- obj downcast
+   ld a,l
    ld hl,zexec_unop.dec
-   jp zexec_unop
+   jp zvar_modify
+   ret
 
+;; TODO -- need to write zstring library
 zexec.print_addr:
+   ld a,1
+   call zop_readn
+   ;; TODO -- need to write zstring library
+
 
 ;; 4 -- zexec.call_1s
 
 zexec.remove_obj:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; TODO -- obj downcast
+   ld a,l
+   jp zobj_remove
+   ret
 
+;; TODO -- need to write zstring library
 zexec.print_obj:
 
 zexec.ret:
+   ld a,1
+   call zop_readn
+   ret c
+   push hl
+   call zstack_leave
+   pop hl
+   ret c
+   ld a,ZVAR_STACK
+   jp zvar_store
 
 zexec.jump:
+   ld a,1
+   call zop_readn
+   ret c
+   ;; NOTE -- this is encoded differently from a branch instruction.
+   ld de,(zframe_pc)
+   add hl,de
+   dec hl
+   dec hl
+   ld (zframe_pc),hl
+   scf \ ccf ; success
+   ret
 
+;; TODO -- need to write zstr library
 zexec.print_paddr:
 
 zexec.load:
+   ld a,1
+   call zop_readn
+   call nc,zvar_downcast
+   call nc,zvar_fetch
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
 
 zexec.not:
+   ld a,1
+   call zop_readn
+   call nc,zexec_unop.not
+   call nc,zcode_readvarnum
+   jp nc,zvar_store
+   ret
+
+
+;------------------------------------;
+;             0OP opcodes            ;
+;------------------------------------;
+zexec.rtrue:
+   call zstack_leave
+   ret c
+   ld a,ZVAR_STACK
+   ld hl,ZTRUE
+   jp zvar_store
+
+zexec.rfalse:
+   call zstack_leave
+   ret c
+   ld a,ZVAR_STACK
+   ld hl,ZFALSE
+   jp zvar_store
+
+zexec.print:
+
+zexec.print_ret:
+
+zexec.nop:
+   scf \ ccf
+   ret
+
+zexec.save:
+
+zexec.restore:
+
+zexec.restart:
+
+zexec.ret_popped:
+   ld a,ZVAR_STACK
+   call zvar_fetch
+   ret c
+   push hl
+   call zstack_leave
+   pop hl
+   ret c
+   ld a,ZVAR_STACK
+   jp zvar_store
+
+;; TODO -- this could be optimized
+zexec.pop:
+   ld a,ZVAR_STACK
+   jp zvar_fetch 
+
+zexec.quit:
+
+zexec.new_line:
+
+zexec.show_status:
+
+zexec.verify:
+
+
+;------------------------------------;
+;           VAR opcodes              ;
+;------------------------------------;
+zexec.call:
+
+zexec.storew:
+
+zexec.storeb:
+
+zexec.put_prop:
+
+zexec.sread:
+
+zexec.print_char:
+
+zexec.print_num:
+
+zexec.random:
+
+zexec.push:
+
+zexec.pull:
+
+zexec.split_window:
+
+zexec.set_window:
+
+zexec.output_stream:
+
+zexec.input_stream:
+
+zexec.sound_effect:
 

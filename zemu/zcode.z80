@@ -94,42 +94,6 @@ zcode_decode_variable.opnum:
    and a,$1f
    ;; TODO
 
-#if 0
-zcode_decode.2OP_LUT:
-   .dl zcode_err.bad       ; $00
-   .dl zexec.je            ; $01
-   .dl zexec.jl            ; $02
-   .dl zexec.jg            ; $03
-   .dl zexec.dec_chk       ; $04
-   .dl zexec.inc_chk       ; $05
-   .dl zexec.jin           ; $06
-   .dl zexec.test          ; $07
-   .dl zexec.or            ; $08
-   .dl zexec.and           ; $09
-   .dl zexec.test_attr     ; $0A
-   .dl zexec.set_attr      ; $0B
-   .dl zexec.clear_attr    ; $0C
-   .dl zexec.store         ; $0D
-   .dl zexec.insert_obj    ; $0E
-   .dl zexec.loadw         ; $0F
-   .dl zexec.loadb         ; $10
-   .dl zexec.get_prop      ; $11
-   .dl zexec.get_prop_addr ; $12
-   .dl zexec.get_next_prop ; $13
-   .dl zexec.add           ; $14
-   .dl zexec.sub           ; $15
-   .dl zexec.mul           ; $16
-   .dl zexec.div           ; $17
-   .dl zexec.mod           ; $18
-   .dl zcode_err.notavail  ; $19
-   .dl zcode_err.notavail  ; $1A
-   .dl zcode_err.notavail  ; $1B
-   .dl zcode_err.notavail  ; $1C
-   .dl zcode_err.bad       ; $1D
-   .dl zcode_err.bad       ; $1E
-   .dl zcode_err.bad       ; $1F
-#endif
-
 
 ;;-- NOT SUPPORTED --;;
 ;; TODO: support extended opcodes.
@@ -219,7 +183,7 @@ zcode_err.notavail:
 ;;  zframe_pc <- zframe_pc + 1
 ;;  %a contains variable number
 ;; ERRORS: yes.
-;; DESTROYS: (all)
+;; DESTROYS: all but %hl
 zcode_readvarnum:
    push hl
    ld hl,(zframe_pc)
@@ -275,3 +239,99 @@ zcode_decode_branch.de_signed:
    scf \ ccf
    bit 7,b
    ret
+
+
+
+zcode.2OP:
+   .dl zcode_err.bad       ; $00
+   .dl zexec.je            ; $01
+   .dl zexec.jl            ; $02
+   .dl zexec.jg            ; $03
+   .dl zexec.dec_chk       ; $04
+   .dl zexec.inc_chk       ; $05
+   .dl zexec.jin           ; $06
+   .dl zexec.test          ; $07
+   .dl zexec.or            ; $08
+   .dl zexec.and           ; $09
+   .dl zexec.test_attr     ; $0A
+   .dl zexec.set_attr      ; $0B
+   .dl zexec.clear_attr    ; $0C
+   .dl zexec.store         ; $0D
+   .dl zexec.insert_obj    ; $0E
+   .dl zexec.loadw         ; $0F
+   .dl zexec.loadb         ; $10
+   .dl zexec.get_prop      ; $11
+   .dl zexec.get_prop_addr ; $12
+   .dl zexec.get_next_prop ; $13
+   .dl zexec.add           ; $14
+   .dl zexec.sub           ; $15
+   .dl zexec.mul           ; $16
+   .dl zexec.div           ; $17
+   .dl zexec.mod           ; $18
+   .dl zcode_err.notavail  ; $19
+   .dl zcode_err.notavail  ; $1A
+   .dl zcode_err.notavail  ; $1B
+   .dl zcode_err.notavail  ; $1C
+   .dl zcode_err.bad       ; $1D
+   .dl zcode_err.bad       ; $1E
+   .dl zcode_err.bad       ; $1F
+zcode.2OP_end:
+
+zcode.1OP:
+   .dl zexec.jz            ; $0
+   .dl zexec.get_sibling   ; $1
+   .dl zexec.get_child     ; $2
+   .dl zexec.get_parent    ; $3
+   .dl zexec.get_prop_len  ; $4
+   .dl zexec.inc           ; $5
+   .dl zexec.dec           ; $6
+   .dl zexec.print_addr    ; $7
+   .dl zcode_err.notavail  ; $8
+   .dl zexec.remove_obj    ; $9
+   .dl zexec.print_obj     ; $A
+   .dl zexec.ret           ; $B
+   .dl zexec.jump          ; $C
+   .dl zexec.print_paddr   ; $D
+   .dl zexec.load          ; $E
+   .dl zexec.not           ; $F
+zcode.1OP_end:
+
+zcode.0OP:
+   .dl zexec.rtrue         ; $0
+   .dl zexec.rfalse        ; $1
+   .dl zexec.print         ; $2
+   .dl zexec.print_ret     ; $3
+   .dl zexec.nop           ; $4
+   .dl zexec.save          ; $5
+   .dl zexec.restore       ; $6
+   .dl zexec.restart       ; $7
+   .dl zexec.ret_popped    ; $8
+   .dl zexec.pop           ; $9
+   .dl zexec.quit          ; $A
+   .dl zexec.new_line      ; $B
+   .dl zexec.show_status   ; $C
+   .dl zexec.verify        ; $D
+zcode.0OP_end:
+
+zcode.VAR:
+   .dl zexec.call          ; $00
+   .dl zexec.storew        ; $01
+   .dl zexec.storeb        ; $02
+   .dl zexec.put_prop      ; $03
+   .dl zexec.sread         ; $04
+   .dl zexec.print_char    ; $05
+   .dl zexec.print_num     ; $06
+   .dl zexec.random        ; $07
+   .dl zexec.push          ; $08
+   .dl zexec.pull          ; $09
+   .dl zexec.split_window  ; $0A
+   .dl zexec.set_window    ; $0B
+   .dl zcode_err.notavail  ; $0C
+   .dl zcode_err.notavail  ; $0D
+   .dl zcode_err.notavail  ; $0E
+   .dl zcode_err.notavail  ; $0F
+   .dl zcode_err.notavail  ; $10
+   .dl zcode_err.notavail  ; $11
+   .dl zcode_err.notavail  ; $12
+   .dl zexec.output_stream ; $13
+zcode.VAR_end:

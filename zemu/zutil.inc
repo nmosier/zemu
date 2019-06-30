@@ -6,7 +6,7 @@ LONG_MAX .equ LONG_MIN - 1
 
 LONG_SIZE .equ 3
 
-ZFALSE .equ $00
-ZTRUE .equ $FF
+ZFALSE .equ $000000
+ZTRUE .equ  $000001
 
 #endif

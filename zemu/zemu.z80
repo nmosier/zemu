@@ -214,3 +214,5 @@ zork_save: .db "SAVE1",0
 #include "zvar.z80"
 #include "zobj.z80"
 #include "zop.z80"
+#include "zbranch.z80"
+#include "zexec.z80"

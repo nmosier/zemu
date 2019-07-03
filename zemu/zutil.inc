@@ -9,4 +9,6 @@ LONG_SIZE .equ 3
 ZFALSE .equ $000000
 ZTRUE .equ  $000001
 
+VARNAMELEN .equ 8
+
 #endif

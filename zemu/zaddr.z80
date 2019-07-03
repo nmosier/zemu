@@ -129,11 +129,27 @@ zaddr_fetchw:
    call zaddr_fetch
    ret c
    ld d,a
-   ex de,hl
    push hl
-   call wtols ; upcast
-   pop hl
    ex de,hl
+   call wtols ; upcast
+   ex de,hl
+   pop hl
+   scf \ ccf
+   ret
+
+;; zaddr_fetchwu -- fetch unsigned word at logical address
+zaddr_fetchwu:
+   call zaddr_fetch
+   ret c
+   ld e,a
+   call zaddr_fetch
+   ret c
+   ld d,a
+   push hl
+   ex de,hl
+   call wtolu ; upcast
+   ex de,hl
+   pop hl
    scf \ ccf
    ret
 

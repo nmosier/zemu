@@ -1,3 +1,4 @@
+#include "zemu.inc"
 #include "zutil.inc"
 
 ; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1

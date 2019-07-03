@@ -8,4 +8,6 @@ ZHDR_OBJTAB  .equ $0A
 ZHDR_GLOBALS .equ $0C
 ZHDR_STATIC  .equ $0E
 ZHDR_FLAGS2  .equ $10
+
+ZHDR_ABBR    .equ $18
 ;; TODO

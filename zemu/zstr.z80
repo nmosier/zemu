@@ -1,0 +1,198 @@
+; zstr.z80 -- routines for printing ZSCII codes
+
+#include "zstr.inc"
+
+zstr_flags: .db 0
+zstr_abbrtab: .dl 0
+
+zstr_abbraddr:
+   ld ix,(zmap_header)
+   lea ix,ix+ZHDR_ABBR
+   ret
+
+;; zstr_printc -- print single zcode of z-string
+;; INPUTS:
+;;  a = Z-code (0 <= a < 32)
+;; OUTPUTS:
+;;  updates zstr_{shiftmode,abbrtab}
+;; DESTROYS:
+;; ERRORS:
+zstr_putc:
+   ld hl,zstr_flags
+   ; 1. Interpet as abbreviation code?
+   bit ZSTR_FLAGS_ABBR,(hl)
+   jr nz,zstr_putc.abbr_apply
+   ; 2. Is it a space?
+   or a,a
+   jr z,zstr_putc.space
+   ; 3. Is it an abbreviation prefix?
+   cp a,ZSTR_ABBRMAX+1
+   jr c,zstr_putc.abbr_select
+   ; 4. Is it a shift code?
+   cp a,ZSTR_A1
+   jr z,zstr_putc.shift_A1
+   cp a,ZSTR_A2
+   jr z,zstr_putc.shift_A2
+   ; 5. Otherwise, is a character.
+zstr_putc.char:
+   sub a,ZSTR_AMIN
+   bit ZSTR_FLAGS_SHIFT,(hl)
+   res ZSTR_FLAGS_SHIFT,(hl)
+   jr z,zstr_putc.char.A0
+   bit ZSTR_FLAGS_AX,(hl)
+   jr z,zstr_putc.char.A1
+   jr zstr_putc.char.A2
+
+zstr_putc.shift_A1:
+   set ZSTR_FLAGS_SHIFT,(hl)
+   res ZSTR_FLAGS_AX,(hl)
+   scf \ ccf
+   ret
+
+zstr_putc.shift_A2:
+   set ZSTR_FLAGS_SHIFT,(hl)
+   set ZSTR_FLAGS_AX,(hl)
+   scf \ ccf
+   ret
+
+
+zstr_putc.char.A0:
+   ld hl,zstr_A0.tab
+   jr zstr_putc.char.print
+
+zstr_putc.char.A1:
+   ld hl,zstr_A1.tab
+   jr zstr_putc.char.print
+
+zstr_putc.char.A2:
+   cp a,1
+   ld hl,zstr_A2.tab
+   jr nz,zstr_putc.char.print
+   ;; newline
+   call _NewLine
+   scf \ ccf
+   ret
+
+zstr_putc.char.print:
+   ld de,0
+   ld e,a
+   add hl,de
+   ld a,(hl)
+   call _PutC
+   scf \ ccf
+   ret
+
+zstr_putc.space:
+   ld a,' '
+   call _PutC
+   scf \ ccf
+   ret
+
+zstr_putc.abbr_apply:
+   ; NOTE: %a still holds unmodified 5-bit code.
+   res ZSTR_FLAGS_ABBR,(hl)
+   ld hl,(zstr_abbrtab)
+   rla ; a <- a * WORD_SIZE == a * 2 == a << 1
+   ld de,0
+   ld e,a
+   add hl,de
+   call zaddr_fetchwu ; get pointer to expanded string
+   ret c
+   jp zstr_puts
+
+
+zstr_putc.abbr_select:
+   set ZSTR_FLAGS_ABBR,(hl)
+   sub a,ZSTR_ABBRMIN
+   rra
+   rra ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
+   push af
+   ld ix,(zmap_header)
+   lea hl,ix+ZHDR_ABBR
+   call zaddr_fetchwu
+   ret c
+   pop bc
+   ex de,hl
+   ld de,0
+   ld e,a
+   add hl,de
+   ld (zstr_abbrtab),hl ; save address of selected abbreviation table
+   scf \ ccf
+   ret
+
+
+;; zstr_putw -- print Z-string contained in z-word
+;; INPUTS:
+;;  hl[15:0] = encoded z-string
+;;  zstr_shiftmode set
+;; OUTPUTS:
+;;  Z if end-of-string, NZ otherwise
+;;  zstr_shiftmode updated
+;; DESTROYS:
+;; ERRORS: yes.
+zstr_putw:
+   ld a,h
+   rra
+   rra
+   and a,ZSTR_CODEMASK
+   push hl
+   call zstr_putc
+   pop hl
+   ret c
+   ld a,h ; lower 2 bits are upper 2 bits of 2nd code
+   ld b,l
+   rl b
+   rla
+   rl b
+   rla
+   rl b
+   rla
+   and a,ZSTR_CODEMASK
+   push hl
+   call zstr_putc
+   pop hl
+   ret c
+   ld a,l
+   and a,ZSTR_CODEMASK
+   push hl
+   call zstr_putc
+   pop hl
+   ret c
+   bit 7,h ; whether end of string
+   ret
+   
+
+;; zstr_puts -- print Z-string
+;; INPUTS:
+;;  hl points to Z-string
+;;  zstr_shiftmode set
+;; OUTPUTS:
+;;  hl points to word after Z-string
+;;  zstr_shiftmode updated
+;; DESTROYS:
+;; ERRORS: yes.
+zstr_puts:
+zstr_puts.loop:
+   call zaddr_fetchwu
+   ;ld d,(hl)
+   ;inc hl
+   ;ld e,(hl)
+   ;inc hl
+   ;scf \ ccf
+   ret c
+   ex de,hl
+   push de
+   call zstr_putw
+   pop de
+   ret c
+   ex de,hl
+   jr z,zstr_puts.loop ; not end of string
+zstr_puts.end:
+   ret
+      
+
+zstr_A0.tab:
+   .db "abcdefghijklmnopqrstuvwxyz"
+zstr_A1.tab:
+   .db "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+zstr_A2.tab: .db " ^0123456789.,!?_#'\"/\-:()"

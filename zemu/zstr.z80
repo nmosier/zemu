@@ -106,20 +106,16 @@ zstr_putc.abbr_select:
    sub a,ZSTR_ABBRMIN
    rra
    rra ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
-   push af
    ld ix,(zmap_header)
-   lea hl,ix+ZHDR_ABBR
-   call zaddr_fetchwu
-   ret c
-   pop bc
-   ex de,hl
+   ld hl,0
    ld de,0
+   ld h,(ix+ZHDR_ABBR)
+   ld l,(ix+ZHDR_ABBR+1)
    ld e,a
    add hl,de
-   ld (zstr_abbrtab),hl ; save address of selected abbreviation table
+   ld (zstr_abbrtab),hl
    scf \ ccf
    ret
-
 
 ;; zstr_putw -- print Z-string contained in z-word
 ;; INPUTS:

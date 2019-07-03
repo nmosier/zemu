@@ -3,6 +3,8 @@
 #ifndef __ZEMU_INC
 #define __ZEMU_INC
 
+#include "zutil.inc"
+
 ZBYTE_SIZE .equ 1
 ZWORD_SIZE .equ 2
 

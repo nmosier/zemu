@@ -22,16 +22,26 @@ start:
    call zmem_init ; initialize memory
    ld hl,zmem_init_str
    jp c,zemu_perror
-   jp test
+   call test
+   ret
 
 test:
    ; test strings
-   ld hl,$14808 ; "A thief knocks you out."
+   ld hl,$14808 ; "The thief knocks you out"
    call zstr_puts
+   ld hl,test_str
    jp c,zemu_perror
    ret
-   
 
+   ; test addresses
+   ld hl,$14808
+   call zaddr_fetchwu
+   ex de,hl
+   call _DispHL 
+   ret
+
+
+test_str: .db "test",0
 
 test_addrs:
    ld hl,0
@@ -121,11 +131,11 @@ zemu_open.table_init:
 zemu_open.table_init.loop:
    ; move varname into OP1
    push ix
-   push.s bc
+   push bc
    lea hl,ix+ZMAP_ENT_VARNAME
    call appvar_to_OP1
    call _ChkFindSym
-   pop.s bc
+   pop bc
    pop ix
    ld a,ZERR_NOVAR
    ret c  ; return if no page found
@@ -147,7 +157,7 @@ zemu_open.table_init.loop:
    pop bc
    pop ix
    ;;; DEBUG ;;;
-zemu_open.table_init.loop_end
+zemu_open.table_init.loop_end:      
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
    djnz zemu_open.table_init.loop
@@ -181,10 +191,11 @@ zemu_exit.done:
    scf \ ccf ; success
    ret
 
-zmap_name: .byte VARNAMELEN
 zmap_appvar: .dl 0
 zmap_header: .dl 0
 zmap_table:  .dl 0
+zmap_name: ; .byte VARNAMELEN
+           .dw 0,0,0,0
 
 ;; TESTING ;;
 zork_zmap: .db "ZORK",0

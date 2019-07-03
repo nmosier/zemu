@@ -1,5 +1,9 @@
 ; zaddr.z80 -- routines for zaddresses
 
+#include "zemu.inc"
+#include "zhdr.inc"
+#include "zutil.inc"
+
 ;; zaddr_to_paddr -- convert logical address to physical CPU address.
 ;; INPUTS:
 ;;  hl = logical address
@@ -19,6 +23,7 @@ zaddr_to_paddr.check_size:
    ccf
    ret c ; if logaddr >= storysize, then bad addr
 zaddr_to_paddr.page_num:
+   ld de,0
    ld e,(ix+ZMAP_HDR_PAGEMASK)
    ld d,(ix+ZMAP_HDR_PAGEMASK+1)
    ; and hl,~de => page number * page size
@@ -47,8 +52,8 @@ zaddr_to_paddr.page_num_shift:
    ld a,e
 zaddr_to_paddr.page_ent:
    call zmap_fetchpage
-   pop bc ; page mask
-   pop de ; offset
+   pop de ; page mask
+   pop bc ; offset
    ret c
 zaddr_to_paddr.get_offset:
    ;; NOTE: since the zpage size is less than 2^16,
@@ -79,8 +84,8 @@ zaddr_to_paddr.long: .dl 0
 ;; ERROR: yes.
 ;; DESTROYS: everything but de
 zaddr_fetch:
-   push hl
    push de
+   push hl
    call zaddr_to_paddr
    ex de,hl
    pop hl
@@ -141,14 +146,13 @@ zaddr_fetchw:
 zaddr_fetchwu:
    call zaddr_fetch
    ret c
-   ld e,a
+   ld d,a
    call zaddr_fetch
    ret c
-   ld d,a
+   ld e,a
    push hl
    ex de,hl
    call wtolu ; upcast
-   ex de,hl
    pop hl
    scf \ ccf
    ret

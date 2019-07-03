@@ -1,4 +1,8 @@
 ;; zhdr.inc -- equates for story file headers
+
+#ifndef __ZHDR_INC
+#define __ZHDR_INC
+
 ZHDR_VERSION .equ $00
 ZHDR_FLAGS1  .equ $01
 ZHDR_HIGHMEM .equ $04
@@ -11,3 +15,5 @@ ZHDR_FLAGS2  .equ $10
 
 ZHDR_ABBR    .equ $18
 ;; TODO
+
+#endif

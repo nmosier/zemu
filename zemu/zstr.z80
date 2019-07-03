@@ -96,22 +96,31 @@ zstr_putc.abbr_apply:
    ld de,0
    ld e,a
    add hl,de
-   call zaddr_fetchwu ; get pointer to expanded string
+   call zaddr_fetchwu ; get word address to expanded string
    ret c
-   jp zstr_puts
+   ex de,hl
+   ; convert to byte address
+   add hl,hl
+   call zstr_puts
+   ret c
+   ld a,(zstr_flags)
+   res ZSTR_FLAGS_SHIFT,a
+   ld (zstr_flags),a
+   ret   
 
 
 zstr_putc.abbr_select:
    set ZSTR_FLAGS_ABBR,(hl)
    sub a,ZSTR_ABBRMIN
-   rra
-   rra ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
-   ld ix,(zmap_header)
-   ld hl,0
+   rrca
+   rrca ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
+   ld hl,ZHDR_ABBR
+   push af
+   call zaddr_fetchwu
+   pop bc
+   ex de,hl
    ld de,0
-   ld h,(ix+ZHDR_ABBR)
-   ld l,(ix+ZHDR_ABBR+1)
-   ld e,a
+   ld e,b
    add hl,de
    ld (zstr_abbrtab),hl
    scf \ ccf
@@ -128,8 +137,8 @@ zstr_putc.abbr_select:
 ;; ERRORS: yes.
 zstr_putw:
    ld a,h
-   rra
-   rra
+   rrca
+   rrca
    and a,ZSTR_CODEMASK
    push hl
    call zstr_putc
@@ -168,20 +177,17 @@ zstr_putw:
 ;; DESTROYS:
 ;; ERRORS: yes.
 zstr_puts:
+   ld a,(zstr_flags)
+   res ZSTR_FLAGS_SHIFT,a
+   ld (zstr_flags),a
 zstr_puts.loop:
    call zaddr_fetchwu
-   ;ld d,(hl)
-   ;inc hl
-   ;ld e,(hl)
-   ;inc hl
-   ;scf \ ccf
    ret c
    ex de,hl
    push de
    call zstr_putw
-   pop de
+   pop hl
    ret c
-   ex de,hl
    jr z,zstr_puts.loop ; not end of string
 zstr_puts.end:
    ret

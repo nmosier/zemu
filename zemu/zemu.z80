@@ -26,6 +26,18 @@ start:
    ret
 
 test:
+   ; test putn
+   ld hl,1234567
+   call zstr_putn
+   call _NewLine
+   ld hl,0
+   call zstr_putn
+   call _NewLine
+   ld hl,-1234567
+   call zstr_putn
+   call _NewLine
+   jp _GetKey
+
    ; test strings
    ld hl,$14808 ; "The thief knocks you out"
    call zstr_puts

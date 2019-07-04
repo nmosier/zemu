@@ -550,11 +550,15 @@ zexec.dec:
    jp zvar_modify
    ret
 
-;; TODO -- need to write zstring library
 zexec.print_addr:
    ld a,1
    call zop_readn
-   ;; TODO -- need to write zstring library
+   ;; cast op back to unsigned
+   ex de,hl
+   ld hl,0
+   ld h,d
+   ld l,e
+   jp zstr_puts
 
 
 ;; 4 -- zexec.call_1s
@@ -568,8 +572,18 @@ zexec.remove_obj:
    jp zobj_remove
    ret
 
-;; TODO -- need to write zstring library
 zexec.print_obj:
+   ld a,1
+   call zop_readn
+   ;; TODO -- obj downcast
+   ld a,l
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_PROPS
+   call zaddr_fetchwu
+   inc hl ; skip length byte
+   jp zstr_puts
+
 
 zexec.ret:
    ld a,1
@@ -595,8 +609,16 @@ zexec.jump:
    scf \ ccf ; success
    ret
 
-;; TODO -- need to write zstr library
 zexec.print_paddr:
+   ld a,1
+   call zop_readn
+   ret c
+   ex de,hl
+   ld hl,0
+   ld h,d
+   ld l,e
+   call zaddr_unpack
+   jp zstr_puts
 
 zexec.load:
    ld a,1
@@ -634,8 +656,17 @@ zexec.rfalse:
    jp zvar_store
 
 zexec.print:
+   ; NOTE: This is analogous to a Z80 string operation.
+   ld hl,(zframe_pc)
+   call zstr_puts
+   ld (zframe_pc),hl
+   ret
 
 zexec.print_ret:
+   call zexec.print
+   ret c
+   call _NewLine
+   jp zexec.rtrue
 
 zexec.nop:
    scf \ ccf
@@ -685,9 +716,19 @@ zexec.put_prop:
 
 zexec.sread:
 
+;; TODO -- should this support multiple chars?
 zexec.print_char:
+   ld a,1
+   call zop_readn
+   call nc,ltobu     ; downcast to byte
+   jp nc,zstr_putc
+   ret               ; error
 
+;; print_num -- print signed number in decimal
 zexec.print_num:
+   ld a,1
+   call zop_readn
+   ; NOTE: can't use DispHL because it zero-pads on the left.
 
 zexec.random:
 

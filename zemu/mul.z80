@@ -1,4 +1,6 @@
 #include "ti84pce.inc"
+#include "zutil.inc"
+#include "zerr.inc"
 
 .assume ADL=1
 .org userMem-2
@@ -34,77 +36,11 @@ str.div: .db "div:",0
 str.mod: .db "mod:",0
 
 DispHL_signed:
-   ld (DispHL_signed.val),hl
-   ld ix,DispHL_signed.val
-   bit 7,(ix+2)
-   jr z,DispHL_signed.pos
+   call absl
+   jr nc,_
    ld a,'-'
    call _PutC
-   ld hl,DispHL_signed.val
-   ld b,3
-   call memneg_short
-DispHL_signed.pos:
-   ld hl,(DispHL_signed.val)
-   call _DispHL
-   ret
-   
-
-DispHL_signed.val: .long 1
-
-
-;; memcpl_short -- complement up to 256 bytes of memory
-;; INPUTS:
-;;  hl = pointer
-;;  b = count
-;; OUTPUTS:
-;;  hl <- hl + b
-;; DESTROYS: a, b, hl
-memcpl_short:
-memcpl_short.loop:
-   ld a,(hl)
-   cpl
-   ld (hl),a
-   inc hl
-   djnz memcpl_short.loop
-   ret
-
-;; memneg_short -- negate up to 256 bytes of memory
-;; INPUTS:
-;;  hl = pointer
-;;  b = count
-;; OUTPUTS:
-;; DESTROYS: a, bc, hl
-memneg_short:
-   ld c,b
-   push hl
-   call memcpl_short
-   pop hl
-memneg_short.loop:
-   inc (hl)
-   ret po ; no overflow
-   inc hl
-   dec c
-   jr nz,memneg_short.loop
-   ret
-
-;; memset_short -- set up to 256 bytes of memory to a value
-;; INPUTS:
-;;  hl = pointer to memory
-;;  b = count (in bytes)
-;;  a = value
-;; OUTPUTS:
-;;  hl <- hl + b
-;;  b <- 0
-;; DESTROYS: hl, b
-;; ERRORS: no.
-memset_short:
-memset_short.loop:
-   ld (hl),a
-   inc hl
-   djnz memset_short.loop
-   ret
-
-
+_  jp _DispHL
 
 
 ;; div_hl_de -- divide hl by de using 24-bit signed division
@@ -117,18 +53,26 @@ memset_short.loop:
 ;; ERRORS: no???
 ;; TODO: divide by zero error
 div_hl_de:
+   ld bc,0
+   ex de,hl
+   or a,a ; reset CF
+   sbc hl,bc ; cp de,bc
+   ld a,ZERR_DIVZERO
+   ccf
+   ret z
+   ex de,hl
 	xor a ; initialize A to store sign
 div_hl_de.signs:
-   ld (div_hl_de.hl),hl
-   ld (div_hl_de.de),de
-   ld hl,div_hl_de.hl
-   ld b,3
-   call memabs_short
-   ld hl,div_hl_de.de
-   ld b,3
-   call memabs_short
-   ld hl,(div_hl_de.hl)
-   ld de,(div_hl_de.de)
+   call absl
+   jr nc,div_hl_de.signs.de
+   cpl
+div_hl_de.signs.de:
+   ex de,hl
+   call absl
+   jr nc,div_hl_de.signs.done
+   cpl
+div_hl_de.signs.done:
+   ex de,hl
 div_hl_de.loopinit:
 	push af ; save sign bit
 	ld bc,0
@@ -177,35 +121,117 @@ div_hl_de.hl: .dl 0
 div_hl_de.de: .dl 0
 
 
-;; memabs_short -- find absolute value of up to 256-byte integer in memory
+;; cp_hl_de -- flags(hl - de)
 ;; INPUTS:
-;;  hl = pointer to little endian integer in memory
-;;  b = count (1 <= b <= 256)
+;;  hl, de
 ;; OUTPUTS:
-;;  if (hl) < 0, a <- ~a, (hl) <- ~(hl)
-;; DESTROYS: (all)
+;;  all flags
+;; DESTROYS: (none)
 ;; ERRORS: no.
-memabs_short:
-   ld de,0
-   ld e,b
-   dec e
-   add hl,de
-   bit 7,(hl)
-   ret z ; (hl) >= 0
-   scf \ ccf
-   sbc hl,de
-   push af
-   call memneg_short
-   pop af
-   xor a,$ff
-   ret
-
-
-;; cp_hl_de
 cp_hl_de:
    scf \ ccf
    sbc hl,de
    push af
    add hl,de
    pop af
+   ret
+
+
+;; cp_hl_de_sgn -- signed flags(hl - de)
+;; TODO -- there must be a more elegant way to do this.
+cp_hl_de_sgn:
+   push ix
+   ld ix,cp_hl_de_sgn.tab
+cp_hl_de_sgn.lhs:
+   call sgnl ; sign of lhs
+   jr nc,cp_hl_de_sgn.rhs
+   lea ix,ix+(2*3)
+cp_hl_de_sgn.rhs:
+   ex de,hl
+   call sgnl
+   ex de,hl
+   jr nc,cp_hl_de_sgn.op
+   lea ix,ix+(1*3)
+cp_hl_de_sgn.op:
+   jp (ix)
+
+cp_hl_de_sgn.tab:
+   .dl cp_hl_de_sgn.pp
+   .dl cp_hl_de_sgn.pn
+   .dl cp_hl_de_sgn.np
+   .dl cp_hl_de_sgn.nn
+
+cp_hl_de_sgn.pp:
+   jp cp_hl_de
+   
+cp_hl_de_sgn.pn:
+   push de
+   ld de,0
+   inc hl
+   call cp_hl_de
+   dec hl
+   pop de
+   ret
+
+cp_hl_de_sgn.np:
+   push hl
+   ld hl,0
+   inc de
+   call cp_hl_de
+   dec de
+   pop hl
+   ret
+
+cp_hl_de_sgn.nn: ; flags(-1 - -2) == flags(1) == flags(2 - 1) 
+   call negl
+   ex de,hl
+   call negl
+   jp cp_hl_de
+
+
+;; absl -- absolute value of long
+;; INPUTS:
+;;  hl = signed long
+;; OUTPUTS:
+;;  hl <- |hl|
+;; DESTROYS: (none)
+;; FLAGS: C if negative, NC otherwise
+;; ERRORS: no.
+absl:
+   call sgnl
+   jp c,negl ; flag: C
+   ; flag: NC
+   ret
+
+;; sgnl -- sign of long
+;; INPUTS:
+;;  hl = long
+;; OUTPUTS:
+;;  C if negative
+;;  NC if nonnegative
+;; DESTROYS: (none)
+;; ERRORS: no.
+sgnl:
+   push de
+   ld de,LONG_MAX
+   call cp_hl_de
+   pop de
+   ccf
+   ret
+
+;; negl -- negate long
+;; INPUTS:
+;;  hl = long
+;; OUTPUTS:
+;;  hl <- -hl
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; FLAGS: C if hl != 0
+negl:
+   push de
+   ex de,hl
+   ld hl,0
+   or a,a
+   sbc hl,de
+   pop de
    ret

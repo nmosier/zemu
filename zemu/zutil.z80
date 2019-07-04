@@ -205,8 +205,6 @@ memset_short.loop:
    djnz memset_short.loop
    ret
 
-
-
 ;; div_hl_de -- divide hl by de using 24-bit signed division
 ;; INPUTS:
 ;;  hl (dividend), de (divisor)
@@ -219,6 +217,7 @@ memset_short.loop:
 div_hl_de:
    ld bc,0
    ex de,hl
+   or a,a
    sbc hl,bc ; cp de,bc
    ld a,ZERR_DIVZERO
    ccf
@@ -226,16 +225,16 @@ div_hl_de:
    ex de,hl
 	xor a ; initialize A to store sign
 div_hl_de.signs:
-   ld (div_hl_de.hl),hl
-   ld (div_hl_de.de),de
-   ld hl,div_hl_de.hl
-   ld b,3
-   call memabs_short
-   ld hl,div_hl_de.de
-   ld b,3
-   call memabs_short
-   ld hl,(div_hl_de.hl)
-   ld de,(div_hl_de.de)
+   call absl
+   jr nc,div_hl_de.signs.de
+   cpl
+div_hl_de.signs.de:
+   ex de,hl
+   call absl
+   jr nc,div_hl_de.signs.done
+   cpl
+div_hl_de.signs.done:
+   ex de,hl
 div_hl_de.loopinit:
 	push af ; save sign bit
 	ld bc,0
@@ -284,30 +283,6 @@ div_hl_de.hl: .dl 0
 div_hl_de.de: .dl 0
 
 
-;; memabs_short -- find absolute value of up to 256-byte integer in memory
-;; INPUTS:
-;;  hl = pointer to little endian integer in memory
-;;  b = count (1 <= b <= 256)
-;; OUTPUTS:
-;;  if (hl) < 0, a <- ~a, (hl) <- ~(hl)
-;; DESTROYS: (all)
-;; ERRORS: no.
-memabs_short:
-   ld de,0
-   ld e,b
-   dec e
-   add hl,de
-   bit 7,(hl)
-   ret z ; (hl) >= 0
-   scf \ ccf
-   sbc hl,de
-   push af
-   call memneg_short
-   pop af
-   xor a,$ff
-   ret
-
-
 ;; cp_hl_de -- flags(hl - de)
 ;; INPUTS:
 ;;  hl, de
@@ -316,7 +291,7 @@ memabs_short:
 ;; DESTROYS: (none)
 ;; ERRORS: no.
 cp_hl_de:
-   scf \ ccf
+   or a,a
    sbc hl,de
    push af
    add hl,de
@@ -376,6 +351,20 @@ cp_hl_de_sgn.nn: ; flags(-1 - -2) == flags(1) == flags(2 - 1)
    jp cp_hl_de
 
 
+;; absl -- absolute value of long
+;; INPUTS:
+;;  hl = signed long
+;; OUTPUTS:
+;;  hl <- |hl|
+;; DESTROYS: (none)
+;; FLAGS: C if negative, NC otherwise
+;; ERRORS: no.
+absl:
+   call sgnl
+   jp c,negl ; flag: C
+   ; flag: NC
+   ret
+
 ;; sgnl -- sign of long
 ;; INPUTS:
 ;;  hl = long
@@ -399,10 +388,12 @@ sgnl:
 ;;  hl <- -hl
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+;; FLAGS: C if hl != 0
 negl:
    push de
    ex de,hl
    ld hl,0
+   or a,a
    sbc hl,de
    pop de
    ret
@@ -524,3 +515,4 @@ cftoa:
    ret c
    xor a
    ret
+

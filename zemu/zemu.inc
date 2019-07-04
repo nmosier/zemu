@@ -25,5 +25,6 @@ ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + 1
 
 ZMAP_ENT_FLAGS_INRAM .equ 0
 
+ZPACK .equ 2 ; scaling factor
 
 #endif

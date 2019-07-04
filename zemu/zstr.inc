@@ -25,6 +25,8 @@ ZSTR_FLAGS_SHIFT .equ 0  ; shift enabled for next character?
 ZSTR_FLAGS_AX    .equ 1  ; Z = A1, NZ = A2
 ZSTR_FLAGS_ABBR  .equ 2  ; expecting abbreviation code?
 
+STRLEN_LONG .equ 8
+
 #macro A0(c)
        c-'a'+ZSTR_AMIN
 #endmacro

@@ -198,3 +198,59 @@ zstr_A0.tab:
 zstr_A1.tab:
    .db "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 zstr_A2.tab: .db " ^0123456789.,!?_#'\"/\-:()"
+
+;; zstr_putn -- print signed number
+;; INPUTS:
+;;  hl = signed long to print
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: no.
+zstr_putn:
+   ; 1. Check sign
+   ex de,hl
+   ld hl,0
+   or a,a ; reset CF
+   sbc hl,de
+   ; hl = negated val, de = original val
+   or a,a ; reset CF
+   sbc hl,de
+   ; if val is nonnegative, then hl >= de, so CF should be reset (NC)
+   ex de,hl
+   jr nc,zstr_putn.u
+   ex de,hl
+   add hl,de ; get back abs val
+   ld a,'-'
+   call _PutC ; display negative sign
+zstr_putn.u:
+   ; NOTE: at least one digit will always be written, even if hl = 0.
+   ;       this is what we want.
+   ld bc,zstr_putn.buf_end
+zstr_putn.loop:
+   ld de,10
+   dec bc
+   push bc
+   call div_hl_de
+   ld bc,0
+   or a,a ; reset CF
+   sbc hl,bc ; set ZF
+   pop bc
+   ld a,e
+   ld (bc),a
+   jr nz,zstr_putn.loop
+
+   ld hl,zstr_putn.buf_end
+   sbc hl,bc ; hl holds string length
+   push bc
+   ld b,l    ; length < 256, so safe downcast
+   pop hl
+zstr_putn.disploop:
+   ld a,(hl)
+   add a,'0'
+   call _PutC
+   inc hl
+   djnz zstr_putn.disploop
+   ret
+
+zstr_putn.buf:
+   .db 0,0,0,0,0,0,0,0
+zstr_putn.buf_end:

@@ -1,4 +1,3 @@
-;; zexec.z80 -- routines for executing instructions
 
 ;; NOTE: each zexec.* function expects operands to be set properly
 ;;       and to have %a hold the relevant opcode.
@@ -728,9 +727,29 @@ zexec.print_char:
 zexec.print_num:
    ld a,1
    call zop_readn
-   ; NOTE: can't use DispHL because it zero-pads on the left.
+   jp nc,zstr_putn
+   ret
 
 zexec.random:
+   ld a,1
+   call zop_readn
+   ret c
+   call sgnl
+   jr c,zexec.random.seed
+   ld de,0
+   call cp_hl_de
+   jr z,zexec.random.newseed
+zexec.random.gen:
+   call zrand_gen
+   or a,a
+   ret
+zexec.random.newseed:
+   call zrand_newseed
+zexec.random.seed:
+   call zrand_seed
+   or a,a
+   ret
+
 
 zexec.push:
 

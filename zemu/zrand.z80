@@ -1,0 +1,68 @@
+;; zrand.z80 -- random number generator
+
+#include "zrand.inc"
+
+zrand_reg: .dl 0
+
+
+;; zrand_seed -- seed random value generator
+;; INPUTS:
+;;  hl = seed (long)
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+;; ERRORS: no.
+zrand_seed:
+   ld (zrand_reg),hl
+   ret
+
+;; zrand_newseed -- obtain new seed for random value generator
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = new seed value to use
+;; DESTROYS:
+;; ERRORS: no.
+zrand_newseed:
+   ld hl,0
+   ld bc,$8000
+   in h,(bc)
+   ld bc,$8004
+   in l,(bc)
+   ret
+
+
+;; zrand_gen_raw -- generate raw random value with 23-bits of entropy
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl[22:0] = pseudorandom value
+;; ERRORS: no.
+;; DESTROYS: de
+zrand_gen_raw:
+   ld hl,(zrand_reg)
+   ld de,(zrand_reg)
+   add hl,hl
+   add hl,hl ; push 22nd bit into
+   bit ZRAND_XORBIT+2,l
+   jr z,_
+   ccf ; addition mod 2 of bits
+_  ex de,hl
+   adc hl,hl ; shift right and put carry in bit 0
+   ld (zrand_reg),hl
+   ret
+
+;; zrand_gen -- generate random value in given range
+;; INPUTS:
+;;  hl = range (unsigned word)
+;; OUTPUTS:
+;;  hl = random number n such that 0 <= n < range
+;; ERRORS: no.
+;; DESTROYS: (all)
+zrand_gen:
+   ex de,hl
+   push de
+   call zrand_gen_raw
+   call absl
+   pop de
+   call div_hl_de
+   ex de,hl
+   ret
+

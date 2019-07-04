@@ -26,6 +26,23 @@ start:
    ret
 
 test:
+   ; test rand
+   ld hl,1234567
+   call zrand_seed
+rand_loop:
+   ld hl,256
+   call zrand_gen
+   ld de,0
+   ld d,h
+   ld e,l
+   ex de,hl
+   call _DispHL
+   call _NewLine
+   call _GetKey
+   cp kDel
+   jr nz,rand_loop
+   ret
+
    ; test putn
    ld hl,1234567
    call zstr_putn
@@ -225,3 +242,4 @@ zork_save: .db "SAVE1",0
 #include "zbranch.z80"
 #include "zexec.z80"
 #include "zstr.z80"
+#include "zrand.z80"

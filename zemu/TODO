@@ -27,6 +27,7 @@ zemu TODO
 [ ] Replace zexec_cond_jump with function that parameterizes reading ops and calling funcs
 [ ] zmem_init ought to also look at first byte of routine and properly intialize stack.
 [ ] string library support for extended 10-bit codes
+[ ] Random number generator.
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

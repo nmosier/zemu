@@ -191,7 +191,25 @@ zstr_puts.loop:
    jr z,zstr_puts.loop ; not end of string
 zstr_puts.end:
    ret
-      
+
+zstr_puts_phys:
+   ld a,(zstr_flags)
+   res ZSTR_FLAGS_SHIFT,a
+   ld (zstr_flags),a
+zstr_puts_phys.loop:
+   ld de,0
+   ld d,(hl)
+   inc hl
+   ld e,(hl)
+   inc hl
+   ex de,hl
+   push de
+   call zstr_putw
+   pop hl
+   ret c
+   jr z,zstr_puts_phys.loop ; not end of string
+zstr_puts_phys.end:
+   ret
 
 zstr_A0.tab:
    .db "abcdefghijklmnopqrstuvwxyz"
@@ -254,3 +272,252 @@ zstr_putn.disploop:
 zstr_putn.buf:
    .db 0,0,0,0,0,0,0,0
 zstr_putn.buf_end:
+
+
+
+;; zstr_encode.c -- encode character as unpacked string of Z-codes in zstr_encode.buf
+;; INPUTS:
+;;  a = ASCII character
+;;  hl = buffer pointer (must be at least ZENCODE_MAXCHARLEN in size)
+;; OUTPUTS:
+;;  b = number of codes written
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zstr_encode.c:
+   ; NOTE: checks most likely character class first.
+   ; 1. Check character classes.
+   JCLASS('a', 'z', zstr_encode.c.lowercase)
+   JCLASS('A', 'Z', zstr_encode.c.uppercase)
+   JCLASS('0', '9', zstr_encode.c.digit)
+   ; 2. Check if space.
+   cp a,' '
+   jr z,zstr_encode.c.space
+   ; 3. Look through character code translation table.
+   ex de,hl
+   ld hl,zstr_encode.c.tab
+   ld b,(hl)
+   inc hl
+zstr_encode.c.loop:
+   cp a,(hl)
+   inc hl
+   jr z,zstr_encode.c.other
+   inc hl
+   djnz zstr_encode.c.loop
+zstr_encode.c.notfound:
+   ld a,ZERR_BADCHAR
+   scf
+   ret
+
+zstr_encode.c.lowercase:
+   add a,6-'a'
+   ld (hl),a
+   ld b,1
+   or a,a
+   ret
+   
+zstr_encode.c.uppercase:
+   ld b,ZSTR_A1
+   add a,6-'A'
+   jr zstr_encode.c.write_pfx
+
+zstr_encode.c.digit:
+   ld b,ZSTR_A2
+   add a,8-'0'
+   jr zstr_encode.c.write_pfx
+
+zstr_encode.c.space:
+   ld (hl),0
+   ld b,1
+   ret
+
+zstr_encode.c.other:
+   ld a,ZSTR_A2 ; write prefix
+   ld (de),a
+   inc de
+   ldi ; write character
+   ld b,2
+   or a,a
+   ret
+
+zstr_encode.c.write_pfx:
+   ld (hl),b
+   inc hl
+   ld (hl),a
+   ld b,2
+   or a,a
+   ret
+
+
+zstr_encode.c.tab:
+zstr_encode.c.tab_hdr:
+   .db (zstr_encode.c.tab_body_end-zstr_encode.c.tab_body)/ZENCODE_TABENTSIZE
+zstr_encode.c.tab_body:
+   .db '.', $12
+   .db ',', $13
+   .db '!', $14
+   .db '?', $15
+   .db '_', $16
+   .db '#', $17
+   .db '\'',$18
+   .db '\"',$19
+   .db '/', $1a
+   .db '\\',$1b
+   .db '-', $1c
+   .db ':', $1d
+   .db '(', $1e
+   .db ')', $1f
+zstr_encode.c.tab_body_end:
+
+;; zstr_encode.w -- Z-encode ASCII chars and coalesce into Z-char (word) if possible
+;; INPUTS:
+;;  a = ASCII char to encode
+;;  hl = buffer begin
+;;  de = pointer to packed word (output)
+;;  b = count in zcode buffer
+;;  c = count in output buffer
+;; OUTPUTS:
+;;  b, c, de updated properly
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; NOTE: 0 <= hl - de < 3 upon invokation.
+zstr_encode.w:
+   push bc
+   push hl
+   push de
+   ld de,0
+   ld e,b
+   add hl,de
+   call zstr_encode.c
+   ld a,b
+   pop de
+   pop ix
+   pop bc
+   ret c
+   add a,b
+   ld b,a
+   cp a,3  ; enough to reduce?
+   ccf
+   ret nc
+   call zstr_encode.pack
+zstr_encode.w.done:
+   push de
+   push bc
+   ld a,b
+   sub a,3
+   jr z,zstr_encode.w.after_cpy
+   lea hl,ix+3
+   lea de,ix+0
+   ld bc,0
+   ld c,a
+   ldir
+zstr_encode.w.after_cpy:   
+   pop bc
+   pop de
+   ld b,a
+   dec c ; update words left
+   xor a,a ; NC and Z
+   ret
+
+;; zstr_encode.pack -- pack loose Z-codes into Z-string word
+;; INPUTS:
+;;  ix = pointer to loose Z-code buffer with at least 3 entries (bytes)
+;;  de = pointer to word in which to store packed result
+;; OUTPUTS:
+;;  (de) <- packed Z-code word
+;;  de <- de + 2
+;; DESTROYS: hl, a
+;; ERRORS: no.
+zstr_encode.pack:
+   ld h,(ix+0)
+   rlc h
+   rlc h
+   ld l,(ix+1)
+   rrc l
+   rrc l
+   rrc l
+   ld a,$03
+   and a,l
+   or a,h
+   ld (de),a ; store high byte
+   inc de
+   ld a,l
+   and a,~ZSTR_CODEMASK
+   or a,(ix+2)
+   ld (de),a ; store low byte
+   inc de
+   ret
+
+;; zstr_encode -- encode ASCII string as Z-string
+;; INPUTS:
+;;  hl = source ASCII string
+;;  de = destination Z-string
+;;  c = destination max size in words
+;; OUTPUTS:
+;;  Z if full string written; NZ if ran out of space
+;; DESTROYS:
+;; ERRORS: yes.
+zstr_encode:
+   ld b,0 ; none in buffer initially
+   xor a,a
+   cp a,(hl)
+   jr z,zstr_encode.empty
+   jr zstr_encode.entry
+zstr_encode.loop:
+   ; INVARIANTS:
+   ;  a = current ASCII char (non-null)
+   ;  b = number of unpacked z-codes in buffer.
+   ;  c = number of words left in output buffer.
+   ;  hl = pointer to next (possibly null) character in ASCII string
+   ;  de = pointer to next word in Z-string.
+   ;  (zstr_encode.len) > 0
+   push hl ; ASCII pointer
+   ld hl,zstr_encode.buf
+   call zstr_encode.w
+   pop hl ; ASCII pointer
+   ret c
+zstr_encode.entry:
+   ld a,c
+   or a,a
+   jr z,zstr_encode.nospace ; out of words
+   ld a,(hl)
+   inc hl
+   or a,a
+   jr nz,zstr_encode.loop
+zstr_encode.term:
+   ld a,b
+   or a,a
+   jr z,zstr_encode.mark
+   ld ix,zstr_encode.buf
+   cp a,2
+   jr z,zstr_encode.pad2
+zstr_encode.pad1:
+   ld (ix+1),ZSTR_A2
+zstr_encode.pad2:
+   ld (ix+2),ZSTR_A2
+zstr_encode.do_pack:
+   call zstr_encode.pack
+zstr_encode.mark:
+   ex de,hl
+   dec hl
+   dec hl
+   set 7,(hl)
+   xor a,a ; NC, Z (string fit)
+   ret
+   
+zstr_encode.empty:
+   ex de,hl
+   ld de,ZSTR_EMPTYSTR
+   ld (hl),d
+   inc hl
+   ld (hl),e
+   xor a,a ; NC, Z
+   ret
+
+zstr_encode.nospace:
+   or a,$ff ; NC, NZ -- not enough space
+   ret
+
+;; NOTE: codes are not packed; each 5-bit code stored in separate byte.
+zstr_encode.buf:
+   .db 0,0,0,0,0,0
+zstr_encode.buf_end:

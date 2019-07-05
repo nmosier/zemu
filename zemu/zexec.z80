@@ -696,8 +696,12 @@ zexec.pop:
 zexec.quit:
 
 zexec.new_line:
+   call _NewLine
+   or a,a
+   ret
 
 zexec.show_status:
+   
 
 zexec.verify:
 
@@ -706,6 +710,7 @@ zexec.verify:
 ;           VAR opcodes              ;
 ;------------------------------------;
 zexec.call:
+   ;; NOTE: 6.4.4 Arguments are written onto local variables.
 
 zexec.storew:
 

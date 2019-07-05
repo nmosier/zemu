@@ -29,7 +29,6 @@ zrand_newseed:
    in l,(bc)
    ret
 
-
 ;; zrand_gen_raw -- generate raw random value with 23-bits of entropy
 ;; INPUTS: (none)
 ;; OUTPUTS:

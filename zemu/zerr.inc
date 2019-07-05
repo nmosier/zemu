@@ -18,6 +18,6 @@ ZERR_BADOBJ      .equ 9
 ZERR_BADATTR     .equ 10
 ZERR_NOPROP      .equ 11
 ZERR_BADPROP     .equ 12
-
+ZERR_BADCHAR     .equ 13
 
 #endif

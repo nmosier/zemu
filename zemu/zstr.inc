@@ -47,4 +47,31 @@ STRLEN_LONG .equ 8
        (STRW(a,b,c)) | $8000
 #endmacro       
 
+#macro JCLASS(low, hi, label)
+       cp a,low
+       jr c,_
+       cp a,hi+1
+       jr c,label
+_      
+#endmacro
+
+#macro JCHAR(cmpval, newval, label)
+       cp a,cmpval
+       jr nz,_
+       ld a,newval
+       jr label
+_
+#endmacro
+
+ZENCODE_MAXCHARLEN .equ 3
+
+ZENCODE_BUFSIZE .equ zstr_encode.buf_end - zstr_encode.buf
+
+ZENCODE_TABENT_CH1  .equ 0
+ZENCODE_TABENT_CH2  .equ 1
+
+ZENCODE_TABENTSIZE  .equ 2
+
+ZSTR_EMPTYSTR .equ ($1 << (5*3)) | (ZSTR_A2 << (5*2)) | (ZSTR_A2 << (5*1)) | (ZSTR_A2 << (5*0))
+
 #endif

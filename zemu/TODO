@@ -45,3 +45,7 @@ Testing
     [ ] zcode_readop_force
         [ ] zcode_readop
 [X] String library
+
+Bugs/Tests
+[ ] mlt rr -- this only effetcs the lower bits??
+[ ] fetchwu

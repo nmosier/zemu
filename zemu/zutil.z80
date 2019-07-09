@@ -1,4 +1,6 @@
+#include "ti84pce.inc"
 #include "zemu.inc"
+#include "zerr.inc"
 #include "zutil.inc"
 
 ; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
@@ -152,6 +154,33 @@ mul_hl_de.loop.skip:
 mul_hl_de.done:
 	pop hl ; restore result
 	ret
+
+;; mul_hl_a -- multiply hl by a
+;; INPUTS:
+;;  hl = 24-bit operand
+;;  a = 8-bit operand
+;; OUTPUTS:
+;;  hl <- hl * a
+;; DESTROYS: a, hl
+;; ERRORS: no.
+mul_hl_a:
+   push de
+   ld de,0
+   jr mul_hl_a.entry
+mul_hl_a.loop:
+   srl a
+   jr nc,mul_hl_a.adjust
+   ex de,hl
+   add hl,de
+   ex de,hl
+mul_hl_a.adjust:
+   add hl,hl
+mul_hl_a.entry:
+   or a,a
+   jr nz,mul_hl_a.loop
+   ex de,hl
+   pop de
+   ret
 
 ;; memcpl_short -- complement up to 256 bytes of memory
 ;; INPUTS:
@@ -516,3 +545,126 @@ cftoa:
    xor a
    ret
 
+
+;; binsearch -- binary search
+;; INPUTS:
+;;  ix = comparison function
+;;  de = number of elements
+;;  bc = pointer to key
+;;  hl = base of array
+;;  a = element size
+;; OUTPUTS:
+;;  hl = pointer to entry, if found
+;;  a = 0 on success, a = error code on error
+;;  CF set if not found, reset otherwise
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; NOTES: de < $10000
+bsearch:
+   ld (bsearch.key),bc ; save key
+   ld (bsearch.size),a ; save size
+bsearch.loop:
+   ; INVARIANTS: hl = left bound; de = number of elts; a = elt size
+   ; halve # of elts
+   ld a,d
+   or a,e
+   jr z,bsearch.none
+   srl d
+   rr e
+   push de ; save count
+   ex de,hl
+   ld a,(bsearch.size)
+   call mul_hl_a ; preserves de
+   add hl,de ; new mid
+   ex de,hl
+   ; hl = left
+   ; de = mid
+   push hl ; save left
+   ld hl,(bsearch.key)
+   call bsearch.cmp
+   ; check for error
+   push af
+   or a,a
+   jr nz,bsearch.err ; 3
+   pop af
+   ; otherwise branch based on comparison
+   jr z,bsearch.eq    ;2
+   jr c,bsearch.lt ;2
+   jr bsearch.gt ;2
+
+bsearch.eq:
+   ex de,hl ; return mid
+   pop de ; discard left
+   pop de ; discard count
+   xor a,a ; no error
+   ret
+
+bsearch.lt:
+   ; left <- left
+   pop hl ; left <- left
+   pop de ; count <- count
+   jr bsearch.loop
+
+bsearch.gt:
+   ; left <- mid
+   ex de,hl ; left <- mid
+   pop de ; discard left
+   pop de ; count <- count
+   jr bsearch.loop
+
+bsearch.none
+   xor a,a
+   scf
+   ret
+   
+bsearch.err:
+   pop hl
+bsearch.fail:
+   pop hl
+   pop hl
+   scf
+   ret
+
+bsearch.cmp:
+   jp (ix)
+
+bsearch.size: .db 0
+bsearch.key: .dl 0
+
+
+
+
+;; zmemcmp -- compare Z-strings in memory
+;; INPUTS:
+;;  hl = pointer to first Z-string
+;;  de = pointer to second Z-string
+;;  b = number of bytes to compare
+;; OUTPUTS:
+;;  ZF and CF modified appropriately
+;;  a = 0 on success
+;;  a != 0 on error
+;; DESTROYS:
+;; ERRORS:
+zmemcmp:
+   push bc
+   ex de,hl
+   call zaddr_fetch
+   ex de,hl
+   jr c,zmemcmp.err   
+   push af
+   call zaddr_fetch
+   pop bc
+   jr c,zmemcmp.err   
+   ; lhs val = a
+   ; rhs val = b
+   cp a,b
+   pop bc
+   ld a,ZERR_SUCCESS
+   ret nz ; if nonzero
+   djnz zmemcmp
+   ; are equal
+   ret
+   
+zmemcmp.err:
+   pop bc ; discard
+   ret

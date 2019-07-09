@@ -2,6 +2,7 @@
 
 #include "zerr.inc"
 
+zerrmsg_success:    .db "success",0
 zerrmsg_novar:      .db "appvar not found",0
 zerrmsg_nomem:      .db "not enough free RAM",0
 zerrmsg_badaddr:    .db "bad address",0
@@ -18,6 +19,7 @@ zerrmsg_badprop:    .db "invalid property length",0
 zerrmsg_badchar:    .db "bad character",0
 
 zerrtab:
+   .dl zerrmsg_success
    .dl zerrmsg_novar
    .dl zerrmsg_nomem
    .dl zerrmsg_badaddr

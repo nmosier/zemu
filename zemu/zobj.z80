@@ -1,22 +1,19 @@
 #include "zobj.inc"
+#include "zutil.inc"
 
 
 ;; zobj_tabaddr -- return logical address of object table
-;; INPUTS:
-;;  zmap_header set
+;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  ix = logical address of object table
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zobj_tabaddr:
-   ld ix,(zmap_header)
-   lea hl,ix+ZHDR_OBJTAB
-   call zaddr_fetchw
-   ret nc ; error
-   call wtolu ; zero-extend address
-   add ix,de
-   lea ix,ix+ZOBJTAB_PROPDEFAULTS_SIZE
-   scf \ ccf ; success
+   ld hl,ZHDR_OBJTAB
+   call zaddr_fetchwu
+   ret c
+   ld ix,0
+   add ix,de ; ld ix,hl
    ret
    
 ;; zobj_objaddr -- return logical address of object
@@ -27,17 +24,23 @@ zobj_tabaddr:
 ;; ERRORS: yes.
 ;; DESTROYS: hl,de
 zobj_objaddr:
-   ld l,a
-   ld h,ZOBJSIZE
    or a,a
-   ld a,ZERR_BADOBJ
-   ccf
-   ret z ; error: cannot take address of object 0
-   ld a,l
-   mlt hl
-   call wtolu
+   jr z,zobj_objaddr.err
+   ld de,ZOBJSIZE ; de <- 0:a:ZOBJSIZE
+   ld d,a
+   mlt de
+   push de
+   call zobj_tabaddr
+   pop de
+   ret c
+   lea ix,ix+ZOBJTAB_PROPDEFAULTS_SIZE
    add ix,de
-   scf \ ccf
+   or a,a ; success
+   ret
+
+zobj_objaddr.err:
+   ld a,ZERR_BADOBJ
+   scf
    ret
 
 ;; zobj_attr -- find attribute of object
@@ -302,13 +305,8 @@ zobj_proptab_hdr:
    call zobj_objaddr
    ret c
    lea hl,ix+ZOBJ_O_PROPS
-   call zaddr_fetchw ; fetch word
-   ret c
-   ; zero-extend address
+   call zaddr_fetchwu ; fetch word
    ex de,hl
-   call wtolu
-zobj_proptab.done:
-   scf \ ccf
    ret
 
 ;; zobj_proptab_body -- get logical address of object's property table body
@@ -503,10 +501,8 @@ zobj_propdefault:
    lea hl,ix
    add hl,de
    add hl,de ; hl <- ix + de*WORD_SIZE
-   call zaddr_fetchw
-   ret ; errflg set
+   jp zaddr_fetchwu
    
-
 
 ;------------------------------;
 ;        FAMILY FUNCTIONS      ;

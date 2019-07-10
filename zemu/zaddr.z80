@@ -97,28 +97,6 @@ zaddr_fetch.cleanup:
    pop de
    ret
 
-;; zaddr_store -- store byte at logical address
-;; INPUTS:
-;;  hl = zaddr (logical address)
-;; OUTPUTS:
-;;  a = byte to store at zaddr
-;;  hl <- hl + 1
-;; ERROR: yes.
-;; DESTROYS: everything but de
-zaddr_store:
-   push hl
-   push de
-   call zaddr_to_paddr
-   ex de,hl
-   pop hl
-   jr c,zaddr_fetch.cleanup
-   ld (de),a ; store byte
-   inc hl ; update ptr
-   ; C reset (nc)
-zaddr_store.cleanup:
-   pop de
-   ret
-
 ;; zaddr_fetchw -- fetch big-endian word at logical address
 ;; INPUTS:
 ;;  hl = logical address
@@ -174,6 +152,43 @@ zaddr_fetchb:
    scf \ ccf
    ret
 
+;; zaddr_store -- store byte at logical address
+;; INPUTS:
+;;  hl = zaddr (logical address)
+;; OUTPUTS:
+;;  a = byte to store at zaddr
+;;  hl <- hl + 1
+;; ERROR: yes.
+;; DESTROYS: everything but de
+zaddr_store:
+   push hl
+   push de
+   call zaddr_to_paddr
+   ex de,hl
+   pop hl
+   jr c,zaddr_fetch.cleanup
+   ld (de),a ; store byte
+   inc hl ; update ptr
+   ; C reset (nc)
+zaddr_store.cleanup:
+   pop de
+   ret
+
+
+;; zaddr_storew -- store word at logical address
+;; INPUTS:
+;;  hl = logical address
+;;  de = word to store
+;; OUTPUTS:
+;;  hl <- hl + 2
+;; ERRORS: yes.
+;; DESTROYS: all but de
+zaddr_storew:
+   ld a,d
+   call zaddr_store
+   ld a,e
+   jp nc,zaddr_store
+   ret
 
 ;; zaddr_unpack -- convert packed address to byte address
 ;; INPUTS:

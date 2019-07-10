@@ -733,13 +733,43 @@ zexec.call.entry:
    or a,a
    ret
 zexec.call.varno: .db 0
-   
-   
+
 
 zexec.storew:
-
+   ;; stores the given value in the word at address array+2*word-index
+   ;; NOTE: unknown whether word-index is signed or unsigned.
+   ; hl = array
+   ; de = word-index
+   ; bc = value
+   ld a,3
+   call zop_readn
+   ret c
+   call wtolu
+   ex de,hl
+   call wtolu
+   add hl,hl ; word-index *= 2
+   add hl,de ; hl = address of word to store in
+   ; move value into de
+   ld d,b
+   ld e,c
+   jp zaddr_storew
+   
 zexec.storeb:
-
+   ;; stores the given value in the byte at address array+byte-index
+   ;; NOTE: unknown whether byte-index is signed or unsigned.
+   ; hl = array
+   ; de = byte-index
+   ; bc = value
+   ld a,3
+   call zop_readn
+   ret c
+   call wtolu
+   ex de,hl
+   call wtolu
+   add hl,de ; byte address
+   ld a,c
+   jp zaddr_store
+   
 zexec.put_prop:
 
 zexec.sread:

@@ -433,8 +433,9 @@ negl:
 ;;  hl[15:0] = 16-bit word, signed
 ;; OUTPUTS:
 ;;  de = 24-bit long, sign-extended from hl[15:0]
-;; DESTROYS: de
+;; DESTROYS: (none)
 wtols:
+   push de
    ld de,0
    bit 7,h
    jr z,wtols.transfer
@@ -443,6 +444,7 @@ wtols.transfer:
    ld d,h
    ld e,l
 wtols.done:
+   pop de
    ret
 
 ;; wtolu -- word to long, unsigned
@@ -450,11 +452,13 @@ wtols.done:
 ;;  hl[15:0] = 16-bit word, unsigned
 ;; OUTPUTS:
 ;;  de = 24-bit unsigned long from hl[15:0]
-;; DESTROYS: de
+;; DESTROYS: (none)
 wtolu:
+   push de
    ld de,0
    ld d,h
    ld e,l
+   pop de
    ret
 
 ;; btols -- byte to long, signed
@@ -462,7 +466,7 @@ wtolu:
 ;;  a = byte, signed
 ;; OUTPUTS:
 ;;  hl = 24-bit long, sign-extended from %a
-;; DESTROYS: hl
+;; DESTROYS: (none)
 btols:
    ld hl,0
    bit 7,a

@@ -49,3 +49,4 @@ Testing
 Bugs/Tests
 [ ] mlt rr -- this only effetcs the lower bits??
 [ ] fetchwu
+[ ] Is word-index in storew signed or unsigned?

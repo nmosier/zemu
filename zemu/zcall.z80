@@ -1,0 +1,45 @@
+;; zcall.z80 -- routine calling functions
+
+#include "zcall.inc"
+
+;; zcall0 -- call Z-routine without setting any arguments
+;; INPUTS:
+;;  hl = packed address of routine
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; NOTE: it is safe to assign arguments directly after calling this function.
+zcall0:
+   call zaddr_unpack
+   call zaddr_fetch
+   ret c
+   call zstack_enter ; a = # of locals
+   ret c
+   ; initialize locals
+   ld ix,zcall0.index
+   ld (ix+0),1
+   ld (ix+1),a
+zcall0.loop:
+   push ix
+   call zaddr_fetchw ; fetch default val
+   pop ix
+   ret c
+   ld a,(ix+0)
+   push ix
+   ex de,hl
+   call zvar_store ; store val in local
+   ex de,hl
+   pop ix
+   ret c
+   inc (ix+0)
+   dec (ix+1)
+   jr nz,zcall0.loop
+zcall0.jump:
+   ; hl points to byte address after last local init val
+   ld (zframe_pc),hl
+   or a,a
+   ret
+
+zcall0.index:
+zcall0.i: .db 0
+zcall0.d: .db 0

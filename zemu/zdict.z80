@@ -1,0 +1,75 @@
+;; zdict.z80 -- Z-machine dictionary utility functions
+
+#include "zdict.inc"
+
+;; zdict_addr -- get pointer to dictionary
+;; zdict_hdraddr -- get pointer to dictionary header
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = logical address of dictionary
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zdict_addr:
+zdict_hdraddr:
+   ld hl,ZHDR_DICT
+   call zaddr_fetchwu
+   ex de,hl
+   ret
+
+;; zdict_tab -- get info about dictionary table
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = logical address of dictionary table (points to first entry)
+;;  b = entry size
+;;  de = number of entries
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zdict_tab:
+   call zdict_addr
+   ret c
+   call zaddr_fetch ; number of separators
+   ret c
+   ld de,0
+   ld e,a
+   add hl,de
+   call zaddr_fetch ; entry size
+   ret c
+   push af
+   call zaddr_fetchwu ; number of entries
+   pop bc
+   ret   
+
+;; zdict_search -- search for Z-string in dictionary
+;; INPUTS:
+;;  hl = pointer to (4-byte / 2-word) Z-string in memory
+;; OUTPUTS:
+;;  a = 0 on success; a != 0 if error
+;;  C if not found
+;;  NC if found
+;; DESTROYS: 
+;; ERRORS: yes.
+zdict_search:
+   push hl ; key
+   call zdict_tab
+   ret c
+   ; compute de * b = table size
+   push hl ; base
+   ex de,hl
+   call mul_hl_b
+   ld b,h
+   ld c,l ; size
+   pop hl ; base
+   pop de ; key
+   ld ix,zdict_search.cmp ; comp
+   jp bsearch
+
+;; hl = key
+;; de = val
+zdict_search.cmp:
+   ld b,ZDICT_WORDLEN
+   push hl
+   push de
+   call zmemcmp
+   pop de
+   pop hl
+   ret

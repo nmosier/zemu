@@ -229,3 +229,4 @@ zork_save: .db "SAVE1",0
 #include "zexec.z80"
 #include "zstr.z80"
 #include "zrand.z80"
+#include "zcall.z80"

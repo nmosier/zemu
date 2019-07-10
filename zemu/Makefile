@@ -1,7 +1,8 @@
 CFLAGS=-g -c -Wall -pedantic
-ZSOURCES=zemu.z80 zerr.z80 zutil.z80 zmem.z80 zaddr.z80 zmap.z80 zcode.z80 zvar.z80 zobj.z80 zexec.z80
+ZSOURCES=$(wildcard z*.z80)
 ZMAIN=zemu.z80
 ZTARGET=$(ZMAIN:.z80=.8xp)
+
 
 $(ZTARGET): $(ZSOURCES)
 	spasm -E -L $(ZMAIN) $@

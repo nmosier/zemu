@@ -643,8 +643,8 @@ bsearch.key: .dl 0
 ;;  ZF and CF modified appropriately
 ;;  a = 0 on success
 ;;  a != 0 on error
-;; DESTROYS:
-;; ERRORS:
+;; DESTROYS: (all)
+;; ERRORS: yes.
 zmemcmp:
    push bc
    ex de,hl

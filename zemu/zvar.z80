@@ -110,7 +110,9 @@ zvar_fetch.global:
 ;; INPUTS:
 ;;  a = variable number
 ;;  hl = value to store
+;; OUTPUTS: (none)
 ;; ERRORS: yes.
+;; DESTROYS: (all)
 zvar_store:
    ex de,hl
    cp ZVAR_STACK

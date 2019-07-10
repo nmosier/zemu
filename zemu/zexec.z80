@@ -711,6 +711,30 @@ zexec.verify:
 ;------------------------------------;
 zexec.call:
    ;; NOTE: 6.4.4 Arguments are written onto local variables.
+   ; read packed address of routine
+   call zcode_readop_force
+   ret c
+   ; set up bare call state
+   call zcall0
+   ret c
+   ; assign arguments to locals
+   xor a,a
+   ld (zexec.call.varno),a
+   jr zexec.call.entry
+zexec.call.loop:
+   ld a,(zexec.call.varno)
+   inc a
+   ld (zexec.call.varno),a
+   call zvar_store
+zexec.call.entry:
+   call zcode_readop
+   ret c
+   jr nz,zexec.call.loop
+   or a,a
+   ret
+zexec.call.varno: .db 0
+   
+   
 
 zexec.storew:
 

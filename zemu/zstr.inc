@@ -3,6 +3,8 @@
 #ifndef __ZSTR_INC
 #define __ZSTR_INC
 
+#include "ti84pce.inc"
+
 ZSTR_CODE_WIDTH .equ 5
 
 ZSTR_A1 .equ 4
@@ -73,5 +75,11 @@ ZENCODE_TABENT_CH2  .equ 1
 ZENCODE_TABENTSIZE  .equ 2
 
 ZSTR_EMPTYSTR .equ ($1 << (5*3)) | (ZSTR_A2 << (5*2)) | (ZSTR_A2 << (5*1)) | (ZSTR_A2 << (5*0))
+
+;; Z-aliases for system routines
+;sysputc      .equ _VPutMap
+sysputs      .equ _VPutS
+syscurrow    .equ penRow
+syscurcol    .equ penCol
 
 #endif

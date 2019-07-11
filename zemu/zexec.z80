@@ -771,6 +771,33 @@ zexec.storeb:
    jp zaddr_store
    
 zexec.put_prop:
+   ;; put_prop object property value
+   ; hl = object
+   ; de = property
+   ; bc = value
+   ld a,3
+   call zop_readn
+   ret c
+   ld a,l ; object
+   ld c,e ; property
+   push bc
+   call zobj_propaddr
+   pop de
+   ret c
+   cp a,3
+   jr nc,zexec.put_prop.err
+   cp a,1
+   ; 1 byte?
+   ld a,e
+   jp z,zaddr_store
+   ; 2 bytes?
+   jp c,zaddr_storew
+   ; 0 bytes?
+   ret
+zexec.put_prop.err:
+   ld a,ZERR_BADPROP
+   scf
+   ret
 
 zexec.sread:
 
@@ -811,9 +838,24 @@ zexec.random.seed:
 
 
 zexec.push:
+   ld a,1
+   call zop_readn
+   ld a,ZVAR_STACK
+   jp nc,zvar_store
+   ret
 
 zexec.pull:
-
+   ld a,ZVAR_STACK
+   call zvar_fetch ; pop val off stack
+   push hl
+   ; get variable number destination
+   ld a,1
+   call nc,zop_readn
+   ld a,l ; variable number
+   pop hl
+   jp nc,zvar_store
+   ret
+   
 zexec.split_window:
 
 zexec.set_window:

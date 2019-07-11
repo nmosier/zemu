@@ -32,22 +32,33 @@ zcode_decode.op_laddr: .dl 0
 ;; decode and execute the instruction. Never called directly.
 ;; Upon entry, a = first byte of opcode.
 zcode_decode_short:
+   ld b,a ; save
 zcode_decode_short.operand:
    ; 4.3.1 opcode type (& count) is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
    ; left-justify opcode type, then set `omitted' terminator
    rlca
    rlca
-   and $c0 ; mask of op1 type
-   or $3f ; mask in 3 omitteds
+   and a,$c0 ; mask of op1 type
+   cp a,$c0
+   ld ix,zcode_LUT.1OP
+   jr nz,_
+   ld ix,zcode_LUT.0OP
+_
+   or a,$3f ; mask in 3 omitteds
    ld (zcode_decode.types),a
    ld (zcode_decode.op_laddr),hl
 zcode_decode_short.opnum:
    ; 4.3.1 opcode number given in bottom 4 bits.
    ld a,b
-   and $0f
-   ;; TODO: need to perform different operations based on opnum.
-
-
+   and a,$0f ; opcode num
+   ld de,3
+   ld d,a
+   mlt de
+   add ix,de
+zcode_decode_short.exec:
+   ld ix,(ix)
+   jp (ix)
+   
 
 zcode_decode_long:
    ; 4.3.2 opcode count is always 2OP
@@ -76,23 +87,44 @@ zcode_decode_long.store_opinfo
    ld (zcode_decode.types),a
    ld (zcode_decode.op_laddr),hl
 zcode_decode_long.opnum:
-   and $1f
-   ld c,a
-   ;; TODO
+   and a,$1f
+   ld ix,zcode_LUT.2OP ; always 2OP
+   ld de,3
+   ld d,a
+   mlt de
+   add ix,de
+   ld ix,(ix)
+zcode_decode_long.exec:
+   jp (ix)
+   ;; NOTE: only possible operand types are SHORT and VAR.
+   
 
 zcode_decode_variable:
    ; 4.3.3 if bit 5 is 0, then 2OP; otherwise VAR
    ; 4.4.3 In variable or extended forms, a byte of 4 operand types is given next.
    ;       This contains 4 2-bit fields: bits 6 and 7 are the first field, bits 0 and 1 the fourth.
    ; NOTE: does bit 5 even matter?
+   ; TODO: figure out whether this even works...
    ld d,a
    call zaddr_fetch ; preserves de; hl++
    ret c
    ld (zcode_decode.types),a
    ld (zcode_decode.op_laddr),hl
 zcode_decode_variable.opnum:
+   ld a,d
+   bit 5,a
+   ld ix,zcode_LUT.VAR
+   jr nz,_
+   ld ix,zcode_LUT.2OP
+_
    and a,$1f
-   ;; TODO
+   ld de,3
+   ld d,a
+   mlt de
+   add ix,de
+zcode_decode_variable.exec:
+   ld ix,(ix)
+   jp (ix)
 
 
 ;;-- NOT SUPPORTED --;;
@@ -100,19 +132,6 @@ zcode_decode_variable.opnum:
 zcode_decode_extended:
    ld a,ZERR_NOTAVAIL
    ret c ; NOT SUPPORTED YET
-   ; 4.3.4 opcode count is VAR
-   ld b,Z_VAR
-zcode_decode_extended.opcntset:
-   ld c,a
-   push bc
-   call zaddr_fetch
-   pop bc
-   ret c ; error
-   ld d,c
-   ld c,a
-   ld a,d ;; swp a,c
-zcode_decode_extended.opnumset:
-   ;; TODO
 
 
 ;; zcode_fetch_op -- fetch operand from logical address.
@@ -241,8 +260,7 @@ zcode_decode_branch.de_signed:
    ret
 
 
-
-zcode.2OP:
+zcode_LUT.2OP:
    .dl zcode_err.bad       ; $00
    .dl zexec.je            ; $01
    .dl zexec.jl            ; $02
@@ -275,9 +293,8 @@ zcode.2OP:
    .dl zcode_err.bad       ; $1D
    .dl zcode_err.bad       ; $1E
    .dl zcode_err.bad       ; $1F
-zcode.2OP_end:
 
-zcode.1OP:
+zcode_LUT.1OP:
    .dl zexec.jz            ; $0
    .dl zexec.get_sibling   ; $1
    .dl zexec.get_child     ; $2
@@ -294,9 +311,8 @@ zcode.1OP:
    .dl zexec.print_paddr   ; $D
    .dl zexec.load          ; $E
    .dl zexec.not           ; $F
-zcode.1OP_end:
 
-zcode.0OP:
+zcode_LUT.0OP:
    .dl zexec.rtrue         ; $0
    .dl zexec.rfalse        ; $1
    .dl zexec.print         ; $2
@@ -311,9 +327,8 @@ zcode.0OP:
    .dl zexec.new_line      ; $B
    .dl zexec.show_status   ; $C
    .dl zexec.verify        ; $D
-zcode.0OP_end:
 
-zcode.VAR:
+zcode_LUT.VAR:
    .dl zexec.call          ; $00
    .dl zexec.storew        ; $01
    .dl zexec.storeb        ; $02
@@ -334,4 +349,3 @@ zcode.VAR:
    .dl zcode_err.notavail  ; $11
    .dl zcode_err.notavail  ; $12
    .dl zexec.output_stream ; $13
-zcode.VAR_end:

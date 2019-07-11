@@ -69,8 +69,9 @@ zstr_putc.char.A2:
    ld hl,zstr_A2.tab
    jr nz,zstr_putc.char.print
    ;; newline
-   call _NewLine
-   scf \ ccf
+   ;   call _NewLine
+   call sysnewline
+   or a,a
    ret
 
 zstr_putc.char.print:
@@ -78,13 +79,13 @@ zstr_putc.char.print:
    ld e,a
    add hl,de
    ld a,(hl)
-   call _PutC
+   call sysputc
    scf \ ccf
    ret
 
 zstr_putc.space:
    ld a,' '
-   call _PutC
+   call sysputc
    scf \ ccf
    ret
 
@@ -238,7 +239,7 @@ zstr_putn:
    ex de,hl
    add hl,de ; get back abs val
    ld a,'-'
-   call _PutC ; display negative sign
+   call sysputc ; display negative sign
 zstr_putn.u:
    ; NOTE: at least one digit will always be written, even if hl = 0.
    ;       this is what we want.
@@ -264,7 +265,7 @@ zstr_putn.loop:
 zstr_putn.disploop:
    ld a,(hl)
    add a,'0'
-   call _PutC
+   call sysputc
    inc hl
    djnz zstr_putn.disploop
    ret

@@ -12,9 +12,9 @@
 start:
    ; clear screen & reset cursor
    call _ClrScrnFull
-   ld ix,curRow
-   ld (ix+0),0
-   ld (ix+1),0
+   xor a,a
+   ld (syscurrow),a
+   ld (syscurcol),a
    ld hl,zork_zmap
    call zemu_open ; open story file
    ld hl,zemu_open_str
@@ -27,7 +27,7 @@ start:
 
 test:
    ; test encoding
-   ld hl,test_ascii
+   ld hl,test_ascii2
    ld de,test_zstr
    ld c,24
    call zstr_encode
@@ -46,7 +46,8 @@ test:
 
    
 test_ascii: .db "Fuck you! #cuss.",0
-test_zstr: .dw 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+test_ascii2: .db " qwertyuiopasdfghjklzxcvbnmqwertyuiopasdfghjkl",0
+test_zstr: .dl 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
    ; test addresses
    ld hl,$14808
@@ -230,3 +231,5 @@ zork_save: .db "SAVE1",0
 #include "zstr.z80"
 #include "zrand.z80"
 #include "zcall.z80"
+#include "zdisp.z80"
+#include "zinput.z80"

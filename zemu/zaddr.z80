@@ -108,10 +108,10 @@ zaddr_fetch.cleanup:
 zaddr_fetchw:
    call zaddr_fetch
    ret c
-   ld e,a
+   ld d,a
    call zaddr_fetch
    ret c
-   ld d,a
+   ld e,a
    push hl
    ex de,hl
    call wtols ; upcast

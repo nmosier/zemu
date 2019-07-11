@@ -15,6 +15,9 @@ start:
    xor a,a
    ld (syscurrow),a
    ld (syscurcol),a
+   ld (syscurcol+1),a
+   ld (curRow),a
+   ld (curCol),a
    ld hl,zork_zmap
    call zemu_open ; open story file
    ld hl,zemu_open_str
@@ -26,6 +29,17 @@ start:
    ret
 
 test:
+   ; test instruction
+   ; init stack
+   ld a,6
+   call zstack_enter
+   ld hl,$4e5f
+   ld (zframe_pc),hl
+   call zcode_decode
+   ld hl,zcode_decode_str
+   call c,zemu_perror
+   jp _GetKey
+
    ; test encoding
    ld hl,test_ascii2
    ld de,test_zstr
@@ -113,6 +127,7 @@ zemu_open_str: .db "zemu_open",0
 zmem_init_str: .db "zmem_init",0
 zsave_create_str: .db "zsave_create",0
 zaddr_to_paddr_str: .db "zaddr_to_paddr",0
+zcode_decode_str: .db "zcode_decode",0
 
 ; zemu_open -- open zemu story file
 ; INPUTS:

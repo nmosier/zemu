@@ -193,14 +193,8 @@ zexec_binop.loadw:
    add hl,de
    add hl,de ; hl <- hl + 2*de
    ;; NOTE: stored in big-endian order.
-   call zaddr_fetch
-   ret c
-   ld d,a
-   call zaddr_fetch
-   ret c
-   ld e,a
-   call wtols
-   scf \ ccf
+   call zaddr_fetchw
+   ex de,hl
    ret
    
 zexec_binop.loadb:

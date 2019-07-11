@@ -56,6 +56,7 @@ zcode_readop_force:
 ;;  de -- n >= 2
 ;;  bc -- n >= 3
 ;;  ix -- n >= 4
+;;  updates zframe_pc
 ;; NOTE: supports up to 4 ops (0 <= %a <= 4).
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
@@ -74,16 +75,16 @@ zop_readn.loop:
    lea ix,ix+3
    djnz zop_readn.loop
 zop_readn.load:
-   ld hl,(zop_readn.data+0*LONG_SIZE)
+   ld hl,(zop_readn.data+0)
    dec c
    ret z
-   ld de,(zop_readn.data+1*LONG_SIZE)
+   ld de,(zop_readn.data+3)
    dec c
    ret z
-   ld bc,(zop_readn.data+2*LONG_SIZE)
+   ld bc,(zop_readn.data+6)
    dec c
    ret z
-   ld ix,(zop_readn.data+3*LONG_SIZE)
+   ld ix,(zop_readn.data+9)
    ret
 
 zop_readn.data: .dl 0,0,0,0

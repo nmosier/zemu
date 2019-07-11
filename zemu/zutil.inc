@@ -29,6 +29,7 @@ VARNAMELEN .equ 8
 #if n > 0
     .dl 0
     RESL(n-1)
+#endif    
 #endmacro
 
 #endif

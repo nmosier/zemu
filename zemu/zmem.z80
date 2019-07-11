@@ -56,7 +56,8 @@ zmem_init:
    ld (zstack_begin),hl
    ld (zframe_fp),hl
    ld (zframe_sp),hl
-   scf \ ccf
+   xor a,a
+   ld (zframe_nl),a
    ret
    
 

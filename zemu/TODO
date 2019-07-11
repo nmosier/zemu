@@ -43,6 +43,7 @@ Bug Fixes
 [ ] Modulus arithmetic might be buggy
 
 Testing
+[ ] Executing single instructions
 [ ] zop_readn
     [ ] zcode_readop_force
         [ ] zcode_readop

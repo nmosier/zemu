@@ -131,6 +131,7 @@ zaddr_fetchwu:
    push hl
    ex de,hl
    call wtolu ; upcast
+   ex de,hl
    pop hl
    scf \ ccf
    ret

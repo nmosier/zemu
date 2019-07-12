@@ -574,6 +574,7 @@ zexec.print_obj:
    ret c
    lea hl,ix+ZOBJ_O_PROPS
    call zaddr_fetchwu
+   ex de,hl
    inc hl ; skip length byte
    jp zstr_puts
 
@@ -859,4 +860,3 @@ zexec.output_stream:
 zexec.input_stream:
 
 zexec.sound_effect:
-

@@ -2,10 +2,10 @@
 
 ;; zcode_readop -- fetch the value of the next operand.
 ;; INPUTS:
-;;  zcode_decode.types, zcode_decode.op_laddr set
+;;  zcode_decode.types, zframe_pc set
 ;; OUTPUTS:
 ;;  hl = 16-bit value of operand, zero-padded if 8-bits
-;;  zcode_decode.types, zcode_decode.op_laddr updated
+;;  zcode_decode.types, zframe_pc updated
 ;;  Z if no more ops, NZ if op is returned
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
@@ -24,10 +24,10 @@ zcode_readop:
    cp ZOP_OMITTED
    ccf
    ret z
-   ld hl,(zcode_decode.op_laddr)
+   ld hl,(zframe_pc)
    call zcode_fetch_op
    ret c
-   ld (zcode_decode.op_laddr),hl ; update pointer
+   ld (zframe_pc),hl ; update pointer
    ex de,hl
    or $ff ; NZ, NC
    ret
@@ -35,10 +35,10 @@ zcode_readop:
 ;; zcode_readop_force -- fetch value of the next operand.
 ;;                       report an error if there is no operand.
 ;; INPUTS:
-;;  zcode_decode.types, zcode_decode.op_laddr set
+;;  zcode_decode.types, zframe_pc set
 ;; OUTPUTS:
 ;;  hl = 24-bit value of operand, zero-padded if 8-bits
-;;  zcode_decode.types, zcode_decode.op_laddr updated
+;;  zcode_decode.types, zframe_pc updated
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zcode_readop_force:

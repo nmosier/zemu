@@ -3,6 +3,7 @@
 #include "zcall.inc"
 
 ;; zcall0 -- call Z-routine without setting any arguments
+;; zcall0_unpacked -- same, but don't unpack address
 ;; INPUTS:
 ;;  hl = packed address of routine
 ;; OUTPUTS: (none)
@@ -11,9 +12,12 @@
 ;; NOTE: it is safe to assign arguments directly after calling this function.
 zcall0:
    call zaddr_unpack
+zcall0.unpacked:
    call zaddr_fetch
    ret c
+   push hl
    call zstack_enter ; a = # of locals
+   pop hl ; restore PC
    ret c
    ; initialize locals
    ld ix,zcall0.index
@@ -43,3 +47,55 @@ zcall0.jump:
 zcall0.index:
 zcall0.i: .db 0
 zcall0.d: .db 0
+
+
+;; zcall_ext -- external (manual) call
+;; INPUTS:
+;;  [hl = routine]
+;;  [de = arg1]
+;;  [bc = arg2]
+;;  [ix = arg3]
+;;  a = argc
+;; OUTPUTS:
+;;  hl = return value
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zcall_ext:
+   ; push args
+   push de
+   push bc
+   push ix
+   ; save stack pointer
+   ld ix,9
+   add ix,sp
+   ; invariant: ix is addr of retval on stack
+   cp a,ZCALL_MAXARGS+1
+   ccf
+   jr c,zcall_ext.err
+   ; set break address
+   ld de,$ffffff
+   ld (zframe_pc),de ; break address
+   call zcall0.unpacked ; bare call, sets stack
+   jr c,zcall_ext.exit
+   ; now write variables
+   or a,a
+   jr z,zcall_ext.run
+   ld b,a
+zcall_ext.loop:
+   
+   push bc
+   ld a,b
+   call nc,zvar_store
+   pop bc
+   djnz zcall_ext.loop
+zcall_ext.run:
+   ; execute function, run until $ffffff
+   ld hl,$ffffff
+   call nc,zcode_rununtil   
+zcall_ext.exit:
+   ld sp,ix
+   ret
+
+zcall_ext.err:
+   ld a,ZERR_ARGC
+   jr zcall_ext.exit

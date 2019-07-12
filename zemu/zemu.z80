@@ -32,8 +32,11 @@ test:
    ; test call & run until
    ld a,1 ; 1 arg
    ld hl,$4e38
-   ld de,1 ; obj1
-   jp zcall_ext
+   ld de,1
+   call zcall_ext
+   ld hl,test_str
+   jp c,zemu_perror
+   ret
 
    ; test instructions
    ld a,6

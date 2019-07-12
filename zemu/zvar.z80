@@ -76,7 +76,8 @@ zvar_fetch.stack:
    ld d,(hl)
    ; update stack ptr
    ld (zframe_sp),hl
-   scf \ ccf
+   ex de,hl
+   or a,a
    ret
 
 zvar_fetch.local:

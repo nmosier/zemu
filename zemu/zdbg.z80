@@ -1,0 +1,17 @@
+;; zdbg.z80 -- debugging routines
+
+;; zdbg_curinput -- set cursor to input location
+;; 
+
+;; zdbg_readaddr -- read address from keyboard
+;; INPUTS:
+;; OUTPUTS:
+;;  hl = address
+;; DESTROYS:
+;; ERRORS:
+zdbg_readaddr:
+   ld hl,0
+   ld b,0
+zdbg_readaddr.loop:
+
+; zdbg_readaddr.buf: RESB(16)

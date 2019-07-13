@@ -30,71 +30,14 @@ start:
 
 test:
    ; test call & run until
-   ld a,1 ; 1 arg
-   ld hl,$4e38
-   ld de,1
+   ld hl,zcode_step_debug
+   ld (zcode_stepuntil.fn),hl
+   
+   ld a,0 ; 3 arg
+   ld hl,$4f04
    call zcall_ext
    ld hl,test_str
    jp c,zemu_perror
-   ret
-
-   ; test instructions
-   ld a,6
-   call zstack_enter
-   ld a,1 ; local 0
-   ld hl,1 ; object 1
-   call zvar_store
-   ld hl,test_str
-   jp c,zemu_perror
-   ld hl,$4e3b
-   ld b,2
-   call zcode_decoden
-   ld hl,zcode_decode_str
-   jp c,zemu_perror
-   ret
-
-   ; test instruction
-   ; init stack
-   ld a,6
-   call zstack_enter
-   ld hl,$4e3b
-   ld (zframe_pc),hl
-   call zcode_decode
-   ld hl,zcode_decode_str
-   call c,zemu_perror
-   call zcode_decode
-   ld hl,zcode_decode_str
-   call c,zemu_perror
-   jp _GetKey
-
-   ; test encoding
-   ld hl,test_ascii2
-   ld de,test_zstr
-   ld c,24
-   call zstr_encode
-   ret c
-   ret nz
-   ld hl,test_zstr
-   call zstr_puts_phys
-   jp _GetKey
-
-   ; test strings
-   ld hl,$14808 ; "The thief knocks you out"
-   call zstr_puts
-   ld hl,test_str
-   jp c,zemu_perror
-   ret
-
-   
-test_ascii: .db "Fuck you! #cuss.",0
-test_ascii2: .db " qwertyuiopasdfghjklzxcvbnmqwertyuiopasdfghjkl",0
-test_zstr: .dl 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
-   ; test addresses
-   ld hl,$14808
-   call zaddr_fetchwu
-   ex de,hl
-   call _DispHL 
    ret
 
 

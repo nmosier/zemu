@@ -21,5 +21,6 @@ ZERR_NOPROP      .equ 12
 ZERR_BADPROP     .equ 13
 ZERR_BADCHAR     .equ 14
 ZERR_ARGC        .equ 15
+ZERR_INTR        .equ 16
 
 #endif

@@ -15,6 +15,7 @@ zexec_cjmp:
    pop bc
    ret c
    ; apply branch inversion flag
+   ld a,b ; truth value
    jr nz,zexec_cjmp.inv
    cpl ; branch when false
 zexec_cjmp.inv:
@@ -34,6 +35,8 @@ zexec_cjmp.inv:
    jr z,zexec_cjmp.ret
    ; otherwise, apply offset
    add hl,de
+   dec hl
+   dec hl ; don't forget to subtract 2!
    ; hl = new PC
 zexec_cjmp.store_pc:
    ld (zframe_pc),hl
@@ -41,9 +44,8 @@ zexec_cjmp.store_pc:
    ret
 zexec_cjmp.ret:
    push hl
-   call zstack_leave
+   call zstack_leave ; NOTE: does not fail.
    pop hl
-   ret c
    ld a,l
    or a,a
    ld hl,ZTRUE

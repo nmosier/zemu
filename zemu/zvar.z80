@@ -15,8 +15,9 @@ zvar_localaddr:
    ld de,2
    ld d,a
    ld hl,zframe_nl
-   cp (hl)
+   cp a,(hl)
    ld a,ZERR_NOLOCL
+   ccf
    ret c
    ; calculate address
    mlt de
@@ -31,18 +32,19 @@ zvar_localaddr:
 ;; OUTPUTS:
 ;;  hl = logical address of global variable
 ;; ERRORS: (none)
-;; DESTROYS: hl,ix
+;; DESTROYS: (all)
 zvar_globaladdr:
-   sub ZVAR_GLOBALMIN
-   ld ix,(zmap_header)
-   lea hl,ix
-   ld de,2
-   ld d,a
-   mlt de
-   add hl,de
-   ld d,(ix+ZHDR_GLOBALS)
-   ld e,(ix+ZHDR_GLOBALS+1)
-   add hl,de
+   sub a,ZVAR_GLOBALMIN
+   push af
+   ld hl,ZHDR_GLOBALS
+   call zaddr_fetchwu
+   pop de
+   ret c
+   ld bc,2
+   ld b,d
+   mlt bc
+   add hl,bc
+   or a,a ; NC
    ret
 
 ;; zvar_fetch -- fetch variable value.
@@ -53,6 +55,13 @@ zvar_globaladdr:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zvar_fetch:
+   call zvar_fetch.switch
+   ret c
+   call wtols ; upcast
+   or a,a
+   ret
+
+zvar_fetch.switch:
    cp ZVAR_STACK
    jp z,zvar_fetch.stack
    cp ZVAR_GLOBALMIN
@@ -82,7 +91,6 @@ zvar_fetch.stack:
 
 zvar_fetch.local:
    ; get addr of local var (on stack)
-   dec a
    call zvar_localaddr
    ret c ; error
    ; load var
@@ -134,7 +142,6 @@ zvar_store.stack:
 
 zvar_store.local:
    ; get addr
-   dec a
    push de
    call zvar_localaddr
    pop de
@@ -143,7 +150,7 @@ zvar_store.local:
    ld (hl),d
    inc hl
    ld (hl),e
-   scf \ ccf
+   or a,a
    ret
 
 zvar_store.global:

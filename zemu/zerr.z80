@@ -18,6 +18,7 @@ zerrmsg_noprop:     .db "object missing property",0
 zerrmsg_badprop:    .db "invalid property length",0
 zerrmsg_badchar:    .db "bad character",0
 zerrmsg_argc:       .db "too many arguments",0
+zerrmsg_intr:       .db "interrupt",0
 
 zerrtab:
    .dl zerrmsg_success
@@ -36,6 +37,7 @@ zerrtab:
    .dl zerrmsg_badprop
    .dl zerrmsg_badchar
    .dl zerrmsg_argc
+   .dl zerrmsg_intr
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

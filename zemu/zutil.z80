@@ -444,6 +444,7 @@ wtols.transfer:
    ld d,h
    ld e,l
 wtols.done:
+   ex de,hl
    pop de
    ret
 
@@ -506,6 +507,22 @@ ltobu:
    ccf
    ret
 
+;; ltowu -- long to word, unsigned
+;; INPUTS:
+;;  hl = 24-bit unsigned long
+;; OUTPUTS:
+;;   hl[23:16] = 0
+;;   hl[15:0] remain
+;; DESTROYS: (none)
+;; ERRORS: no.
+ltowu:
+   push de
+   ld de,0
+   ld d,h
+   ld e,l
+   ex de,hl
+   pop de
+   ret
 
 
 ;; maskb/exp2b -- get bitmask / find 2^n
@@ -672,3 +689,39 @@ zmemcmp:
 zmemcmp.err:
    pop bc ; discard
    ret
+
+;; hexstr -- get hex string of value
+;; INPUTS:
+;;  hl = value
+;;  de = buffer
+;; OUTPUTS: as they would seem.
+;; DESTROYS: (all)
+;; ERRORS: no.
+hexstr:
+   ld b,3*4/2
+hexstr.loop:
+   push bc
+   xor a,a
+   add hl,hl
+   rla
+   add hl,hl
+   rla
+   add hl,hl
+   rla
+   add hl,hl
+   rla
+   ld ix,hexstr.lut
+   ld bc,0
+   ld c,a
+   add ix,bc
+   ld a,(ix)
+   ld (de),a
+   inc de
+   pop bc
+   djnz hexstr.loop
+   xor a,a
+   ld (de),a
+   ret
+
+
+hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'

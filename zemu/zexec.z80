@@ -13,7 +13,7 @@
 
 ;; hl == de ?
 zexec_cmp.eq:
-   call cp_hl_de_sgn
+   call cp_hl_de;_sgn
    ld a,$FF
    ret z
    xor a
@@ -21,12 +21,12 @@ zexec_cmp.eq:
 
 ;; hl < de ?
 zexec_cmp.lt:
-   call cp_hl_de_sgn
+   call cp_hl_de;_sgn
+   scf
+   ccf
    ld a,$FF
-   jr c,zexec_cmp.lt.clr
+   ret p ; positive result, so hl < de
    xor a,a
-zexec_cmp.lt.clr:
-   or a,a ; reset carry flag
    ret
 
 ;; hl > de ?
@@ -188,11 +188,13 @@ zexec_binop.mod:
    ret
 
 zexec_binop.loadw:
+   ; NOTE: pretend args are unsigned. (???)
    ;; hl = array
    ;; de = word-index
    add hl,de
    add hl,de ; hl <- hl + 2*de
    ;; NOTE: stored in big-endian order.
+   call ltowu ; downcast   
    call zaddr_fetchw
    ex de,hl
    ret
@@ -290,7 +292,9 @@ zexec.dec_chk:
    call nc,zvar_modify
    pop de
    call nc,zexec_cmp.lt
-   jp nc,zexec_cjmp
+   ret c
+   or a,a
+   jp nz,zexec_cjmp
    ret
 
 zexec.inc_chk:
@@ -712,6 +716,7 @@ zexec.call:
    ; set up bare call state
    call zcall0
    ret c
+   push hl ; save PC after procedure is entered
    ; assign arguments to locals
    xor a,a
    ld (zexec.call.varno),a
@@ -720,12 +725,13 @@ zexec.call.loop:
    ld a,(zexec.call.varno)
    inc a
    ld (zexec.call.varno),a
-   call zvar_store
+   call nc,zvar_store
 zexec.call.entry:
-   call zcode_readop
-   ret c
+   call nc,zcode_readop
    jr nz,zexec.call.loop
-   or a,a
+   pop hl
+   ret c
+   ld (zframe_pc),hl
    ret
 zexec.call.varno: .db 0
 

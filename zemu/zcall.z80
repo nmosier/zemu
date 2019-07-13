@@ -10,6 +10,7 @@
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: it is safe to assign arguments directly after calling this function.
+;; NOTE: doesn't actaully write to zframe_pc b/c arguments may need to be assigned.
 zcall0:
    call zaddr_unpack
 zcall0.unpacked:
@@ -20,6 +21,8 @@ zcall0.unpacked:
    pop hl ; restore PC
    ret c
    ; initialize locals
+   or a,a
+   jr z,zcall0.jump ; no locals to initalize
    ld ix,zcall0.index
    ld (ix+0),1
    ld (ix+1),a
@@ -31,6 +34,7 @@ zcall0.loop:
    ld a,(ix+0)
    push ix
    push hl ; preserve new pc
+   ex de,hl
    call zvar_store ; store val in local
    pop hl
    pop ix
@@ -40,7 +44,7 @@ zcall0.loop:
    jr nz,zcall0.loop
 zcall0.jump:
    ; hl points to byte address after last local init val
-   ld (zframe_pc),hl
+   ; ld (zframe_pc),hl
    or a,a
    ret
 
@@ -79,6 +83,7 @@ zcall_ext:
    push ix
    call zcall0.unpacked ; bare call, sets stack
    pop ix
+   ld (zframe_pc),hl ; set PC
    jr c,zcall_ext.exit
    ; now write variables
    pop af
@@ -101,7 +106,7 @@ zcall_ext.run:
    ; execute function, run until $ffffff
    ld hl,$ffffff
    push ix
-   call nc,zcode_rununtil
+   call nc,zcode_stepuntil
    pop ix
    jr c,zcall_ext.exit
    ld a,ZVAR_STACK

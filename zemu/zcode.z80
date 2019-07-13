@@ -145,7 +145,7 @@ zcode_decode_extended:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zcode_fetch_op:
-   ld de,0 ; for zero-padding
+   ; ld de,0 ; for zero-padding
    cp ZOP_LARGE
    jp z,zcode_fetch_op.large
    cp ZOP_SMALL
@@ -161,14 +161,19 @@ zcode_fetch_op.large:
    call zaddr_fetch ; hl++
    ret c
    ld e,a
-   scf \ ccf
+   ex de,hl
+   call wtols ; upcast
+   ex de,hl
+   or a,a
    ret
 
 zcode_fetch_op.small:
    call zaddr_fetch ; hl++
    ret c
-   ld e,a ; zero-extend 8-bit value to 16-bit reg de
-   scf \ ccf
+   ex de,hl
+   call btols ; upcast
+   ex de,hl
+   or a,a
    ret
 
 zcode_fetch_op.variable:
@@ -185,7 +190,7 @@ zcode_fetch_op.variable:
 
 ;; NOTE: there is no result.
 zcode_fetch_op.omitted:
-   scf \ ccf
+   or a,a
    ret
    
 zcode_err.bad:
@@ -381,12 +386,61 @@ zcode_decoden.loop:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zcode_rununtil:
+   ld de,zcode_rununtil.nop
+   ld (zcode_stepuntil.fn),de
+   jp zcode_stepuntil
+zcode_rununtil.nop:
+   or a,a
+   ret
+
+
+;; zcode_stepuntil -- step thru instructions until reach given address
+;; INPUTS:
+;;  hl = (unpacked) address to break at
+;;  (zcode_stepuntil.fn) = function to call at each step
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zcode_stepuntil:
    push hl
-   call zcode_decode
+   call zcode_stepuntil.call   
+   call nc,zcode_decode
    pop hl
    ret c
    ld de,(zframe_pc)
    call cp_hl_de
-   jr nz,zcode_rununtil
+   jr nz,zcode_stepuntil
    ret
 
+zcode_stepuntil.call:
+   ld hl,(zcode_stepuntil.fn)
+   jp (hl)
+
+zcode_stepuntil.fn: .dl 0
+
+
+zcode_step_debug:
+   ld a,7
+   ld (curRow),a
+   ld a,0
+   ld (curCol),a
+
+   ld hl,(zframe_pc)
+   ld de,zcode_step_debug.buf
+   call hexstr
+
+   ld hl,zcode_step_debug.buf
+   call _PutS
+   call _NewLine
+   call _GetKey
+   cp a,kClear
+   ld a,ZERR_INTR
+   scf
+   ret z
+   or a,a
+   ret
+
+
+zdbg_readaddr:
+
+zcode_step_debug.buf: RESB(16)

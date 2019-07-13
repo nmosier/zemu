@@ -1,0 +1,103 @@
+;; zinput.z80 -- keyboard input routines
+
+#include "zinput.inc"
+#include "zutil.inc"
+
+zin_rbuf.begin:
+   RESB(ZIN_RBUFSIZE)
+zin_rbuf.end:
+
+zin_rbuf.ptrs:
+zin_rbuf.w: .dl 0
+zin_rbuf.r: .dl 0
+
+ZIN_RBUF.ROFF .equ zin_rbuf.r - zin_rbuf.ptrs
+ZIN_RBUF.WOFF .equ zin_rbuf.w - zin_rbuf.ptrs
+ZIN_RBUF.ENDOFF .equ zin_rbuf.end - zin_rbuf.ptrs
+
+
+; NOTES:
+;  - If r == w, then ring buffer is empty.
+;  Ordering: r <= w <= end
+
+;; zin_read -- read single input char from ring buffer
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  a = character (a = 0 if none)
+;; ERRORS: no.
+;; DESTROYS: hl, de, ix
+zin_read:
+   ld ix,zin_rbuf.ptrs
+   ld de,(ix+ZIN_RBUF.ROFF)
+   ld hl,(ix+ZIN_RBUF.WOFF)
+   xor a,a
+   sbc hl,de
+   ret z ; r == w, so nothing to read. Note a == 0
+   ld a,(de)
+   inc de
+   ld hl,zin_rbuf.end
+   or a,a
+   sbc hl,de
+   jr nz,zin_read.update
+   ld de,zin_rbuf.begin
+zin_read.update:
+   ld (ix+ZIN_RBUF.ROFF),de
+   ret
+   
+;; zin_write -- write single input char to ring buffer
+;; INPUTS:
+;;  a = ASCII char to write
+;; OUTPUTS:
+;;  CF reset if success; CF set if not enough space.
+;; ERRORS: no.
+;; DESTROYS: ix, hl, de
+zin_write:
+   or a,a
+   ret z
+   ld ix,zin_rbuf.ptrs
+   ld hl,(ix+ZIN_RBUF.ROFF)
+   ld de,(ix+ZIN_RBUF.WOFF)
+   scf
+   sbc hl,de
+   scf
+   ret z
+   ld (de),a
+   inc de
+   ld hl,zin_rbuf.end
+   or a,a
+   sbc hl,de
+   jr nz,zin_write.update
+   ld de,zin_rbuf.begin
+zin_write.update:
+   ld (ix+ZIN_RBUF.WOFF),de
+   or a,a
+   ret
+
+;; zin_interrupt -- interrupt for keypress detection
+zin_interrupt:
+   push af
+   push hl
+   call _GetCSC
+   call zin_write
+   pop hl
+   pop af
+   jp sysint
+
+;; zint_install -- install interrupt
+;; INPUTS:
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+zint_install:
+   ld hl,sys_idt
+   ld i,hl
+   ; fill with pointers to interrupt service routine
+   ld b,SYS_IDT_SIZE/3
+zint_install.loop:
+   
+   
+
+zint_jump:
+   jp zin_interrupt
+zint_jump.end
+   

@@ -12,7 +12,7 @@
 zcode_readop:
    ; read type
    ld hl,zcode_decode.types
-   xor a
+   xor a,a
    scf
    rl (hl) ; (hl) = ((hl) << 1) | 0x1
    rla
@@ -21,15 +21,14 @@ zcode_readop:
    rla
    ; %a[0:1] contains type
    ; (hl) = (hl) << 2 | OMITTED
-   cp ZOP_OMITTED
-   ccf
+   cp a,ZOP_OMITTED
    ret z
    ld hl,(zframe_pc)
    call zcode_fetch_op
    ret c
    ld (zframe_pc),hl ; update pointer
    ex de,hl
-   or $ff ; NZ, NC
+   or a,$ff ; NZ, NC
    ret
 
 ;; zcode_readop_force -- fetch value of the next operand.

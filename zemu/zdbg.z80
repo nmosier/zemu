@@ -1,17 +1,247 @@
 ;; zdbg.z80 -- debugging routines
 
-;; zdbg_curinput -- set cursor to input location
-;; 
+#include "zdbg.inc"
 
-;; zdbg_readaddr -- read address from keyboard
+;; zdbg_puts -- put string in debug line
+zdbg_puts:
+   ld a,ZDBG_OUTPUT_ROW
+   ld (curRow),a
+   ld a,ZDBG_OUTPUT_COL
+   ld (curCol),a
+   jp _PutS
+
+;; zdbg_step -- do stuff before instruction is executed
+zdbg_step:
+   bit ZDBG_FLAGS_STAT,(ix)
+   call nz,zdbg_status
+   bit ZDBG_FLAGS_INTR,(ix)
+   ld a,0
+   call nz,_GetKey
+   cp a,kClear
+   jr z,zdbg_step.intr
+   cp a,kEnter
+   jr z,zdbg_step.run
+   JCLASS(k0,k9,zdbg_step.num)
+   cp a,kAdd
+   jr z,zdbg_step.addr
+   jr zdbg_step.done
+
+zdbg_step.run:
+   res ZDBG_FLAGS_MODE,(ix)
+   jr zdbg_step.done
+
+zdbg_step.num:
+   sub a,k0
+   jr nz,_
+   ld a,10
+_  ld (zdbg_stepn),a
+   jr  zdbg_step.done
+
+zdbg_step.done:
+   or a,a
+   ret
+   
+zdbg_step.intr:
+   ld a,ZERR_INTR
+   scf
+   ret
+
+zdbg_step.addr:
+   call zdbg_readaddr
+   ld (zdbg_break),hl  ; set new breakpoint
+   or a,a
+   ret
+
+;; zdbg_status -- display status information
+zdbg_status:
+   ld hl,(zframe_pc)
+   ld de,zdbg_status.buf
+   push ix
+   call hexstr
+   pop ix
+   ld hl,zdbg_status.buf
+   call zdbg_puts
+   ret
+zdbg_status.buf: RESB(16)
+
+;; zdbg_exec -- run ZCPU in debugging mode
+;; INPUTS:
+;;  zdbg_flags set
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS: yes.
+zdbg_exec:
+   ld ix,zdbg_flags
+   res ZDBG_FLAGS_STEP,(ix)
+
+zdbg_exec.frame:
+   ; 0. Check if exit frame has been reached.
+   call zdbg_stkcmp
+   ld hl,(zframe_pc)
+   jp z,zdbg_exit
+
+zdbg_exec.break:
+   ; 1. Check if should break.
+   bit ZDBG_FLAGS_BREAK,(ix)
+   jr z,zdbg_exec.mode
+   call zdbg_brkcmp
+   jr nz,zdbg_exec.mode
+   set ZDBG_FLAGS_STEP,(ix)
+
+zdbg_exec.mode:
+   ; 2. Check mode.
+   bit ZDBG_FLAGS_MODE,(ix)
+   jr z,zdbg_exec.step
+
+zdbg_exec.stepn:
+   ld de,zdbg_stepn
+   ld a,(de)
+   or a,a
+   jr nz,zdbg_exec.stepn_dec
+   set ZDBG_FLAGS_STEP,(ix)
+   jr zdbg_exec.step
+
+zdbg_exec.stepn_dec:
+   dec a
+   ld (de),a
+
+zdbg_exec.step:
+   or a,a
+   bit ZDBG_FLAGS_STEP,(ix)
+   call nz,zdbg_step
+   ld hl,(zframe_pc)
+   jr c,zdbg_exit
+
+zdbg_exec.instr:
+   push hl
+   call zcode_decode
+   pop hl
+   jp c,zdbg_exit
+   jr zdbg_exec
+
+;; zdbg_brkcmp -- check if should break -- stored in ZF
+zdbg_brkcmp:
+   ld de,(zdbg_break)
+   ld hl,(zframe_pc)
+   jp cp_hl_de
+
+zdbg_stkcmp:
+   ld de,(zframe_fp)
+   ld hl,(zdbg_frame)
+   jp cp_hl_de
+
+
+zdbg_flags: .db 0
+zdbg_break: .dl 0 ; address to break at
+zdbg_frame: .dl 0 ; frame to return once reached
+zdbg_stepn: .db 0 ; number to step before breaking?
+
+;; zdbg_exit -- handle errors during execution
+;; INPUTS:
+;;  hl = PC, i.e. addr of instruction that triggered error
+;;  zdbg_prev contains previous PC
+;; OUTUPTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_exit:
+   push af
+   ld de,zdbg_exit.buf
+   call hexstr
+   ld hl,zdbg_exit.buf
+   call zdbg_puts
+   pop af
+   ret
+
+zdbg_exit.buf: RESB(32)
+
+;; zdbg_readaddr -- read address
 ;; INPUTS:
 ;; OUTPUTS:
 ;;  hl = address
 ;; DESTROYS:
 ;; ERRORS:
 zdbg_readaddr:
+   ld hl,zdbg_readaddr.buf
+   call zdbg_gets
+   ld de,zdbg_readaddr.buf
    ld hl,0
-   ld b,0
 zdbg_readaddr.loop:
+   ld a,(de)
+   inc de
+   or a,a
+   ret z
+   JCLASS('0', '9', zdbg_readaddr.digit)
+   JCLASS('A', 'E', zdbg_readaddr.letter)
+   jr zdbg_readaddr.loop
 
-; zdbg_readaddr.buf: RESB(16)
+zdbg_readaddr.digit:
+   sub a,'0'
+   jr zdbg_readaddr.shift
+
+zdbg_readaddr.letter:
+   sub a,'A'-10
+   jr zdbg_readaddr.shift
+
+zdbg_readaddr.shift:
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   or a,l
+   ld l,a
+   jr zdbg_readaddr.loop
+
+
+zdbg_readaddr.buf: RESB(16)
+
+;; zdbg_gets -- get string
+;; INPUTS:
+;;  hl = pointer to output buffer
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+;; NOTE: only supports A-Z, 0-9.
+zdbg_gets:
+   ld a,ZDBG_INPUT_ROW
+   ld (curRow),a
+   ld a,ZDBG_INPUT_COL
+   ld (curCol),a
+zdbg_gets.loop:
+   push hl
+   call _GetKey
+   pop hl
+   cp a,kEnter
+   jr z,zdbg_gets.enter
+   cp a,kDel
+   jr z,zdbg_gets.del
+   JCLASS(k0, k9, zdbg_gets.digit)
+   JCLASS(kCapA, kCapZ, zdbg_gets.letter)
+   ; not recognized
+   jr zdbg_gets.loop
+
+zdbg_gets.enter:
+   ld (hl),0
+   ret
+   
+zdbg_gets.del:
+   dec hl
+   ld a,(curCol)
+   dec a
+   ld (curCol),a
+   ld a,' '
+   call _PutMap
+   jr zdbg_gets.loop
+
+zdbg_gets.digit:
+   add a,'0'-k0
+   ld (hl),a
+   call _PutC
+   inc hl
+   jr zdbg_gets.loop
+
+zdbg_gets.letter:
+   add a,'A'-kCapA
+   ld (hl),a
+   call _PutC
+   inc hl
+   jr zdbg_gets.loop

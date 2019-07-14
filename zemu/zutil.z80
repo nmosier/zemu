@@ -65,19 +65,19 @@ appvar_to_RAM.done:
 ;; ERROR: yes.
 ;; TODO: fix this -- shouldn't be using short instruction.
 appvar_touch:
-   push.s de
+   push de
    call appvar_to_RAM
-   pop.s hl   ; appvar size now in hl.s
+   pop hl   ; appvar size now in hl.s
    ret nc ; found appvar and is in RAM
    ; check if enough RAM
-   push.s hl
+   push hl
    call _MemChk
-   pop.s de
-   sbc.s hl,de
+   pop de
+   sbc hl,de
    ld a,ZERR_NOMEM
    ret c
    ; create var
-   ex.s de,hl
+   ex de,hl
    call _CreateAppVar
    scf \ ccf ; success
    ret
@@ -694,7 +694,8 @@ zmemcmp.err:
 ;; INPUTS:
 ;;  hl = value
 ;;  de = buffer
-;; OUTPUTS: as they would seem.
+;; OUTPUTS:
+;;  de <- de + 6
 ;; DESTROYS: (all)
 ;; ERRORS: no.
 hexstr:
@@ -725,3 +726,4 @@ hexstr.loop:
 
 
 hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
+

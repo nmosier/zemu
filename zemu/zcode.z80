@@ -419,28 +419,3 @@ zcode_stepuntil.call:
 zcode_stepuntil.fn: .dl 0
 
 
-zcode_step_debug:
-   ld a,7
-   ld (curRow),a
-   ld a,0
-   ld (curCol),a
-
-   ld hl,(zframe_pc)
-   ld de,zcode_step_debug.buf
-   call hexstr
-
-   ld hl,zcode_step_debug.buf
-   call _PutS
-   call _NewLine
-   call _GetKey
-   cp a,kClear
-   ld a,ZERR_INTR
-   scf
-   ret z
-   or a,a
-   ret
-
-
-zdbg_readaddr:
-
-zcode_step_debug.buf: RESB(16)

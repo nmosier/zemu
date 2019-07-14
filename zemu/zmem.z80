@@ -32,6 +32,7 @@ zframe_fp: .dl 0
 zframe_sp: .dl 0
 zframe_pc: .dl 0
 zframe_nl: .db 0
+zframe_rv: .db 0
 zframe_end:
 
 ZFRAME_BASESIZE .equ zframe_end - zframe_begin
@@ -143,10 +144,12 @@ zsave_create:
 ;; zstack_enter -- enter new stack frame
 ;; INPUTS:
 ;;  a = number of local variables
+;;  b = variable in which to store result
 ;; OUTPUTS: (none)
-;; DESTROYS: hl,de,ix
+;; DESTROYS: a,hl,de,ix
 ;; ERRORS: (none)
 zstack_enter:
+   push bc ; save variable number
    ; push new stack frame onto stack
    ld hl,zframe_begin
    ld de,(zframe_sp)
@@ -163,6 +166,10 @@ zstack_enter:
    ld (zframe_sp),hl
    ; update number of locals (NL)
    ld (zframe_nl),a
+   ; update return variable
+   pop bc ; restore variable number
+   ld a,b
+   ld (zframe_rv),a
    ret   
 
 ;; zstack_leave -- leave current stack frame

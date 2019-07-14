@@ -6,7 +6,8 @@
 ;; zcall0_unpacked -- same, but don't unpack address
 ;; INPUTS:
 ;;  hl = packed address of routine
-;; OUTPUTS: (none)
+;; OUTPUTS:
+;;  hl = new PC value
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: it is safe to assign arguments directly after calling this function.
@@ -77,13 +78,16 @@ zcall_ext:
    cp a,ZCALL_MAXARG+1
    ccf
    jr c,zcall_ext.err
-   ; set break address
-   ld de,$ffffff
-   ld (zframe_pc),de ; break address
+   ; set break frame address
+   ld de,(zframe_fp)
+   ld (zdbg_frame),de
+
    push ix
    call zcall0.unpacked ; bare call, sets stack
    pop ix
    ld (zframe_pc),hl ; set PC
+   ld a,ZVAR_STACK
+   ld (zframe_rv),a ; set return variable
    jr c,zcall_ext.exit
    ; now write variables
    pop af
@@ -104,9 +108,14 @@ zcall_ext.loop:
    jr nz,zcall_ext.loop
 zcall_ext.run:
    ; execute function, run until $ffffff
-   ld hl,$ffffff
    push ix
-   call nc,zcode_stepuntil
+   ld ix,zdbg_flags
+   set ZDBG_FLAGS_BREAK,(ix)
+   set ZDBG_FLAGS_MODE,(ix)
+   set ZDBG_FLAGS_INTR,(ix)
+   set ZDBG_FLAGS_STAT,(ix)
+   call nc,zdbg_exec
+   ;   call nc,zcode_stepuntil
    pop ix
    jr c,zcall_ext.exit
    ld a,ZVAR_STACK

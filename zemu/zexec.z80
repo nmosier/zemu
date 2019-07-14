@@ -587,11 +587,11 @@ zexec.ret:
    ld a,1
    call zop_readn
    ret c
+   ld a,(zframe_rv)
    push hl
-   call zstack_leave
+   call zstack_leave ; %a preserved
    pop hl
    ret c
-   ld a,ZVAR_STACK
    jp zvar_store
 
 zexec.jump:
@@ -640,16 +640,17 @@ zexec.not:
 ;             0OP opcodes            ;
 ;------------------------------------;
 zexec.rtrue:
-   call zstack_leave
+   ld a,(zframe_rv)
+   call zstack_leave ; %a preserved
    ret c
-   ld a,ZVAR_STACK
+   ; need to do this after in case return value is onto stack
    ld hl,ZTRUE
    jp zvar_store
 
 zexec.rfalse:
-   call zstack_leave
+   ld a,(zframe_rv)
+   call zstack_leave ; %a preserved
    ret c
-   ld a,ZVAR_STACK
    ld hl,ZFALSE
    jp zvar_store
 
@@ -680,11 +681,11 @@ zexec.ret_popped:
    ld a,ZVAR_STACK
    call zvar_fetch
    ret c
+   ld a,(zframe_rv)
    push hl
-   call zstack_leave
+   call zstack_leave ; %a preserved
    pop hl
    ret c
-   ld a,ZVAR_STACK
    jp zvar_store
 
 ;; TODO -- this could be optimized
@@ -729,8 +730,18 @@ zexec.call.loop:
 zexec.call.entry:
    call nc,zcode_readop
    jr nz,zexec.call.loop
+zexec.call.rv:
+   ; read return variable
+   call zcode_readvarnum
+   ld de,(zframe_pc) ; save PC after call instruction
    pop hl
    ret c
+   ; save return variable
+   ld (zframe_rv),a
+zexec.call.pc:
+   ; hacky part -- don't like this
+   ld ix,(zframe_fp)
+   ld (ix+zframe_pc-zframe_end),de ; update PC
    ld (zframe_pc),hl
    ret
 zexec.call.varno: .db 0

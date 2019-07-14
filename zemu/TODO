@@ -53,3 +53,4 @@ Bugs/Tests
 [ ] mlt rr -- this only effetcs the lower bits??
 [ ] fetchwu
 [ ] Is word-index in storew signed or unsigned?
+[ ] Need to find a way to indicate which value to store retval in. Perhaps add it to the stack frame, or incorporate it in the ret instruction.

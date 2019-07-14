@@ -30,10 +30,11 @@ start:
 
 test:
    ; test call & run until
-   ld hl,zcode_step_debug
+   ld hl,zdbg_step
    ld (zcode_stepuntil.fn),hl
    
    ld a,0 ; 3 arg
+   ld de,10
    ld hl,$4f04
    call zcall_ext
    ld hl,test_str
@@ -218,3 +219,4 @@ zork_save: .db "SAVE1",0
 #include "zcall.z80"
 #include "zdisp.z80"
 #include "zinput.z80"
+#include "zdbg.z80"

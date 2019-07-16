@@ -37,7 +37,8 @@ zvar_globaladdr:
    sub a,ZVAR_GLOBALMIN
    push af
    ld hl,ZHDR_GLOBALS
-   call zaddr_fetchwu
+   call zaddr_fetchwu ; result is returned in %de, dumbass. You wrote this, remember...
+   ex de,hl
    pop de
    ret c
    ld bc,2
@@ -104,15 +105,8 @@ zvar_fetch.local:
 
 zvar_fetch.global:
    call zvar_globaladdr
-   ld de,0 ; zero-padding
-   call zaddr_fetch ; hl += 1
-   ret c ; fetch error
-   ld d,a
-   call zaddr_fetch
-   ret c
-   ld e,a
+   call nc,zaddr_fetchw
    ex de,hl
-   ; C reset (nc)
    ret
 
 ;; zvar_store -- store value to variable
@@ -154,34 +148,20 @@ zvar_store.local:
    ret
 
 zvar_store.global:
-   push hl
+   push de
    call zvar_globaladdr
    pop de
-   ld a,d
-   call zaddr_store ; hl++
-   ret c
-   ld a,e
-   call zaddr_store ; hl++
-   ret c
+   call nc,zaddr_storew
    ret
-
 
 ;; zvar_downcast -- cast unsigned value to 24 bits to 8 bits
 ;; INPUTS:
 ;;  hl = 24-bit unsigned value
 ;; OUTPUTS:
 ;;  a = 8-bit unsigned value
-;; ERRORS: yes.
-;; DESTROYS: all but %de
+;; ERRORS: no.
+;; DESTROYS: a
 zvar_downcast:
-   ; this should also report hl >= de if signed, which is what we want
-   push de
-   ld de,$000100
-   call cp_hl_de
-   pop de
-   ccf
-   ld a,ZERR_BADVARNO
-   ret c
    ld a,l
    ret
 

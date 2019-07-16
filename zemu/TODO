@@ -28,6 +28,7 @@ zemu TODO
 [ ] zmem_init ought to also look at first byte of routine and properly intialize stack.
 [ ] string library support for extended 10-bit codes
 [X] Random number generator.
+[ ] Use Z80 MODE for all 16-bit calculations.
 
 
 Optimizations

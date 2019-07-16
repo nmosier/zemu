@@ -187,9 +187,9 @@ zaddr_store.cleanup:
 zaddr_storew:
    ld a,d
    call zaddr_store
+   ret c
    ld a,e
-   jp nc,zaddr_store
-   ret
+   jp zaddr_store
 
 ;; zaddr_unpack -- convert packed address to byte address
 ;; INPUTS:

@@ -286,12 +286,14 @@ zexec.jg:
 zexec.dec_chk:
    ld a,2
    call zop_readn
-   call nc,zvar_downcast
+   ret c
+   call zvar_downcast
    ld hl,zexec_unop.dec
    push de
-   call nc,zvar_modify
+   call zvar_modify
    pop de
-   call nc,zexec_cmp.lt
+   ret c
+   call zexec_cmp.lt
    ret c
    or a,a
    jp nz,zexec_cjmp
@@ -300,12 +302,14 @@ zexec.dec_chk:
 zexec.inc_chk:
    ld a,2
    call zop_readn
-   call nc,zvar_downcast
+   ret c
+   call zvar_downcast
    ld hl,zexec_unop.inc
    push de
-   call nc,zvar_modify
+   call zvar_modify
    pop de
-   call nc,zexec_cmp.gt
+   ret c
+   call zexec_cmp.gt
    jp nc,zexec_cjmp
    ret
 
@@ -368,10 +372,10 @@ zexec.clear_attr:
 zexec.store:
    ld a,2
    call zop_readn
-   call nc,zvar_downcast
+   ret c
+   call zvar_downcast
    ex de,hl
-   jp nc,zvar_store
-   ret
+   jp zvar_store
 
 zexec.insert_obj:
    ld a,2
@@ -621,9 +625,11 @@ zexec.print_paddr:
 zexec.load:
    ld a,1
    call zop_readn
-   call nc,zvar_downcast
-   call nc,zvar_fetch
-   call nc,zcode_readvarnum
+   ret c
+   call zvar_downcast
+   call zvar_fetch
+   ret c
+   call zcode_readvarnum
    jp nc,zvar_store
    ret
 

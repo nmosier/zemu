@@ -87,7 +87,8 @@ zdbg_exec.break:
    call zdbg_brkcmp
    jr nz,zdbg_exec.mode
    set ZDBG_FLAGS_STEP,(ix)
-
+   set ZDBG_FLAGS_MODE,(ix) ; back to step mode
+   
 zdbg_exec.mode:
    ; 2. Check mode.
    bit ZDBG_FLAGS_MODE,(ix)
@@ -171,7 +172,7 @@ zdbg_readaddr.loop:
    or a,a
    ret z
    JCLASS('0', '9', zdbg_readaddr.digit)
-   JCLASS('A', 'E', zdbg_readaddr.letter)
+   JCLASS('A', 'F', zdbg_readaddr.letter)
    jr zdbg_readaddr.loop
 
 zdbg_readaddr.digit:

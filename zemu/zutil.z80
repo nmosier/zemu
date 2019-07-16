@@ -459,6 +459,7 @@ wtolu:
    ld de,0
    ld d,h
    ld e,l
+   ex de,hl
    pop de
    ret
 

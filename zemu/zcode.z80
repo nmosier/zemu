@@ -171,7 +171,7 @@ zcode_fetch_op.small:
    call zaddr_fetch ; hl++
    ret c
    ex de,hl
-   call btols ; upcast
+   call btolu ; upcast
    ex de,hl
    or a,a
    ret

@@ -2,7 +2,7 @@
 
 #include "zcall.inc"
 
-;; zcall0 -- call Z-routine without setting any arguments
+;; zcall0 -- call Z-routine without setting any arguments or return value
 ;; zcall0_unpacked -- same, but don't unpack address
 ;; INPUTS:
 ;;  hl = packed address of routine
@@ -115,7 +115,6 @@ zcall_ext.run:
    set ZDBG_FLAGS_INTR,(ix)
    set ZDBG_FLAGS_STAT,(ix)
    call nc,zdbg_exec
-   ;   call nc,zcode_stepuntil
    pop ix
    jr c,zcall_ext.exit
    ld a,ZVAR_STACK

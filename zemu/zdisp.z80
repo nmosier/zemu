@@ -80,4 +80,5 @@ sys_clrcurrow:
    rlca ; a *= 8
    add a,$80
    jp _ClearRow
-   
+
+

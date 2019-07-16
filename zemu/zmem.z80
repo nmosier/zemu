@@ -144,9 +144,8 @@ zsave_create:
 ;; zstack_enter -- enter new stack frame
 ;; INPUTS:
 ;;  a = number of local variables
-;;  b = variable in which to store result
 ;; OUTPUTS: (none)
-;; DESTROYS: a,hl,de,ix
+;; DESTROYS: hl,de,ix
 ;; ERRORS: (none)
 zstack_enter:
    push bc ; save variable number
@@ -168,9 +167,8 @@ zstack_enter:
    ld (zframe_nl),a
    ; update return variable
    pop bc ; restore variable number
-   ld a,b
-   ld (zframe_rv),a
    ret   
+
 
 ;; zstack_leave -- leave current stack frame
 ;; INPUTS: (none)

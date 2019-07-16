@@ -72,8 +72,6 @@ zaddr_to_paddr.get_offset:
 
 zaddr_to_paddr.long: .dl 0
 
-;; TODO: consider parameterizing zaddr_fetch and zaddr_store,
-;;       since they only differ by a single instruction?
 
 ;; zaddr_fetch -- fetch byte at logical address
 ;; INPUTS:
@@ -162,8 +160,8 @@ zaddr_fetchb:
 ;; ERROR: yes.
 ;; DESTROYS: everything but de
 zaddr_store:
-   push hl
    push de
+   push hl
    call zaddr_to_paddr
    ex de,hl
    pop hl

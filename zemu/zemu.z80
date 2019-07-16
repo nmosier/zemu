@@ -12,6 +12,8 @@
 start:
    ; clear screen & reset cursor
    call _ClrScrnFull
+   ; no scrolling for now
+   res appAutoScroll,(iy+appFlags)
    xor a,a
    ld (syscurrow),a
    ld (syscurcol),a
@@ -27,6 +29,7 @@ start:
    jp c,zemu_perror
    call test
    jp _GetKey
+
 
 test:
    ; test call & run until
@@ -150,15 +153,6 @@ zemu_open.table_init.loop:
    inc de
    inc de
    ld (ix+ZMAP_ENT_PTR),de
-   ;;; DEBUG ;;;
-   lea hl,ix+ZMAP_ENT_VARNAME
-   push ix
-   push bc
-   call _PutS
-   call _NewLine
-   pop bc
-   pop ix
-   ;;; DEBUG ;;;
 zemu_open.table_init.loop_end:      
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition

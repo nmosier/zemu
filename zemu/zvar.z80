@@ -151,7 +151,7 @@ zvar_store.global:
    push de
    call zvar_globaladdr
    pop de
-   call nc,zaddr_storew
+   jp nc,zaddr_storew
    ret
 
 ;; zvar_downcast -- cast unsigned value to 24 bits to 8 bits

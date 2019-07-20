@@ -234,6 +234,49 @@ memset_short.loop:
    djnz memset_short.loop
    ret
 
+;; memset
+;; INPUTS:
+;;  hl = src
+;;  bc = len
+;;  a = value
+;; OUTPUTS:
+;; ERRORS: no.
+;; DESTROYS: all but %a
+memset:
+   ex de,hl
+   ld hl,1
+   or a,a
+   sbc hl,bc
+   ex de,hl
+   jr c,_
+   ret nz ; bc == 0
+_
+   ld (hl),a
+   ret z ; bc == 1
+   push hl \ pop de ; ld de,hl
+   inc de
+   dec bc ; prime ldir
+   ldir
+   ret   
+
+;; memmove -- move possibly overlapping memory from src to dst
+;; INPUTS:
+;;  hl = src
+;;  de = dst
+;;  bc = len
+;; OUTPUTS:
+;; ERRORS:
+;; DESTROYS:
+memmove:
+   push hl
+   ld hl,0
+   or a,a
+   sbc hl,bc
+   pop hl
+   ret z ; bc == 0
+   ldir
+   ret
+
 ;; div_hl_de -- divide hl by de using 24-bit signed division
 ;; INPUTS:
 ;;  hl (dividend), de (divisor)
@@ -728,3 +771,27 @@ hexstr.loop:
 
 hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
 
+
+;; ktoch -- convert key scan code (as returned by GetKey) to ASCII char
+;; INPUTS:
+;;  a = key scan code
+;; OUTPUTS:
+;;  a = ASCII char
+;; ERRORS: a == 0 if not convertible to character.
+;; DESTROYS: (none)
+;; TODO: this is not completed.
+ktoch:
+   JCLASS(kCapA,kCapZ,ktoch.alpha)
+   JCLASS(k0,k9,ktoch.digit)
+   xor a,a
+   ret
+
+ktoch.alpha:
+   add a,'A'-kCapA
+   ret
+
+ktoch.digit:
+   add a,'0'-k0
+   ret
+
+   

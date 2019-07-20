@@ -82,3 +82,45 @@ sys_clrcurrow:
    jp _ClearRow
 
 
+
+;; zdisp_rowaddr -- address of row in VRAM
+;; INPUTS:
+;;  a = row number
+;; OUTPUTS:
+;;  hl = row address
+;; DESTROYS: de
+;; ERRORS: no.
+zdisp_rowaddr:
+   ; lcdWidth = 64 * 5 = 2^6 * 5
+   ld hl,0
+   ld l,a
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   push hl
+   add hl,hl
+   add hl,hl
+   pop de
+   add hl,de
+   ld de,vRam
+   add hl,de
+   ret
+
+
+;; zdisp_pixaddr -- address of pixel in VRAM
+;; INPUTS:
+;;  a = row number
+;;  hl = column number
+;; OUTPUTS:
+;;  hl = pixel address
+;; DESTROYS: de
+;; ERRORS: no.
+zdisp_pixaddr:
+   push hl
+   call zdisp_rowaddr
+   pop de
+   add hl,de
+   ret
+   

@@ -1,2 +1,385 @@
 ;; zwin.z80 -- window management routines
+;; TODO -- need to unscale rows
+
+
+#include "zwin.inc"
+#include "zstr.inc"
+
+;; zwin_select -- select window for displaying characters
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+;; ERRORS: no.
+zwin_select:
+   push af
+   push hl
+   ld a,(ix+ZWIN.CURROW)
+   ld (penRow),a
+   ld hl,(ix+ZWIN.CURCOL)
+   ld (penCol),hl
+   pop hl
+   pop af
+   ret
+
+;; zwin_clear -- clear window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: a, hl, de, bc
+;; ERRORS: no.
+zwin_clear:
+   ld a,ZWIN_CLEARCOLOR
+   jp zwin_fill
+   
+
+;; zwin_fill -- fill window
+;; INPUTS:
+;;  a = value to fill with
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: a, hl, de, bc
+;; ERRORS: no.
+zwin_fill:
+   ld b,(ix+ZWIN.HEIGHT)
+   inc b \ dec b
+   ret z ; check if height is zero
+   push af
+   ld hl,(ix+ZWIN.ORGCOL)
+   ld a,(ix+ZWIN.ORGROW)
+   call zdisp_pixaddr ; preserves b
+   pop af
+zwin_fill.loop:
+   push hl
+   ld d,b ; preserve remaining height
+   ld bc,(ix+ZWIN.WIDTH)
+   sla c
+   rr b ; bc * PIXEL_SIZE
+   call memset ; preserves %a
+   ld b,d
+   pop hl
+   ld de,VRAM_WIDTH ; add stride
+   add hl,de
+   djnz zwin_fill.loop
+   ret   
+   
+   
+;; zwin_org -- set window's cursor back to the origin
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: a, hl
+;; ERRORS: no.
+zwin_org:
+   ld hl,(ix+ZWIN.ORGCOL)
+   ld (ix+ZWIN.CURCOL),hl
+   ld a,(ix+ZWIN.ORGROW)
+   ld (ix+ZWIN.CURROW),a
+   ret
+
+;; zwin_putc -- put character in window, buffered
+;; zwin_putc_bare -- put character in window, unbuffered
+;; INPUTS:
+;;  ix = pointer to window struct
+;;  a = character
+;; OUTPUTS: (none)
+;; DESTROYS: all but a,ix
+;; ERRORS: no.
+
+zwin_putc:
+   scf
+   jr zwin_putc.base
+
+zwin_putc_bare:
+   or a,a
+   jr zwin_putc.base
+
+;; preserves %a
+zwin_putc.base:
+   push bc \ push hl \ push de
+   push af
+   ; 1.  Check if newline.
+   cp a,ASCII_NEWLINE
+   jr z,zwin_putc.newline
+   push ix
+   ld hl,(ix+ZWIN.CURCOL)
+   ld bc,0
+   call sfont_width ; bc = character width
+   push bc
+   add hl,bc
+   ld bc,(ix+ZWIN.WIDTH)
+   scf
+   sbc hl,bc ; new strlen - width - 1
+   call nc,zwin_newline_bare ; don't buffer
+   call zwin_select ; select window for writing
+   call _VPutMap ; display char
+   pop bc
+   pop ix
+   ; update current column
+   ld hl,(ix+ZWIN.CURCOL)
+   add hl,bc
+   ld (ix+ZWIN.CURCOL),hl
+zwin_putc.done:
+   pop af
+   ; Buffer char
+   call c,zwin_bufc
+   pop de \ pop hl \ pop bc
+   ret
+
+zwin_putc.newline:
+   call zwin_newline_bare ; already buffered
+   jr zwin_putc.done
+
+
+;; zwin_newline -- put newline in window, buffered
+;; zwin_newline_bare -- put newline in window, unbuffered
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: all but ix and %a
+;; ERRORS: no.
+;; TODO: buffer this.
+zwin_newline:
+   scf
+zwin_newline.base:
+   push af
+   ld a,ASCII_NEWLINE
+   call c,zwin_bufc ; put newline character in buffer
+zwin_newline.loop:
+   ld a,(ix+ZWIN.CURROW)
+   add a,SFONT_HEIGHT
+   cp a,(ix+ZWIN.HEIGHT)
+   jr c,zwin_newline.curset
+   ; scroll
+   call zwin_scroll
+   jr zwin_newline.loop ; retry now
+zwin_newline.curset:
+   ld (ix+ZWIN.CURROW),a
+   ld hl,(ix+ZWIN.ORGCOL)
+   ld (ix+ZWIN.CURCOL),hl
+   pop af
+   ret
+
+zwin_newline_bare:
+   or a,a ; NC
+   jr zwin_newline.base
+
+;; zwin_scroll -- scroll down one line of text in window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: all but ix
+zwin_scroll:
+   call zwin_trunc
+   jp zwin_redraw
+
+;; zwin_redraw -- clear and then display contents of window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: all but ix
+;; TODO: this could be optimized to just copy contents in VRAM.
+zwin_redraw:
+   call zwin_clear
+   call zwin_org ; reset internal cursor to origin
+   lea bc,ix+ZWIN.BUF
+   ld hl,(ix+ZWIN.BUFPTR)
+   or a,a ; NC
+   sbc hl,bc
+   push hl \ pop bc
+   lea hl,ix+ZWIN.BUF
+   jp zwin_putsn_bare
+
+;; zwin_bufc -- put character in buffer
+;; INPUTS:
+;;  ix = pointer to window struct
+;;  a = character
+;; OUTPUTS: (none)
+;; DESTROYS: all but a
+;; ERRORS: no.
+;; NOTE: This never fails. If there isn't enough space in the buffer,
+;;       it truncates it first then appends the character.
+zwin_bufc:
+   bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+   ret z ; this window isn't buffered
+   lea hl,ix+ZWIN.BUF
+   ld de,(ix+ZWIN.BUFLEN)
+   add hl,de
+   ex de,hl
+   ld hl,(ix+ZWIN.BUFPTR)
+   sbc hl,de
+   call nc,zwin_trunc ; a preserved
+   ld hl,(ix+ZWIN.BUFPTR)
+   ld (hl),a
+   inc hl
+   ld (ix+ZWIN.BUFPTR),hl
+   ret
+
+
+;; zwin_eol -- find end of first line
+;; INPUTS:
+;;  de = buffer begin pointer
+;;  bc = buffer end pointer
+;;  hl = width of window
+;; OUTPUTS:
+;;  hl = pointer to end of first line
+;;  CF indicates whether line was overflown
+;; DESTROYS: all but a
+;; ERRORS: no.
+zwin_eol:
+   jr zwin_eol.entry
+zwin_eol.loop:
+   ; hl = remaining width
+   ; de = buffer pointer
+   ; bc = buffer end
+   ; 1. Check if newline. Note that we do want to delete this char (i.e. inc de).
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   jr z,zwin_eol.inc_found
+   push bc
+   ld bc,0 ; zero-extend char width
+   call sfont_width
+   or a,a ; NC
+   sbc hl,bc
+   pop bc
+   jr c,zwin_eol.found ; found 1st character that doens't find on line
+   inc de ; otherwise, need to consider next character
+zwin_eol.entry:
+   ; compare buffer pointer with buffer end
+   ex de,hl
+   or a,a
+   sbc hl,bc
+   add hl,bc
+   ex de,hl
+   jr nz,zwin_eol.loop
+   ; reached end of buffer without overflowing first line
+zwin_eol.end:
+   ex de,hl
+   ; hl = pointer to end of buffer
+   scf ; C
+   ret
+zwin_eol.inc_found:
+   inc de
+zwin_eol.found:
+   ex de,hl
+   ; hl = pointer to end of line
+   or a,a ; NC
+   ret
+
+;; zwin_trunc -- truncate line from buffer
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: all but a
+;; ERRORS: no.
+;; NOTE: doesn't trigger redisplay of window.
+zwin_trunc:
+   bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+   ret z ; can't truncate if not buffered
+   ; hl = width of window
+   ; de = buffer begin
+   ; bc = buffer end
+   ld hl,(ix+ZWIN.WIDTH)
+   lea de,ix+ZWIN.BUF
+   ld bc,(ix+ZWIN.BUFPTR)
+   call zwin_eol
+   ; hl = (one past) end of first line
+   ; need to erase all bytes between ix+ZWIN.BUF and hl
+   ex de,hl
+   ld hl,(ix+ZWIN.BUFPTR)
+   or a,a
+   sbc hl,de ; hl = # of bytes to keep
+   push hl \ pop bc
+   ; bc = count
+   ; de = EOL ptr
+   push de ; save EOL ptr
+   ex de,hl ; hl = EOL ptr
+   lea de,ix+ZWIN.BUF
+   sbc hl,de ; size of bytes to delete
+   ex de,hl
+   ld hl,(ix+ZWIN.BUFPTR)
+   or a,a
+   sbc hl,de ; shifted bufptr
+   ld (ix+ZWIN.BUFPTR),hl ; save new bufptr
+   pop hl ; restore EOL ptr
+   lea de,ix+ZWIN.BUF
+   ; hl = EOL ptr
+   ; de = buf begin
+   ; bc = number of bytes to keep
+   jp memmove
+   
+
+;; zwin_puts -- put string in window, buffered, null-terminated
+;; zwin_puts_bare -- put string in window, unbuffered
+;; INPUTS:
+;;  ix = pointer to window struct
+;;  hl = pointer to string
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: all but ix
+zwin_puts:
+   jr zwin_puts.entry
+zwin_puts.loop:
+   call zwin_putc
+   inc hl
+zwin_puts.entry:
+   ld a,(hl)
+   or a,a
+   jr nz,zwin_puts.loop
+zwin_puts.end:
+   ret
+
+zwin_puts_bare:
+   jr zwin_puts_bare.entry
+zwin_puts_bare.loop:
+   call zwin_putc_bare
+   inc hl
+zwin_puts_bare.entry:
+   ld a,(hl)
+   or a,a
+   jr nz,zwin_puts_bare.loop
+zwin_puts_bare.end:
+   ret
+
+
+;; zwin_putsn -- put string in window, buffered, n bytes
+;; zwin_putsn_bare -- put string in window, unbuffered, n bytes
+;; INPUTS:
+;;  ix = pointer to window struct
+;;  hl = pointer to string
+;;  bc = length of string
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS:
+zwin_putsn_bare:
+   ld de,0
+   jr zwin_putsn_bare.entry
+zwin_putsn_bare.loop:
+   call zwin_putc_bare
+   inc hl
+   dec bc
+zwin_putsn_bare.entry:
+   ex de,hl
+   sbc hl,bc
+   add hl,bc
+   ret z ; reached end of string
+   ex de,hl
+   ld a,(hl)
+   or a,a
+   jr nz,zwin_putsn_bare.loop
+zwin_putsn_bare.done:
+   ret
+   
+
+screentest:
+   ; zero out everything
+   ld hl,vRam
+   ld (hl),$00
+   ld de,vRam+1
+   ;   ld bc,lcdWidth*16-1;(vRamEnd-(vRam+1))/2
+   ld bc,vRamEnd-(vRam+1)
+   ldir
+   ret
 

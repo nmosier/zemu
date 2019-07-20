@@ -32,4 +32,8 @@ VARNAMELEN .equ 8
 #endif    
 #endmacro
 
+#macro MASK(n)
+    1 << n
+#endmacro
+
 #endif

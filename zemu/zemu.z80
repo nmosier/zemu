@@ -11,7 +11,8 @@
 
 start:
    ; clear screen & reset cursor
-   call _ClrScrnFull
+   ;   call _ClrScrnFull
+   call screentest
    ; no scrolling for now
    res appAutoScroll,(iy+appFlags)
    xor a,a
@@ -214,3 +215,4 @@ zork_save: .db "SAVE1",0
 #include "zdisp.z80"
 #include "zinput.z80"
 #include "zdbg.z80"
+#include "zwin.z80"

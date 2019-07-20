@@ -1,4 +1,4 @@
-;; zwin.z80 -- window management routines
+A;; zwin.z80 -- window management routines
 ;; TODO -- need to unscale rows
 
 
@@ -54,7 +54,7 @@ zwin_fill.loop:
    ld d,b ; preserve remaining height
    ld bc,(ix+ZWIN.WIDTH)
    sla c
-   rr b ; bc * PIXEL_SIZE
+   rl b ; bc * PIXEL_SIZE
    call memset ; preserves %a
    ld b,d
    pop hl
@@ -85,7 +85,6 @@ zwin_org:
 ;; OUTPUTS: (none)
 ;; DESTROYS: all but a,ix
 ;; ERRORS: no.
-
 zwin_putc:
    scf
    jr zwin_putc.base
@@ -371,15 +370,71 @@ zwin_putsn_bare.entry:
    jr nz,zwin_putsn_bare.loop
 zwin_putsn_bare.done:
    ret
-   
 
-screentest:
-   ; zero out everything
-   ld hl,vRam
-   ld (hl),$00
-   ld de,vRam+1
-   ;   ld bc,lcdWidth*16-1;(vRamEnd-(vRam+1))/2
-   ld bc,vRamEnd-(vRam+1)
-   ldir
+
+;; zwin_setcur -- set cursor in window
+;; INPUTS:
+;;  ix = pointer to window struct
+;;  hl = col, relative to window origin
+;;  a = row, relative to window origin
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; NOTE: doesn't check if given row and col are within bounds of window.
+zwin_setcur:
+   push de
+   ld de,(ix+ZWIN.ORGCOL)
+   add hl,de
+   ld (ix+ZWIN.CURCOL),hl
+   add a,(ix+ZWIN.CURROW)
+   ld (ix+ZWIN.CURROW),a
+   pop de
    ret
 
+;; zwin_split_top -- split off window from top of base window
+;; zwin_split_bottom -- split off window from bottom of base window
+;; INPUTS:
+;;  ix = base window
+;;  iy = new window
+;;  a = height of new window
+;; OUTPUTS: (none)
+;; DESTROYS: a, hl, de, bc
+;; ERRORS: no.
+;; NOTES:
+;;  Inherits flags.
+;;  Both cursors reset to origin.
+;;  Doesn't modify buffer of either window.
+zwin_split_top:
+   scf ; top
+   jr zwin_split.base
+
+zwin_split_bottom:
+   or a,a ; NC
+   jr zwin_split.base
+
+zwin_split.top:
+   ; update height
+   sub a,(ix+ZWIN.ORGROW)
+   neg
+   jr zwin_split.row
+
+zwin_split.bottom:
+   add a,(ix+ZWIN.ORGROW) ; new orgrow
+   jr zwin_split.row
+   
+zwin_split.base:
+   ; copy bases (not buffers)
+   lea hl,ix
+   lea de,iy
+   ld bc,ZWIN_NOBUF_SIZE ; only copy dimension fields, not buffer fields
+   ldir
+   ; update height
+   ld (iy+ZWIN.HEIGHT),a
+   ; compute new row
+   jr c,zwin_split.top
+   jr zwin_split.bottom
+zwin_split.row:
+   ; update orgrow
+   ld (iy+ZWIN.ORGROW),a
+   ret
+   

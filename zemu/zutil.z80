@@ -2,6 +2,7 @@
 #include "zemu.inc"
 #include "zerr.inc"
 #include "zutil.inc"
+#include "zstr.inc"
 
 ; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
 ; INPUTS:

@@ -8,6 +8,7 @@
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+#if 0
 sysputc:
    push de
    push ix
@@ -30,12 +31,14 @@ sysputc.done:
    pop de
    ld a,b
    ret
+#endif
 
 ;; sysnewline -- wrapper for newline system entry point
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+#if 0
 sysnewline:
    push af
    ld a,(penRow)
@@ -45,7 +48,8 @@ sysnewline:
    ld (penCol),a
    ld (penCol+1),a
    pop af
-   ret   
+   ret
+#endif
 
 ;; sfont_width -- get width of small font character
 ;; INPUTS:

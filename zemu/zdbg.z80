@@ -3,12 +3,18 @@
 #include "zdbg.inc"
 
 ;; zdbg_puts -- put string in debug line
+;; NOTE: clears line first.
 zdbg_puts:
-   ld a,ZDBG_OUTPUT_ROW
-   ld (curRow),a
-   ld a,ZDBG_OUTPUT_COL
-   ld (curCol),a
-   jp _PutS
+   push ix \ push de \ push bc
+   push hl
+   ld ix,zwin.debug
+   call zwin_org
+   pop hl
+   push hl
+   call zwin_puts
+   pop hl
+   pop bc \ pop de \ pop ix
+   ret
 
 ;; zdbg_step -- do stuff before instruction is executed
 zdbg_step:

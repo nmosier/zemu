@@ -831,7 +831,9 @@ zexec.print_char:
 zexec.print_num:
    ld a,1
    call zop_readn
-   jp nc,zstr_putn
+   ret c
+   call zstr_putn
+   or a,a ; NC
    ret
 
 zexec.random:

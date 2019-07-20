@@ -18,6 +18,7 @@ zstr_abbraddr:
 ;; DESTROYS:
 ;; ERRORS:
 zstr_putc:
+   ld ix,zwin.main
    ld hl,zstr_flags
    ; 1. Interpet as abbreviation code?
    bit ZSTR_FLAGS_ABBR,(hl)
@@ -70,7 +71,7 @@ zstr_putc.char.A2:
    jr nz,zstr_putc.char.print
    ;; newline
    ;   call _NewLine
-   call sysnewline
+   call zwin_newline
    or a,a
    ret
 
@@ -79,13 +80,13 @@ zstr_putc.char.print:
    ld e,a
    add hl,de
    ld a,(hl)
-   call sysputc
+   call zwin_putc
    scf \ ccf
    ret
 
 zstr_putc.space:
    ld a,' '
-   call sysputc
+   call zwin_putc
    scf \ ccf
    ret
 
@@ -225,6 +226,8 @@ zstr_A2.tab: .db " ^0123456789.,!?_#'\"/\-:()"
 ;; DESTROYS: (all)
 ;; ERRORS: no.
 zstr_putn:
+   ; 0. Set main window.
+   ld ix,zwin.main
    ; 1. Check sign
    ex de,hl
    ld hl,0
@@ -239,7 +242,7 @@ zstr_putn:
    ex de,hl
    add hl,de ; get back abs val
    ld a,'-'
-   call sysputc ; display negative sign
+   call zwin_putc ; display negative sign
 zstr_putn.u:
    ; NOTE: at least one digit will always be written, even if hl = 0.
    ;       this is what we want.
@@ -265,7 +268,7 @@ zstr_putn.loop:
 zstr_putn.disploop:
    ld a,(hl)
    add a,'0'
-   call sysputc
+   call zwin_putc
    inc hl
    djnz zstr_putn.disploop
    ret

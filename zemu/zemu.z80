@@ -10,9 +10,11 @@
 .db tExtTok, tAsm84CeCmp
 
 start:
+   ld ix,zwin.main
+   call zwin_clear
+
+
    ; clear screen & reset cursor
-   ;   call _ClrScrnFull
-   call screentest
    ; no scrolling for now
    res appAutoScroll,(iy+appFlags)
    xor a,a
@@ -30,6 +32,15 @@ start:
    jp c,zemu_perror
    call test
    jp _GetKey
+
+
+;; intialize windows
+init_windows:
+
+zwin_main: D_ZWIN(ZWIN.MAIN.ORGCOL, ZWIN.MAIN.ORGROW, ZWIN.MAIN.WIDTH, ZWIN.MAIN.HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
+
+zwin_debug: D_ZWIN(ZWIN.DEBUG.ORGCOL, ZWIN.DEBUG.ORGROW, ZWIN.DEBUG.WIDTH, ZWIN.DEBUG.HEIGHT, 0, 0)
+
 
 
 test:

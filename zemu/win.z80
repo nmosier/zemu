@@ -1,5 +1,6 @@
 #include "ti84pce.inc"
 #include "zwin.inc"
+#include "zstr.inc"
 #include "zutil.inc"
 
 .assume ADL=1
@@ -10,35 +11,23 @@
 start:
    ld ix,win1
    call zwin_clear
-   ld hl,nlstr
+   ld hl,str1
    call zwin_puts
+   call _GetKey
+   ld a,ASCII_DEL
+   call zwin_putc
    call _GetKey
    
 done:
    ret
 
 
-str: .db "ab",$a,"cd",$a,"ef",0
-
-nlstr: .db 'a',$a,'b',$a,'c',$a,'d',$a,'e',0
-
 str1: .db "abcdefgh",0
 str2: .db "ijklmnop",0
 str3: .db "qrstuvwxyz",0
 
 
-win1:
-   .dl 0 ; curcol
-   .db 0 ; currow
-   .dl 0 ; orgcol
-   .db 0 ; orgrow
-   .dl 40 ; width
-   .db 30 ; height
-   .db MASK(ZWIN.FLAGS.BUFD) ; flags
-   .dl 32 ; buflen
-   .dl win1.buf ; bufptr
-win1.buf:
-   RESB(32) ; buffer
+win1: D_ZWIN(0,0,40,30,MASK(ZWIN.FLAGS.BUFD),32)
 
 ;; dummy
 zaddr_fetch:

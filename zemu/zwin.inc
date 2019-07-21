@@ -20,6 +20,7 @@
 
 ZWIN.CURCOL .equ 0      ; L 3
 ZWIN.CURROW .equ 3      ; B 1
+ZWIN.RECT   .equ 4
 ZWIN.ORGCOL .equ 4      ; L 3
 ZWIN.ORGROW .equ 7      ; B 1
 ZWIN.WIDTH  .equ 8      ; L 3

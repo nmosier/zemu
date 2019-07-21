@@ -29,41 +29,24 @@ zwin_select:
 ;; DESTROYS: a, hl, de, bc
 ;; ERRORS: no.
 zwin_clear:
-   ld a,ZWIN_CLEARCOLOR
+   ld hl,$ffff
    call zwin_fill
    jp zwin_org
    
 
 ;; zwin_fill -- fill window
 ;; INPUTS:
-;;  a = value to fill with
+;;  hl = value to fill with
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
 ;; DESTROYS: a, hl, de, bc
 ;; ERRORS: no.
 zwin_fill:
-   ld b,(ix+ZWIN.HEIGHT)
-   inc b \ dec b
-   ret z ; check if height is zero
-   push af
-   ld hl,(ix+ZWIN.ORGCOL)
-   ld a,(ix+ZWIN.ORGROW)
-   call zdisp_pixaddr ; preserves b
-   pop af
-zwin_fill.loop:
-   push hl
-   ld d,b ; preserve remaining height
-   ld bc,(ix+ZWIN.WIDTH)
-   sla c
-   rl b ; bc * PIXEL_SIZE
-   call memset ; preserves %a
-   ld b,d
-   pop hl
-   ld de,VRAM_WIDTH ; add stride
-   add hl,de
-   djnz zwin_fill.loop
-   ret   
-   
+   push ix
+   lea ix,ix+ZWIN.RECT
+   call zdisp_fillrect
+   pop ix
+   ret
    
 ;; zwin_org -- set window's cursor back to the origin
 ;; INPUTS:
@@ -101,6 +84,9 @@ zwin_putc.base:
    ; 1.  Check if newline.
    cp a,ASCII_NEWLINE
    jr z,zwin_putc.newline
+   ; 2. Check if delete.
+   cp a,ASCII_DEL
+   jr z,zwin_putc.del
    push ix
    ld hl,(ix+ZWIN.CURCOL)
    ld bc,0
@@ -130,7 +116,31 @@ zwin_putc.newline:
    call zwin_newline_bare ; already buffered
    jr zwin_putc.done
 
+zwin_putc.del:
+   call zwin_unputc
+   jr zwin_putc.done
 
+;; zwin_unputc -- remove last character from window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; ERRORS:
+;; DESTROYS:
+;; NOTES: erases character on screen.
+;; TODO: optimization.
+zwin_unputc:
+   push hl \ push de
+   ld hl,(ix+ZWIN.BUFPTR)
+   lea de,ix+ZWIN.BUF
+   sbc hl,de
+   jr z,_ ; nothing to unput
+   add hl,de
+   dec hl
+   ld (ix+ZWIN.BUFPTR),hl
+   call zwin_redraw
+_  pop de \ pop hl
+   ret
+   
 ;; zwin_newline -- put newline in window, buffered
 ;; zwin_newline_bare -- put newline in window, unbuffered
 ;; INPUTS:
@@ -362,6 +372,7 @@ zwin_putsn_bare.loop:
    dec bc
 zwin_putsn_bare.entry:
    ex de,hl
+   or a,a
    sbc hl,bc
    add hl,bc
    ret z ; reached end of string
@@ -457,3 +468,40 @@ zwin_split.cont:
    pop iy
    ret
    
+
+;; zwin_getc -- get input character
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS:
+;;  a = char
+;; ERRORS: no.
+;; DESTROYS: all but a, ix
+zwin_getc:
+   call _GetKey
+   call ktoch
+   jp zwin_putc
+
+;; zwin_getsn -- get input string
+;; INPUTS:
+;;  hl = pointer to buffer
+;;  ix = pointer to window struct
+;;  bc = number of bytes
+;; OUTPUTS:
+;; ERRORS:
+;; DESTROYS:
+zwin_getsn:
+   ld de,0
+   
+zwin_getsn.loop:
+   call zwin_getc
+   
+
+zwin_getsn.entry:
+   ex de,hl
+   or a,a
+   sbc hl,bc
+   add hl,bc
+   ex de,hl
+   jr nz,zwin_getsn.done
+
+zwin_getsn.done:

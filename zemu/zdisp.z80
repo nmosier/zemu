@@ -1,5 +1,4 @@
 ;; zdisp.z80 -- display routines
-
 #include "zdisp.inc"
 
 ;; sfont_width -- get width of small font character
@@ -79,4 +78,36 @@ zdisp_pixaddr:
    pop de
    add hl,de
    ret
-   
+
+;; zdisp_fillrect -- fill rectangle
+;; INPUTS:
+;;  hl = fill value
+;;  ix = pointer to zrect
+zdisp_fillrect:
+   ld (fillRectColor),hl
+   ld hl,(ix+ZRECT.ORGCOL)
+   ld de,(ix+ZRECT.WIDTH)
+   add hl,de
+   ex de,hl
+   dec de
+   ld hl,(ix+ZRECT.ORGCOL)
+   ; cols set
+   ld a,(ix+ZRECT.ORGROW)
+   ld b,a
+   add a,(ix+ZRECT.HEIGHT)
+   dec a
+   ld c,a
+   push ix
+   call _FillRect
+   pop ix
+   ret
+
+;; zdisp_init -- do basic initialization of LCD
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: a
+zdisp_init:
+;   ld a,$2D
+;   ld (mpLcdRange+lcdCtrl),a
+   ret

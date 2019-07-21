@@ -11,6 +11,7 @@
 .db tExtTok, tAsm84CeCmp
 
 start:
+   call zdisp_init
    call init_windows
    
    ; clear screen & reset cursor

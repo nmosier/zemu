@@ -19,7 +19,9 @@ ZSTR_AMAX .equ $1f
 ZSTR_ALEN .equ ZSTR_AMAX - ZSTR_AMIN + 1
 
 ZSTR_NEWLINE .equ '^'
+
 ASCII_NEWLINE .equ $0a
+ASCII_DEL .equ $7f
 
 ZSTR_NCODES .equ 32
 ZSTR_CODEMASK .equ $1f

@@ -13,9 +13,24 @@ SFONT_TAB_ENTLEN .equ $19
 DISP_WIDTH .equ lcdWidth
 DISP_HEIGHT .equ lcdHeight
 
-PIXEL_SIZE .equ 1 ; bytes per pixel
+;; struct zrect
+;; L orgcol
+;; B orgrow
+;; L width
+;; B height
+ZRECT.ORGCOL .equ 0
+ZRECT.ORGROW .equ 3
+ZRECT.WIDTH  .equ 4
+ZRECT.HEIGHT .equ 7
 
-VRAM_WIDTH .equ DISP_WIDTH * PIXEL_SIZE
+ZRECT_SIZE .equ 8
 
+
+#macro D_ZRECT(orgcol, orgrow, width, height)
+       .dl orgcol
+       .db orgrow
+       .dl width
+       .db height
+#endmacro
 
 #endif

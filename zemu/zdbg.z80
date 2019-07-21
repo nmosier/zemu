@@ -199,8 +199,8 @@ zdbg_readaddr.shift:
    jr zdbg_readaddr.loop
 
 
-zdbg_readaddr.buf: RESB(16)
 
+zdbg_readaddr.buf: RESB(16)
 ;; zdbg_gets -- get string
 ;; INPUTS:
 ;;  hl = pointer to output buffer

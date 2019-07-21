@@ -784,7 +784,9 @@ hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
 ktoch:
    JCLASS(kCapA,kCapZ,ktoch.alpha)
    JCLASS(k0,k9,ktoch.digit)
+   JCHAR(kEnter,ASCII_NEWLINE,ktoch.done)
    xor a,a
+ktoch.done:
    ret
 
 ktoch.alpha:

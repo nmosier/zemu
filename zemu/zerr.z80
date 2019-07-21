@@ -51,28 +51,33 @@ zerrtab:
 ;;  error-handling code can jump to zemu_perror without having
 ;;  to set the carry flag after calling zemu_perror.
 zemu_perror:
-   call _PutS
+   ld ix,win_debug
+   push af
+   push hl
+   ; clear window
+   ; call zwin_clear
+   pop hl ; resotre name string
+   or a,a ; NC
+   ld de,0
+   sbc hl,de
+   jr z,zemu_perror.bare
+   call zwin_puts
    ld hl,zemu_perror.sep
-   call _PutS
-   call zemu_perror_bare
-   call _NewLine   
+   call zwin_puts
+   jr zemu_perror.bare
+zemu_perror.done:
    scf
    ret
 zemu_perror.sep: .db ": ",0
 
-zemu_perror_bare:
+zemu_perror.bare:
+   pop af
+   push ix
    call zemu_strerror
-   call _PutS
-   ret
+   pop ix
+   call zwin_puts
+   jr zemu_perror.done
 
-zemu_perror_OP1:
-   call zemu_perror_bare
-   ld hl,zemu_perror_sep
-   call _PutS
-   ld hl,OP1+1
-   call _PutS
-   scf
-   ret
 
 zemu_perror_sep: .db ": ",0
 

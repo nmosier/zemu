@@ -30,7 +30,8 @@ zwin_select:
 ;; ERRORS: no.
 zwin_clear:
    ld a,ZWIN_CLEARCOLOR
-   jp zwin_fill
+   call zwin_fill
+   jp zwin_org
    
 
 ;; zwin_fill -- fill window
@@ -397,44 +398,62 @@ zwin_setcur:
 ;;  ix = base window
 ;;  iy = new window
 ;;  a = height of new window
+;;  b = flags of new window
 ;; OUTPUTS: (none)
 ;; DESTROYS: a, hl, de, bc
 ;; ERRORS: no.
 ;; NOTES:
-;;  Inherits flags.
 ;;  Both cursors reset to origin.
 ;;  Doesn't modify buffer of either window.
 zwin_split_top:
-   scf ; top
+   ld c,1
    jr zwin_split.base
 
 zwin_split_bottom:
-   or a,a ; NC
+   ld c,0
    jr zwin_split.base
 
-zwin_split.top:
-   ; update height
-   sub a,(ix+ZWIN.ORGROW)
-   neg
-   jr zwin_split.row
-
-zwin_split.bottom:
-   add a,(ix+ZWIN.ORGROW) ; new orgrow
-   jr zwin_split.row
+; b contains new height
+zwin_split.org_top:
+   ld a,(ix+ZWIN.ORGROW)
+   ld (iy+ZWIN.ORGROW),a
+   add a,(iy+ZWIN.HEIGHT)
+   ld (ix+ZWIN.ORGROW),a
+   jr zwin_split.cont
+   
+zwin_split.org_bottom:
+   ld a,(ix+ZWIN.ORGROW)
+   add a,(ix+ZWIN.HEIGHT)
+   ld (iy+ZWIN.ORGROW),a
+   jr zwin_split.cont
    
 zwin_split.base:
-   ; copy bases (not buffers)
-   lea hl,ix
-   lea de,iy
-   ld bc,ZWIN_NOBUF_SIZE ; only copy dimension fields, not buffer fields
-   ldir
-   ; update height
+   ; copy unchanged fields
+   ld hl,(ix+ZWIN.ORGCOL)
+   ld (iy+ZWIN.ORGCOL),hl
+   ld hl,(ix+ZWIN.WIDTH)
+   ld (iy+ZWIN.WIDTH),hl
+   ; set flags
+   ld (iy+ZWIN.FLAGS),b
+   ; update heights
    ld (iy+ZWIN.HEIGHT),a
-   ; compute new row
-   jr c,zwin_split.top
-   jr zwin_split.bottom
-zwin_split.row:
-   ; update orgrow
-   ld (iy+ZWIN.ORGROW),a
+   sub a,(ix+ZWIN.HEIGHT)
+   neg
+   ld (ix+ZWIN.HEIGHT),a
+   ; update org rows
+   xor a,a
+   cp a,c
+   jr c,zwin_split.org_top
+   jr zwin_split.org_bottom
+zwin_split.cont:
+   ; reset main window to org
+   call zwin_org
+   push iy
+   ex (sp),ix ; now iy <- ix
+   ; reset and clear new window
+   call zwin_org
+   call zwin_clear
+   ex (sp),ix
+   pop iy
    ret
    

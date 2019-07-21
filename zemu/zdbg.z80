@@ -7,7 +7,7 @@
 zdbg_puts:
    push ix \ push de \ push bc
    push hl
-   ld ix,zwin.debug
+   ld ix,win_debug
    call zwin_org
    pop hl
    push hl

@@ -2,6 +2,7 @@
 #include "zemu.inc"
 #include "zhdr.inc"
 #include "zutil.inc"
+#include "zwin.inc"
 
 .assume ADL=1
 .org userMem-2
@@ -10,19 +11,16 @@
 .db tExtTok, tAsm84CeCmp
 
 start:
-   ld ix,zwin.main
-   call zwin_clear
-
-
+   call init_windows
+   
    ; clear screen & reset cursor
    ; no scrolling for now
    res appAutoScroll,(iy+appFlags)
+
    xor a,a
-   ld (syscurrow),a
-   ld (syscurcol),a
-   ld (syscurcol+1),a
    ld (curRow),a
    ld (curCol),a
+   
    ld hl,zork_zmap
    call zemu_open ; open story file
    ld hl,zemu_open_str
@@ -36,10 +34,23 @@ start:
 
 ;; intialize windows
 init_windows:
+   ld ix,win_main
+   call zwin_clear
 
-zwin_main: D_ZWIN(ZWIN.MAIN.ORGCOL, ZWIN.MAIN.ORGROW, ZWIN.MAIN.WIDTH, ZWIN.MAIN.HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
+   push iy
+   ld iy,win_debug
+   ld a,SFONT_HEIGHT
+   ld b,0 ; don't buffer
+   call zwin_split_bottom
+   pop iy
+   
+   ret
 
-zwin_debug: D_ZWIN(ZWIN.DEBUG.ORGCOL, ZWIN.DEBUG.ORGROW, ZWIN.DEBUG.WIDTH, ZWIN.DEBUG.HEIGHT, 0, 0)
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
+
+win_debug: RES_ZWIN(0) ; not buffered
+
+;win_debug: D_ZWIN(ZWIN.DEBUG.ORGCOL, ZWIN.DEBUG.ORGROW, ZWIN.DEBUG.WIDTH, ZWIN.DEBUG.HEIGHT, 0, 0)
 
 
 

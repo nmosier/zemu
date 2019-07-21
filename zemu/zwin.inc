@@ -25,10 +25,11 @@ ZWIN.ORGROW .equ 7      ; B 1
 ZWIN.WIDTH  .equ 8      ; L 3
 ZWIN.HEIGHT .equ 11     ; B 1
 ZWIN.FLAGS  .equ 12     ; B 1
-ZWIN.FLAGS.BUFD .equ 0
 ZWIN.BUFLEN .equ 13     ; L 3
 ZWIN.BUFPTR .equ 16     ; L 3
 ZWIN.BUF    .equ 19
+
+ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
 
 ZWIN_NOBUF_SIZE .equ 13 ; without buffering
 ZWIN_BUF_BASE_SIZE .equ 19 ; all fixed-sized fields, with buffering
@@ -52,7 +53,7 @@ _ RESB(buflen) ; buf
 #endmacro
 
 #macro RES_ZWIN(buflen)
-  RESB(ZWIN_BASE_SIZE + buflen)
+  RESB(ZWIN_BUF_BASE_SIZE + buflen)
 #endmacro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -2,55 +2,6 @@
 
 #include "zdisp.inc"
 
-;; sysputc -- wrapper for putc system entry point
-;; INPUTS:
-;;  a = ASCII char to print
-;; OUTPUTS: (none)
-;; DESTROYS: (none)
-;; ERRORS: no.
-#if 0
-sysputc:
-   push de
-   push ix
-   push bc
-   ex de,hl
-   ld ix,penCol
-   ld l,(ix+0)
-   ld h,(ix+1)
-   call sfont_width
-   ld b,0
-   add.s hl,bc
-   ld bc,DISP_WIDTH+1
-   sbc hl,bc
-   ex de,hl
-   call nc,sysnewline
-   call _VPutMap
-sysputc.done:
-   pop bc
-   pop ix
-   pop de
-   ld a,b
-   ret
-#endif
-
-;; sysnewline -- wrapper for newline system entry point
-;; INPUTS: (none)
-;; OUTPUTS: (none)
-;; DESTROYS: (none)
-;; ERRORS: no.
-#if 0
-sysnewline:
-   push af
-   ld a,(penRow)
-   add a,SFONT_HEIGHT
-   ld (penRow),a
-   xor a,a
-   ld (penCol),a
-   ld (penCol+1),a
-   pop af
-   ret
-#endif
-
 ;; sfont_width -- get width of small font character
 ;; INPUTS:
 ;;  a = character
@@ -98,6 +49,7 @@ zdisp_rowaddr:
    ; lcdWidth = 64 * 5 = 2^6 * 5
    ld hl,0
    ld l,a
+   add hl,hl
    add hl,hl
    add hl,hl
    add hl,hl

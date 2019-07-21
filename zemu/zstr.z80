@@ -18,7 +18,7 @@ zstr_abbraddr:
 ;; DESTROYS:
 ;; ERRORS:
 zstr_putc:
-   ld ix,zwin.main
+   ld ix,win_main
    ld hl,zstr_flags
    ; 1. Interpet as abbreviation code?
    bit ZSTR_FLAGS_ABBR,(hl)
@@ -227,7 +227,7 @@ zstr_A2.tab: .db " ^0123456789.,!?_#'\"/\-:()"
 ;; ERRORS: no.
 zstr_putn:
    ; 0. Set main window.
-   ld ix,zwin.main
+   ld ix,win_main
    ; 1. Check sign
    ex de,hl
    ld hl,0

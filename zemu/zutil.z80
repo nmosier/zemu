@@ -785,6 +785,8 @@ ktoch:
    JCLASS(kCapA,kCapZ,ktoch.alpha)
    JCLASS(k0,k9,ktoch.digit)
    JCHAR(kEnter,ASCII_NEWLINE,ktoch.done)
+   JCHAR(kDel,ASCII_DEL,ktoch.done)
+   JCHAR(kClear,ASCII_CLEAR,ktoch.done)
    xor a,a
 ktoch.done:
    ret
@@ -797,4 +799,22 @@ ktoch.digit:
    add a,'0'-k0
    ret
 
+
    
+;; isprint -- is printable ASCII character
+;; INPUTS:
+;;  a = ASCII char
+;; OUTPUTS:
+;;  CF = whether printable
+;; ERRORS: no.
+;; DESTROYS: (none)
+isprint:
+   JCLASS($01,$F2,isprint.true)
+isprint.false:
+   or a,a
+   ret   
+
+isprint.true:
+   scf
+   ret
+

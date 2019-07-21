@@ -11,13 +11,10 @@
 start:
    ld ix,win1
    call zwin_clear
-   ld hl,str1
-   call zwin_puts
+   ld hl,buf1
+   ld bc,10
+   call zwin_getsn
    call _GetKey
-   ld a,ASCII_DEL
-   call zwin_putc
-   call _GetKey
-   
 done:
    ret
 
@@ -28,6 +25,8 @@ str3: .db "qrstuvwxyz",0
 
 
 win1: D_ZWIN(0,0,40,30,MASK(ZWIN.FLAGS.BUFD),32)
+
+buf1: RESB(10)
 
 ;; dummy
 zaddr_fetch:

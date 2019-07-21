@@ -87,6 +87,10 @@ zwin_putc.base:
    ; 2. Check if delete.
    cp a,ASCII_DEL
    jr z,zwin_putc.del
+   ; 3. Check if clear.
+   cp a,ASCII_CLEAR
+   jr z,zwin_putc.clear
+   ; Otherwise
    push ix
    ld hl,(ix+ZWIN.CURCOL)
    ld bc,0
@@ -109,6 +113,7 @@ zwin_putc.done:
    pop af
    ; Buffer char
    call c,zwin_bufc
+zwin_putc.done_nbuf:
    pop de \ pop hl \ pop bc
    ret
 
@@ -118,7 +123,13 @@ zwin_putc.newline:
 
 zwin_putc.del:
    call zwin_unputc
-   jr zwin_putc.done
+   pop af
+   jr zwin_putc.done_nbuf
+
+zwin_putc.clear:
+   call zwin_clear
+   pop af
+   jr zwin_putc.done_nbuf
 
 ;; zwin_unputc -- remove last character from window
 ;; INPUTS:
@@ -132,6 +143,7 @@ zwin_unputc:
    push hl \ push de
    ld hl,(ix+ZWIN.BUFPTR)
    lea de,ix+ZWIN.BUF
+   or a,a
    sbc hl,de
    jr z,_ ; nothing to unput
    add hl,de
@@ -140,7 +152,7 @@ zwin_unputc:
    call zwin_redraw
 _  pop de \ pop hl
    ret
-   
+
 ;; zwin_newline -- put newline in window, buffered
 ;; zwin_newline_bare -- put newline in window, unbuffered
 ;; INPUTS:
@@ -469,7 +481,8 @@ zwin_split.cont:
    ret
    
 
-;; zwin_getc -- get input character
+;; zwin_getc -- get input character, buffered
+;; zwin_getc_bare -- get input char, unbuffered
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS:
@@ -480,6 +493,11 @@ zwin_getc:
    call _GetKey
    call ktoch
    jp zwin_putc
+   
+zwin_getc_bare:
+   call _GetKey
+   jp ktoch
+
 
 ;; zwin_getsn -- get input string
 ;; INPUTS:
@@ -487,21 +505,83 @@ zwin_getc:
 ;;  ix = pointer to window struct
 ;;  bc = number of bytes
 ;; OUTPUTS:
-;; ERRORS:
-;; DESTROYS:
+;;  hl = pointer to buffer
+;;  bc = number of bytes written (including possible null byte)
+;; ERRORS: no.
+;; DESTROYS: all but hl
+;; NOTE: No null-byte written if number of bytes written = number requested.
 zwin_getsn:
-   ld de,0
-   
+   push hl
+   push bc
+   jr zwin_getsn.entry   
 zwin_getsn.loop:
-   call zwin_getc
-   
+   push hl \ push bc
+   call zwin_getc_bare ; preserves a
+   pop bc \ pop hl
+   or a,a ; check for null term
+   jr z,zwin_getsn.done
+
+   pop de \ push de
+   call zwin_getsn.handle
 
 zwin_getsn.entry:
+   ld de,0
    ex de,hl
    or a,a
    sbc hl,bc
-   add hl,bc
    ex de,hl
-   jr nz,zwin_getsn.done
-
+   ; continue if count > 0
+   jr nz,zwin_getsn.loop
 zwin_getsn.done:
+   pop bc
+   or a,a
+   sbc hl,bc
+   push hl \ pop bc
+   pop hl
+   ret
+
+;; handle character
+;; assumes there is space in the buffer
+zwin_getsn.handle:
+   push hl \ push bc
+   call zwin_putc ; only OK if this window isn't being shared
+   pop bc \ pop hl
+   call isprint   
+   jr nc,zwin_getsn.special
+zwin_getsn.print:
+   ; is print
+   inc hl
+   dec bc
+   ret
+   
+zwin_getsn.special:
+   cp a,ASCII_DEL
+   jr z,zwin_getsn.del
+   cp a,ASCII_CLEAR
+   jr z,zwin_getsn.clear
+   ret ; do nothing
+
+zwin_getsn.del:
+   ; make sure to not underflow the buffer
+   ; expects de = full count
+   ex de,hl
+   or a,a
+   sbc hl,bc
+   ex de,hl
+   ret z ; nothing to delete
+   dec hl ; delete one char
+   inc bc
+   ret
+
+zwin_getsn.clear:
+   ; reset buffer pointer to start
+   push de ; full count
+   ex de,hl
+   or a,a
+   sbc hl,bc
+   ex de,hl
+   or a,a
+   sbc hl,de ; hl now at beginning
+   pop bc ; new count
+   ret
+

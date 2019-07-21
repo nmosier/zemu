@@ -39,17 +39,24 @@ init_windows:
    call zwin_clear
 
    push iy
-   ld iy,win_debug
+   ld iy,win_dbgout
    ld a,SFONT_HEIGHT
    ld b,0 ; don't buffer
    call zwin_split_bottom
+
+   ld iy,win_dbgin
+   ld a,SFONT_HEIGHT
+   ld b,MASK(ZWIN.FLAGS.BUFD)
+   call zwin_split_bottom
+
    pop iy
    
    ret
 
 win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
 
-win_debug: RES_ZWIN(0) ; not buffered
+win_dbgout: RES_ZWIN(0) ; not buffered
+win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
 
 ;win_debug: D_ZWIN(ZWIN.DEBUG.ORGCOL, ZWIN.DEBUG.ORGROW, ZWIN.DEBUG.WIDTH, ZWIN.DEBUG.HEIGHT, 0, 0)
 

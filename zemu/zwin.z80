@@ -172,6 +172,10 @@ zwin_newline.loop:
    add a,SFONT_HEIGHT
    cp a,(ix+ZWIN.HEIGHT)
    jr c,zwin_newline.curset
+   ; test if window is single line
+   ld a,(ix+ZWIN.HEIGHT)
+   cp a,SFONT_HEIGHT*2
+   jr c,zwin_newline.oneline
    ; scroll
    call zwin_scroll
    jr zwin_newline.loop ; retry now
@@ -179,6 +183,11 @@ zwin_newline.curset:
    ld (ix+ZWIN.CURROW),a
    ld hl,(ix+ZWIN.ORGCOL)
    ld (ix+ZWIN.CURCOL),hl
+   pop af
+   ret
+
+zwin_newline.oneline:
+   call zwin_clear
    pop af
    ret
 
@@ -417,6 +426,8 @@ zwin_setcur:
 
 ;; zwin_split_top -- split off window from top of base window
 ;; zwin_split_bottom -- split off window from bottom of base window
+;; zwin_split_left -- split off window from left of base window
+;; zwin_split_right -- split off window from right of base window
 ;; INPUTS:
 ;;  ix = base window
 ;;  iy = new window
@@ -430,27 +441,27 @@ zwin_setcur:
 ;;  Doesn't modify buffer of either window.
 zwin_split_top:
    ld c,1
-   jr zwin_split.base
+   jr zwin_split_vert.base
 
 zwin_split_bottom:
    ld c,0
-   jr zwin_split.base
+   jr zwin_split_vert.base
 
 ; b contains new height
-zwin_split.org_top:
+zwin_split_vert.org_top:
    ld a,(ix+ZWIN.ORGROW)
    ld (iy+ZWIN.ORGROW),a
    add a,(iy+ZWIN.HEIGHT)
    ld (ix+ZWIN.ORGROW),a
-   jr zwin_split.cont
+   jr zwin_split_vert.cont
    
-zwin_split.org_bottom:
+zwin_split_vert.org_bottom:
    ld a,(ix+ZWIN.ORGROW)
    add a,(ix+ZWIN.HEIGHT)
    ld (iy+ZWIN.ORGROW),a
-   jr zwin_split.cont
+   jr zwin_split_vert.cont
    
-zwin_split.base:
+zwin_split_vert.base:
    ; copy unchanged fields
    ld hl,(ix+ZWIN.ORGCOL)
    ld (iy+ZWIN.ORGCOL),hl
@@ -466,9 +477,9 @@ zwin_split.base:
    ; update org rows
    xor a,a
    cp a,c
-   jr c,zwin_split.org_top
-   jr zwin_split.org_bottom
-zwin_split.cont:
+   jr c,zwin_split_vert.org_top
+   jr zwin_split_vert.org_bottom
+zwin_split_vert.cont:
    ; reset main window to org
    call zwin_org
    push iy
@@ -479,7 +490,7 @@ zwin_split.cont:
    ex (sp),ix
    pop iy
    ret
-   
+
 
 ;; zwin_getc -- get input character, buffered
 ;; zwin_getc_bare -- get input char, unbuffered
@@ -524,6 +535,8 @@ zwin_getsn.loop:
    pop de \ push de
    call zwin_getsn.handle
 
+   jr c,zwin_getsn.done
+
 zwin_getsn.entry:
    ld de,0
    ex de,hl
@@ -533,7 +546,7 @@ zwin_getsn.entry:
    ; continue if count > 0
    jr nz,zwin_getsn.loop
 zwin_getsn.done:
-   pop bc
+   pop hl
    or a,a
    sbc hl,bc
    push hl \ pop bc
@@ -550,8 +563,12 @@ zwin_getsn.handle:
    jr nc,zwin_getsn.special
 zwin_getsn.print:
    ; is print
+   ld (hl),a
    inc hl
    dec bc
+   ; check if newline
+   cp a,ASCII_NEWLINE
+   ccf
    ret
    
 zwin_getsn.special:
@@ -559,6 +576,7 @@ zwin_getsn.special:
    jr z,zwin_getsn.del
    cp a,ASCII_CLEAR
    jr z,zwin_getsn.clear
+   or a,a
    ret ; do nothing
 
 zwin_getsn.del:
@@ -571,6 +589,7 @@ zwin_getsn.del:
    ret z ; nothing to delete
    dec hl ; delete one char
    inc bc
+   or a,a
    ret
 
 zwin_getsn.clear:
@@ -583,5 +602,6 @@ zwin_getsn.clear:
    or a,a
    sbc hl,de ; hl now at beginning
    pop bc ; new count
+   or a,a
    ret
 

@@ -7,8 +7,8 @@
 zdbg_puts:
    push ix \ push de \ push bc
    push hl
-   ld ix,win_debug
-   call zwin_org
+   ld ix,win_dbgout
+   call zwin_clear
    pop hl
    push hl
    call zwin_puts
@@ -28,7 +28,7 @@ zdbg_step:
    cp a,kEnter
    jr z,zdbg_step.run
    JCLASS(k0,k9,zdbg_step.num)
-   cp a,kAdd
+   cp a,kAdd ; get break address
    jr z,zdbg_step.addr
    jr zdbg_step.done
 
@@ -169,9 +169,14 @@ zdbg_exit.buf: RESB(32)
 ;; ERRORS:
 zdbg_readaddr:
    ld hl,zdbg_readaddr.buf
-   call zdbg_gets
-   ld de,zdbg_readaddr.buf
+   ld bc,16
+   call zdbg_getsn
+   ex de,hl
    ld hl,0
+   ld a,c
+   ld b,c
+   or a,a
+   ret z
 zdbg_readaddr.loop:
    ld a,(de)
    inc de
@@ -179,7 +184,7 @@ zdbg_readaddr.loop:
    ret z
    JCLASS('0', '9', zdbg_readaddr.digit)
    JCLASS('A', 'F', zdbg_readaddr.letter)
-   jr zdbg_readaddr.loop
+   ret
 
 zdbg_readaddr.digit:
    sub a,'0'
@@ -196,7 +201,7 @@ zdbg_readaddr.shift:
    add hl,hl
    or a,l
    ld l,a
-   jr zdbg_readaddr.loop
+   djnz zdbg_readaddr.loop
 
 
 
@@ -204,51 +209,14 @@ zdbg_readaddr.buf: RESB(16)
 ;; zdbg_gets -- get string
 ;; INPUTS:
 ;;  hl = pointer to output buffer
+;;  bc = count
 ;; OUTPUTS:
 ;; DESTROYS:
 ;; ERRORS:
 ;; NOTE: only supports A-Z, 0-9.
-zdbg_gets:
-   ld a,ZDBG_INPUT_ROW
-   ld (curRow),a
-   ld a,ZDBG_INPUT_COL
-   ld (curCol),a
-zdbg_gets.loop:
-   push hl
-   call _GetKey
-   pop hl
-   cp a,kEnter
-   jr z,zdbg_gets.enter
-   cp a,kDel
-   jr z,zdbg_gets.del
-   JCLASS(k0, k9, zdbg_gets.digit)
-   JCLASS(kCapA, kCapZ, zdbg_gets.letter)
-   ; not recognized
-   jr zdbg_gets.loop
-
-zdbg_gets.enter:
-   ld (hl),0
-   ret
-   
-zdbg_gets.del:
-   dec hl
-   ld a,(curCol)
-   dec a
-   ld (curCol),a
-   ld a,' '
-   call _PutMap
-   jr zdbg_gets.loop
-
-zdbg_gets.digit:
-   add a,'0'-k0
-   ld (hl),a
-   call _PutC
-   inc hl
-   jr zdbg_gets.loop
-
-zdbg_gets.letter:
-   add a,'A'-kCapA
-   ld (hl),a
-   call _PutC
-   inc hl
-   jr zdbg_gets.loop
+zdbg_getsn:
+   ld ix,win_dbgin
+   push hl \ push bc
+   call zwin_clear
+   pop bc \ pop hl
+   jp zwin_getsn

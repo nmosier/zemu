@@ -14,6 +14,11 @@ start:
    ld hl,buf1
    ld bc,10
    call zwin_getsn
+   push bc
+   call zwin_clear
+   pop bc
+   ld hl,buf1
+   call zwin_putsn_bare
    call _GetKey
 done:
    ret

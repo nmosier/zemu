@@ -27,4 +27,6 @@ ZMAP_ENT_FLAGS_INRAM .equ 0
 
 ZPACK .equ 2 ; scaling factor
 
+WIN_DBGIN_BUFSIZE .equ 32
+
 #endif

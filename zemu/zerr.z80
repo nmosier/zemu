@@ -51,7 +51,7 @@ zerrtab:
 ;;  error-handling code can jump to zemu_perror without having
 ;;  to set the carry flag after calling zemu_perror.
 zemu_perror:
-   ld ix,win_debug
+   ld ix,win_dbgout
    push af
    push hl
    ; clear window

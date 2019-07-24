@@ -56,9 +56,18 @@ zvar_globaladdr:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zvar_fetch:
+   push af
    call zvar_fetch.switch
+   pop bc
    ret c
    call wtols ; upcast
+   push hl
+   ld ix,ZDBG_FLAGS
+   bit ZDBG_FLAGS_WATCH,(ix)
+   ld a,b ; varnum
+   or a,a ; NC
+   call nz,zdbg_watch_hook
+   pop hl
    or a,a
    ret
 
@@ -117,6 +126,14 @@ zvar_fetch.global:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zvar_store:
+   ; debug watch hook
+   push hl
+   ld ix,ZDBG_FLAGS
+   bit ZDBG_FLAGS_WATCH,(ix)
+   scf
+   call nz,zdbg_watch_hook
+   pop hl
+   ; switch on var type
    ex de,hl
    cp ZVAR_STACK
    jp z,zvar_store.stack
@@ -203,3 +220,5 @@ zvar_write:
    call zcode_readvarnum
    jp nc,zvar_store
    ret
+
+

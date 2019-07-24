@@ -110,10 +110,10 @@ zcall_ext.run:
    ; execute function, run until $ffffff
    push ix
    ld ix,zdbg_flags
-   set ZDBG_FLAGS_BREAK,(ix)
-   set ZDBG_FLAGS_MODE,(ix)
-   set ZDBG_FLAGS_INTR,(ix)
-   set ZDBG_FLAGS_STAT,(ix)
+   ;set ZDBG_FLAGS_BREAK,(ix)
+   ;set ZDBG_FLAGS_MODE,(ix)
+   ;set ZDBG_FLAGS_INTR,(ix)
+   ;set ZDBG_FLAGS_STAT,(ix)
    call nc,zdbg_exec
    pop ix
    jr c,zcall_ext.exit

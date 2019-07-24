@@ -12,6 +12,7 @@
 
 start:
    call zdisp_init
+   call zdbg_init
    call init_windows
    
    ; clear screen & reset cursor
@@ -58,10 +59,6 @@ win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
 win_dbgout: RES_ZWIN(0) ; not buffered
 win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
 
-;win_debug: D_ZWIN(ZWIN.DEBUG.ORGCOL, ZWIN.DEBUG.ORGROW, ZWIN.DEBUG.WIDTH, ZWIN.DEBUG.HEIGHT, 0, 0)
-
-
-
 test:
    ; test call & run until
    ld hl,zdbg_step
@@ -74,7 +71,6 @@ test:
    ld hl,test_str
    jp c,zemu_perror
    ret
-
 
 test_str: .db "test",0
 

@@ -24,4 +24,4 @@ clean:
 .PHONY: size
 .SILENT: size
 size:
-	wc -l *.z80 | tail -n 1 | tr -s " " | cut -d " " -f 2
+	wc -l z*.{z80,inc} | tail -n 1 | tr -s " " | cut -d " " -f 2

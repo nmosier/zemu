@@ -773,6 +773,42 @@ hexstr.loop:
 hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
 
 
+;; xstrtoul -- convert hex string to unsigned long
+;; INPUTS:
+;;  hl = pointer to string
+;; OUTPUTS:
+;;  hl = value
+;; DESTROYS:
+;; ERRORS: no.
+xstrtoul:
+   ex de,hl
+   ld hl,0
+xstrtoul.loop:
+   ld a,(de)
+   or a,a
+   ret z
+   JCLASS('0','9',xstrtoul.digit)
+   JCLASS('A','F',xstrtoul.letter)
+   ret ; unrecognized char
+   
+xstrtoul.digit:
+   sub a,'0'
+   jr xstrtoul.shift
+
+xstrtoul.letter:
+   sub a,'A'-10
+   jr xstrtoul.shift   
+
+xstrtoul.shift:
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   or a,l
+   ld l,a
+   inc de
+   jr xstrtoul.loop
+
 ;; ktoch -- convert key scan code (as returned by GetKey) to ASCII char
 ;; INPUTS:
 ;;  a = key scan code
@@ -818,3 +854,248 @@ isprint.true:
    scf
    ret
 
+
+strtol:
+   ld b,a
+   call strtol.sign
+   push af
+   ld a,b
+   call strtoul
+   jr c,strtol.error
+   pop af
+   call c,strtol.negate
+   or a,a
+   ret
+
+strtol.error:
+   pop bc
+   scf
+   ret
+
+strtol.sign:
+   ld a,(hl)
+   cp a,'+'
+   jr z,strtol.sign.done
+   cp a,'-'
+   scf
+   jr z,strtol.sign.done
+   ret ; no sign
+strtol.sign.done:
+   inc hl
+   ret
+
+strtol.negate:
+   push de
+   ex de,hl
+   ld hl,0
+   or a,a
+   sbc hl,de
+   pop de
+   ret
+
+;; strtol -- convert string to long
+;; strtoul -- covnert string to unsigned long
+;; INPUTS:
+;;  hl = pointer to string
+;;  a = base (0 == auto)
+;; OUTPUTS:
+;;  hl = long number (signed)
+;;  de = pointer to first invalid char (or '\0')
+;;  CF = whether conversion was successful 
+;; DESTROYS: (all)
+;; ERRORS: no.
+;; NOTES: currently only supports base 0.
+strtoul:
+   cp a,8
+   jr nz,_
+   call strtoul.prefix.8
+   jr strtoul.main
+_  cp a,10
+   jr nz,_
+   call strtoul.prefix.10
+   jr strtoul.main
+_  cp a,16
+   jr nz,_
+   call strtoul.prefix.16
+   jr strtoul.main
+_  or a,a
+   scf
+   ret nz ; invalid base
+   call strtoul.prefix ; infer prefix
+strtoul.main:
+   ex de,hl
+   ld hl,0
+   ld bc,0 ; used for zero-extending bytes
+   jr strtoul.entry
+strtoul.loop:
+   call strtoul.handle
+   jr c,strtoul.error
+   or a,a ; set whether should continue
+   jr nz,strtoul.done
+   inc de
+strtoul.entry:
+   ld a,(de)
+   or a,a
+   jr nz,strtoul.loop
+strtoul.done:
+   or a,a ; NC
+   ret
+
+strtoul.error:
+   scf
+   ret
+
+strtoul.handle:
+   jp (ix)
+
+; ENTRY: hl = pointer to string
+; EXIT:  hl = pointer to next char
+;        ix = base handler
+strtoul.prefix:
+   ld a,(hl)
+   or a,a
+   scf
+   ret z ; invalid if end of string
+   cp a,'0'
+   jr nz,strtoul.prefix.10
+   inc hl
+   ; need to examine next character
+   ld a,(hl)
+   or a,a
+   ret z ; string is just '0'
+   inc hl
+   ; check if hex
+   cp a,'x'
+   jr z,strtoul.prefix.16
+   cp a,'X'
+   jr z,strtoul.prefix.16
+   ; otherwise octal
+   dec hl
+   jr strtoul.prefix.8
+
+strtoul.prefix.done:
+   or a,a
+   ret
+
+strtoul.prefix.8:
+   ld ix,strtoul.handle.8
+   jr strtoul.prefix.done
+
+strtoul.prefix.10:
+   ld ix,strtoul.handle.10
+   jr strtoul.prefix.done
+
+strtoul.prefix.16:
+   ld ix,strtoul.handle.16
+   jr strtoul.prefix.done
+
+strtoul.handle.8:
+   cp a,'0'
+   jr c,strtoul.handle.error
+   cp a,'7'+1
+   jr nc,strtoul.handle.error   
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   add hl,hl ; multiply hl by 8
+   ret c
+   sub a,'0'
+   or a,l
+   ld l,a
+   xor a,a ; good
+   ret ; NC
+
+strtoul.handle.10:
+   cp a,'0'
+   jr c,strtoul.handle.error
+   cp a,'9'+1
+   jr nc,strtoul.handle.error
+   call mul_hl_10
+   ret c
+   sub a,'0'
+   ld c,a
+   xor a,a
+   add hl,bc
+   ret ; CF
+
+strtoul.handle.16:
+   call ctox
+   jr c,strtoul.handle.error ; invalid
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   or a,l
+   ld l,a
+   xor a,a
+   ret ; NC
+
+strtoul.handle.error:
+   ld a,1
+   or a,a
+   ret
+
+strtoul.handler: .dl 0
+
+
+;; mul_hl_10 -- multiply hl by 10
+;; INPUTS:
+;;  hl = number, signed
+;; OUTPUTS:
+;;  hl <- hl * 10
+;;  CF if overflow
+;; ERRORS: no.
+;; DESTROYS: (none)
+mul_hl_10:
+   push de
+   ; *10
+   add hl,hl
+   ; *5
+   push hl \ pop de
+   add hl,hl
+   add hl,hl
+   add hl,de
+   pop de
+   ret
+
+
+;; ctox -- convert character to hex digit
+;; INPUTS:
+;;  a = character
+;; OUTPUTS:
+;;  a = hex digit
+;;  CF = whether invalid
+;; ERRORS: no.
+;; DESTROYS: (none)
+ctox:
+   JCLASS('0','9',ctox.digit)
+   JCLASS('a','f',ctox.lwr)
+   JCLASS('A','F',ctox.cap)
+   scf
+   ret
+
+ctox.digit:
+   sub a,'0'
+   ret ; NC
+
+ctox.lwr:
+   sub a,'a'-10
+   ret ; NC
+
+ctox.cap:
+   sub a,'A'-10
+   ret ; NC
+
+
+   
+
+;;;;;;;;;;;;;;;;;
+;; GLOBAL VARS ;;
+;;;;;;;;;;;;;;;;;
+
+emptystr: .db 0

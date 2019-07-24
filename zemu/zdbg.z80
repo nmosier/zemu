@@ -2,6 +2,22 @@
 
 #include "zdbg.inc"
 
+;; zdbg_init -- initialize debugger
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: hl, a
+zdbg_init:
+   ld hl,zdbg_flags
+   res ZDBG_FLAGS_STEP,(hl)
+   res ZDBG_FLAGS_BREAK,(hl)
+   set ZDBG_FLAGS_MODE,(hl)
+   set ZDBG_FLAGS_INTR,(hl)
+   set ZDBG_FLAGS_STAT,(hl)
+   xor a,a
+   ld (zdbg_alerts),a
+   ret
+
 ;; zdbg_puts -- put string in debug line
 ;; NOTE: clears line first.
 zdbg_puts:
@@ -28,8 +44,9 @@ zdbg_step:
    cp a,kEnter
    jr z,zdbg_step.run
    JCLASS(k0,k9,zdbg_step.num)
-   cp a,kAdd ; get break address
-   jr z,zdbg_step.addr
+   cp a,kAdd ; read command
+   jr z,zdbg_step.cmd
+   or a,a
    jr zdbg_step.done
 
 zdbg_step.run:
@@ -44,31 +61,100 @@ _  ld (zdbg_stepn),a
    jr  zdbg_step.done
 
 zdbg_step.done:
-   or a,a
+   res ZDBG_FLAGS_STEP,(ix)
    ret
    
 zdbg_step.intr:
    ld a,ZERR_INTR
    scf
+   jr zdbg_step.done
+
+zdbg_step.cmd:
+   ld hl,zdbg_step.cmd_buf
+   ld bc,32
+   call zdbg_getsn
+   call zdbg_cmd
+   jr zdbg_step.done
+
+zdbg_step.cmd_buf: RESB(32)
+
+
+
+;; zdbg_cmd -- parse command
+;; INPUTS:
+;;  hl = command string
+;; OUTPUTS:
+;;  CF = whether failed
+;;  ix = zdbg_flags
+;; ERRORS: no.
+;; DESTROYS: (all)
+zdbg_cmd:
+   ld a,(hl)
+   inc hl
+   cp a,'B'
+   jr z,zdbg_cmd.break
+   cp a,'W'
+   jr z,zdbg_cmd.watch
+   scf
    ret
 
-zdbg_step.addr:
-   call zdbg_readaddr
-   ld (zdbg_break),hl  ; set new breakpoint
-   or a,a
+zdbg_cmd.break:
+   ld a,16
+   call strtoul ; to hex
+   ccf
+   ret nc ; failed to convert
+   ld (zdbg_break),hl
+   ex de,hl
+   ld ix,zdbg_flags
+   set ZDBG_FLAGS_BREAK,(ix)
+   or a,a ; NC
    ret
+
+zdbg_cmd.watch:
+   ld a,0
+   call strtoul ; to i
+   ccf
+   ret nc
+   ld a,l
+   ld l,0
+   add hl,hl
+   ccf
+   ret nc
+   ccf
+   ret nz ; hl should be zero
+   ld (zdbg_watch),a
+   ld ix,zdbg_flags
+   set ZDBG_FLAGS_WATCH,(ix)
+   or a,a
+   ret ; NC
 
 ;; zdbg_status -- display status information
+;; TODO: including alert information
 zdbg_status:
-   ld hl,(zframe_pc)
-   ld de,zdbg_status.buf
+   ; watchpoint status info
    push ix
-   call hexstr
-   pop ix
+   ld hl,ZDBG_ALERTS
+   bit ZDBG_ALERTS_WATCH,(hl)
+   ld hl,emptystr
+   jr z,_
+   res ZDBG_ALERTS_WATCH,(hl)
+   ld hl,zdbg_alert_watch.str
+_  push hl ; arg4
+   ld hl,(zframe_pc)
+   push hl ; arg3
+   ld hl,zdbg_status.fmt
+   push hl ; arg2
+   ld hl,zdbg_status.buf
+   push hl ; arg1
+   call _sprintf
+   pop hl \ pop hl \ pop hl \ pop hl
    ld hl,zdbg_status.buf
    call zdbg_puts
+   pop ix
    ret
-zdbg_status.buf: RESB(16)
+
+zdbg_status.buf: RESB(32)
+zdbg_status.fmt: .db "%x %s",0   ; PC [WATCH]
 
 ;; zdbg_exec -- run ZCPU in debugging mode
 ;; INPUTS:
@@ -78,8 +164,8 @@ zdbg_status.buf: RESB(16)
 ;; ERRORS: yes.
 zdbg_exec:
    ld ix,zdbg_flags
-   res ZDBG_FLAGS_STEP,(ix)
-
+   ;res ZDBG_FLAGS_STEP,(ix)
+   
 zdbg_exec.frame:
    ; 0. Check if exit frame has been reached.
    call zdbg_stkcmp
@@ -89,12 +175,20 @@ zdbg_exec.frame:
 zdbg_exec.break:
    ; 1. Check if should break.
    bit ZDBG_FLAGS_BREAK,(ix)
-   jr z,zdbg_exec.mode
+   jr z,_
    call zdbg_brkcmp
    jr nz,zdbg_exec.mode
    set ZDBG_FLAGS_STEP,(ix)
    set ZDBG_FLAGS_MODE,(ix) ; back to step mode
-   
+_
+zdbg_exec.alerts:
+   ; 1.5 Check for alerts.
+   ld a,(zdbg_alerts)
+   or a,a
+   jr z,_
+   set ZDBG_FLAGS_STEP,(ix)
+   set ZDBG_FLAGS_MODE,(ix) ; back to step mode
+_
 zdbg_exec.mode:
    ; 2. Check mode.
    bit ZDBG_FLAGS_MODE,(ix)
@@ -138,10 +232,6 @@ zdbg_stkcmp:
    jp cp_hl_de
 
 
-zdbg_flags: .db 0
-zdbg_break: .dl 0 ; address to break at
-zdbg_frame: .dl 0 ; frame to return once reached
-zdbg_stepn: .db 0 ; number to step before breaking?
 
 ;; zdbg_exit -- handle errors during execution
 ;; INPUTS:
@@ -211,12 +301,67 @@ zdbg_readaddr.buf: RESB(16)
 ;;  hl = pointer to output buffer
 ;;  bc = count
 ;; OUTPUTS:
-;; DESTROYS:
-;; ERRORS:
+;;  hl = pointer to output buffer
+;;  bc = count read
+;; DESTROYS: all bux ix
+;; ERRORS: no.
 ;; NOTE: only supports A-Z, 0-9.
 zdbg_getsn:
+   push ix
    ld ix,win_dbgin
    push hl \ push bc
    call zwin_clear
    pop bc \ pop hl
-   jp zwin_getsn
+   call zwin_getsn
+   pop ix
+   ret
+
+
+;; zdbg_watch_hook -- check if var was accessed
+;; INPUTS:
+;;  hl = value
+;;  a = var
+;;  CF = read or write (NC = read, C = write)
+;; OUTPUTS:
+;; ERRORS:
+;; DESTROYS:
+zdbg_watch_hook:
+   ; set r/w char
+   ld c,'r'
+   jr nc,_
+   ld c,'w'
+_  ; check if watched var
+   ex de,hl
+   ld hl,zdbg_watch
+   cp a,(hl)
+   ex de,hl
+   ret nz ; not watched
+   ; watched
+   push hl ; arg5
+   push bc ; arg4
+   ld e,a
+   push de ; arg3
+   ld de,zdbg_watch_hook.fmt
+   push de ; arg2
+   ld de,zdbg_alert_watch.str
+   push de
+   call _sprintf
+   ld hl,zdbg_alerts
+   set ZDBG_ALERTS_WATCH,(hl)
+   pop hl \ pop hl \ pop hl \ pop hl \ pop hl
+   ret
+
+zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; DEBUGGING GLOBALS ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+zdbg_flags:  .db 0
+zdbg_alerts: .db 0
+zdbg_break:  .dl 0 ; address to break at
+zdbg_frame:  .dl 0 ; frame to return once reached
+zdbg_stepn:  .db 0 ; number to step before breaking?
+zdbg_watch:  .db 0 ; variable to watch
+
+zdbg_alert_watch.str: RESB(16)

@@ -29,6 +29,7 @@ zemu TODO
 [ ] string library support for extended 10-bit codes
 [X] Random number generator.
 [ ] Use Z80 MODE for all 16-bit calculations.
+[ ] Display alerts in zdbg_status
 
 
 Optimizations

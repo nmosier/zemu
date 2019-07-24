@@ -40,6 +40,7 @@ init_windows:
    call zwin_clear
 
    push iy
+   
    ld iy,win_dbgout
    ld a,SFONT_HEIGHT
    ld b,0 ; don't buffer
@@ -50,6 +51,11 @@ init_windows:
    ld b,MASK(ZWIN.FLAGS.BUFD)
    call zwin_split_bottom
 
+   ld iy,win_dbgstack
+   ld hl,75
+   ld b,0 ; don't buffer
+   call zwin_split_right
+   
    pop iy
    
    ret
@@ -58,6 +64,8 @@ win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
 
 win_dbgout: RES_ZWIN(0) ; not buffered
 win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
+win_dbgstack: RES_ZWIN(0) ; not buffered
+
 
 test:
    ; test call & run until

@@ -13,7 +13,7 @@ zobj_tabaddr:
    call zaddr_fetchwu
    ret c
    ld ix,0
-   add ix,de ; ld ix,hl
+   add ix,de ; ld ix,de
    ret
    
 ;; zobj_objaddr -- return logical address of object
@@ -24,17 +24,22 @@ zobj_tabaddr:
 ;; ERRORS: yes.
 ;; DESTROYS: hl,de
 zobj_objaddr:
+   ld b,a
    or a,a
    jr z,zobj_objaddr.err
+   dec a ; because the 1st object is the 0th entry
    ld de,ZOBJSIZE ; de <- 0:a:ZOBJSIZE
    ld d,a
    mlt de
+   push bc
    push de
    call zobj_tabaddr
    pop de
+   pop bc
    ret c
    lea ix,ix+ZOBJTAB_PROPDEFAULTS_SIZE
    add ix,de
+   ld a,b ; restore object no
    or a,a ; success
    ret
 
@@ -205,28 +210,25 @@ zobj_remove:
    ; get object
    call zobj_objaddr
    ret c
-   ld de,zobj_remove.data
-   ld (de),a ; save obj no
-   inc de
+   ld (zobj_remove.obj),a ; save obj no
    ; get parent and sibling
    lea hl,ix+ZOBJ_O_FAMILY
    call zaddr_fetch
    ret c
-   ld (de),a ; save parent no
-   inc de
+   or a,a
+   ret z ; object has no parent
+   ld (zobj_remove.parent),a ; save parent no
    call zaddr_fetch
    ret c
-   ld (de),a ; save next sib no
+   ld (zobj_remove.nextsib),a ; save next sibling of obj
    ; find first child of parent
-   dec de
-   ld a,(de) ; parent no
-   call zobj_objaddr
+   ld a,(zobj_remove.parent) ; parent no
+   call zobj_objaddr ; address of parent
    ret c
    lea hl,ix+ZOBJ_O_CHILD
    call zaddr_fetch ; current first child
    ret c
-   dec hl ; use this later for updating
-   ;; TODO -- loop to traverse list.
+   dec hl ; use this later for updating, points to first child
    ; update parent & sibling list
    ; 2 cases: (i) obj is first child; (ii) otherwise
    ex de,hl ; de = pointer to child byte of parent object
@@ -282,6 +284,9 @@ zobj_remove.update_obj:
 zobj_remove.done:
    scf \ ccf
    ret
+
+
+
 
 zobj_remove.data:
 zobj_remove.obj:     .db 0
@@ -548,3 +553,12 @@ zobj_child:
    lea hl,ix+ZOBJ_O_CHILD
    jp zaddr_fetch
 
+
+;---------------------------;
+;    DEBUGGING FUNCTIONS    ;
+;---------------------------;
+
+
+
+;; zobj_validate -- validate tree rooted at object
+;; zobj_validate:

@@ -426,12 +426,10 @@ zwin_setcur:
 
 ;; zwin_split_top -- split off window from top of base window
 ;; zwin_split_bottom -- split off window from bottom of base window
-;; zwin_split_left -- split off window from left of base window
-;; zwin_split_right -- split off window from right of base window
 ;; INPUTS:
 ;;  ix = base window
 ;;  iy = new window
-;;  a = height of new window
+;;  a = width / height of new window
 ;;  b = flags of new window
 ;; OUTPUTS: (none)
 ;; DESTROYS: a, hl, de, bc
@@ -491,6 +489,71 @@ zwin_split_vert.cont:
    pop iy
    ret
 
+
+;; zwin_split_left -- split off window from left of base window
+;; zwin_split_right -- split off window from right of base window
+;; INPUTS:
+;;  ix = base window
+;;  iy = new window
+;;  hl = width of new window
+;;  b = flags of new window
+;; OUTPUTS: (none)
+;; DESTROYS: a, hl, de, bc
+;; ERRORS: no.
+;; NOTES:
+;;  Both cursors reset to origin.
+;;  Doesn't modify buffer of either window.
+zwin_split_left:
+   ld c,0
+   jr zwin_split_horiz.base
+
+zwin_split_right:
+   ld c,1
+   jr zwin_split_horiz.base
+
+zwin_split_horiz.base:
+   ; update window widths
+   ld (iy+ZWIN.WIDTH),hl
+   ld de,(ix+ZWIN.WIDTH)
+   or a,a
+   ex de,hl
+   sbc hl,de
+   ld (ix+ZWIN.WIDTH),hl
+   ; save flags
+   ld (iy+ZWIN.FLAGS),b
+   ; copy unchanged fields
+   ld a,(ix+ZWIN.ORGROW)
+   ld (iy+ZWIN.ORGROW),a
+   ld a,(ix+ZWIN.HEIGHT)
+   ld (iy+ZWIN.HEIGHT),a
+   ; update orgcols
+   xor a,a
+   cp a,c
+   jr nc,zwin_split_horiz.org_left
+   jr zwin_split_horiz.org_right
+zwin_split_horiz.cont:
+   call zwin_org
+   push iy
+   ex (sp),ix
+   call zwin_org
+   ex (sp),ix
+   pop iy
+   ret
+
+zwin_split_horiz.org_left:
+   ld hl,(ix+ZWIN.ORGCOL)
+   ld (iy+ZWIN.ORGCOL),hl
+   ld de,(iy+ZWIN.WIDTH)
+   add hl,de
+   ld (ix+ZWIN.ORGCOL),hl
+   jr zwin_split_horiz.cont
+
+zwin_split_horiz.org_right:
+   ld hl,(ix+ZWIN.ORGCOL)
+   ld de,(ix+ZWIN.WIDTH)
+   add hl,de
+   ld (iy+ZWIN.ORGCOL),hl
+   jr zwin_split_horiz.cont
 
 ;; zwin_getc -- get input character, buffered
 ;; zwin_getc_bare -- get input char, unbuffered

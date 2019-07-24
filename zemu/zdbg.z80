@@ -147,7 +147,6 @@ zdbg_cmd.disable.watch:
    jr zdbg_cmd.disable.done
 
 ;; zdbg_status -- display status information
-;; TODO: including alert information
 zdbg_status:
    ; watchpoint status info
    push ix
@@ -342,21 +341,30 @@ zdbg_getsn:
 ;;  CF = read or write (NC = read, C = write)
 ;; OUTPUTS:
 ;; ERRORS:
-;; DESTROYS:
+;; DESTROYS: (none)
 zdbg_watch_hook:
+   push af
+   push hl
+   push de
+   push bc
+   push ix
+   push iy
    ; set r/w char
    ld c,'r'
    jr nc,_
    ld c,'w'
 _  ; check if watched var
+   ld iy,0 ; set up stack
+   add iy,sp
    ex de,hl
    ld hl,zdbg_watch
    cp a,(hl)
    ex de,hl
-   ret nz ; not watched
+   jr nz,zdbg_watch_hook.done ; not watched
    ; watched
    push hl ; arg5
    push bc ; arg4
+   ld de,0
    ld e,a
    push de ; arg3
    ld de,zdbg_watch_hook.fmt
@@ -364,9 +372,16 @@ _  ; check if watched var
    ld de,zdbg_alert_watch.str
    push de
    call _sprintf
+   ld sp,iy ; remove args from stack
    ld hl,zdbg_alerts
    set ZDBG_ALERTS_WATCH,(hl)
-   pop hl \ pop hl \ pop hl \ pop hl \ pop hl
+zdbg_watch_hook.done:
+   pop iy
+   pop ix
+   pop bc
+   pop de
+   pop hl
+   pop af
    ret
 
 zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0

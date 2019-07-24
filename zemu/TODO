@@ -21,15 +21,16 @@ zemu TODO
 [ ] Replace inline sign extension with new function calls
 [X] Write function to check if object number is valid
 [ ] Merge/reconcile zvar_downcast and ltobu
-[ ] zexec_cmp.* ought to be failable
+[X] zexec_cmp.* ought to be failable
 [ ] Rewrite zvar_cast and zobj_cast functions to retrieve unsigned byte.
-[ ] Fix zexec_cond_jump ???
+[X] Fix zexec_cond_jump ???
 [ ] Replace zexec_cond_jump with function that parameterizes reading ops and calling funcs
 [ ] zmem_init ought to also look at first byte of routine and properly intialize stack.
 [ ] string library support for extended 10-bit codes
 [X] Random number generator.
 [ ] Use Z80 MODE for all 16-bit calculations.
-[ ] Display alerts in zdbg_status
+[X] Display alerts in zdbg_status
+[ ] Support for displaying stack.
 
 
 Optimizations

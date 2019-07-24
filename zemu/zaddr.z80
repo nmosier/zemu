@@ -154,18 +154,21 @@ zaddr_fetchb:
 ;; zaddr_store -- store byte at logical address
 ;; INPUTS:
 ;;  hl = zaddr (logical address)
-;; OUTPUTS:
 ;;  a = byte to store at zaddr
+;; OUTPUTS:
 ;;  hl <- hl + 1
 ;; ERROR: yes.
 ;; DESTROYS: everything but de
 zaddr_store:
    push de
    push hl
+   push af
    call zaddr_to_paddr
+   pop bc ; restore byte to store (in b)
    ex de,hl
    pop hl
    jr c,zaddr_fetch.cleanup
+   ld a,b
    ld (de),a ; store byte
    inc hl ; update ptr
    ; C reset (nc)

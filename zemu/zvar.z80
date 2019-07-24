@@ -65,7 +65,7 @@ zvar_fetch:
    ld ix,ZDBG_FLAGS
    bit ZDBG_FLAGS_WATCH,(ix)
    ld a,b ; varnum
-   or a,a ; NC
+   scf \ ccf ; NC -- read
    call nz,zdbg_watch_hook
    pop hl
    or a,a

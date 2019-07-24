@@ -89,13 +89,16 @@ zdbg_step.cmd_buf: RESB(32)
 ;; ERRORS: no.
 ;; DESTROYS: (all)
 zdbg_cmd:
+   ld ix,zdbg_flags
    ld a,(hl)
    inc hl
    cp a,'B'
    jr z,zdbg_cmd.break
    cp a,'W'
    jr z,zdbg_cmd.watch
-   scf
+   cp a,'D'
+   jr z,zdbg_cmd.disable
+   or a,a
    ret
 
 zdbg_cmd.break:
@@ -117,27 +120,42 @@ zdbg_cmd.watch:
    ret nc
    ld a,l
    ld l,0
-   add hl,hl
-   ccf
-   ret nc
-   ccf
-   ret nz ; hl should be zero
+   call cp_hl_0
+   ret nz
    ld (zdbg_watch),a
    ld ix,zdbg_flags
    set ZDBG_FLAGS_WATCH,(ix)
    or a,a
    ret ; NC
 
+zdbg_cmd.disable:
+   ; which to disable?
+   ld a,(hl)
+   inc hl
+   cp a,'B' ; disable breakpoints?
+   jr z,zdbg_cmd.disable.break
+   cp a,'W' ; disable watchpoints?
+   jr z,zdbg_cmd.disable.watch
+zdbg_cmd.disable.done:
+   or a,a
+   ret
+zdbg_cmd.disable.break:
+   res ZDBG_FLAGS_BREAK,(ix)
+   jr zdbg_cmd.disable.done
+zdbg_cmd.disable.watch:
+   res ZDBG_FLAGS_WATCH,(ix)
+   jr zdbg_cmd.disable.done
+
 ;; zdbg_status -- display status information
 ;; TODO: including alert information
 zdbg_status:
    ; watchpoint status info
    push ix
-   ld hl,ZDBG_ALERTS
-   bit ZDBG_ALERTS_WATCH,(hl)
+   ld ix,ZDBG_ALERTS
+   bit ZDBG_ALERTS_WATCH,(ix)
    ld hl,emptystr
    jr z,_
-   res ZDBG_ALERTS_WATCH,(hl)
+   res ZDBG_ALERTS_WATCH,(ix)
    ld hl,zdbg_alert_watch.str
 _  push hl ; arg4
    ld hl,(zframe_pc)

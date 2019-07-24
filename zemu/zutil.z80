@@ -1092,7 +1092,21 @@ ctox.cap:
    ret ; NC
 
 
-   
+;; cp_hl_0 -- compare hl to 0
+;; INPUTS:
+;;  hl
+;; OUTPUTS:
+;;  flags
+;; ERRORS: no.
+;; DESTROYS: (none)
+cp_hl_0:
+   push de
+   ld de,0
+   or a,a
+   sbc hl,de
+   pop de
+   ret
+
 
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;

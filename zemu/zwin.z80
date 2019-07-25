@@ -93,6 +93,9 @@ zwin_putc.base:
    ; Otherwise
    push ix
    ld hl,(ix+ZWIN.CURCOL)
+   ld de,(ix+ZWIN.ORGCOL)
+   or a,a
+   sbc hl,de ; find current width of line
    ld bc,0
    call sfont_width ; bc = character width
    push bc

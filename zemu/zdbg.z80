@@ -14,6 +14,7 @@ zdbg_init:
    set ZDBG_FLAGS_MODE,(hl)
    set ZDBG_FLAGS_INTR,(hl)
    set ZDBG_FLAGS_STAT,(hl)
+   set ZDBG_FLAGS_STACK,(hl)
    xor a,a
    ld (zdbg_alerts),a
    ret
@@ -36,6 +37,8 @@ zdbg_puts:
 zdbg_step:
    bit ZDBG_FLAGS_STAT,(ix)
    call nz,zdbg_status
+   bit ZDBG_FLAGS_STACK,(ix)
+   call nz,zdbg_disp_stack
    bit ZDBG_FLAGS_INTR,(ix)
    ld a,0
    call nz,_GetKey
@@ -98,6 +101,8 @@ zdbg_cmd:
    jr z,zdbg_cmd.watch
    cp a,'D'
    jr z,zdbg_cmd.disable
+   cp a,'P'
+   jr z,zdbg_cmd.print
    or a,a
    ret
 
@@ -114,7 +119,7 @@ zdbg_cmd.break:
    ret
 
 zdbg_cmd.watch:
-   ld a,0
+   ld a,16 ; hex
    call strtoul ; to i
    ccf
    ret nc
@@ -145,6 +150,36 @@ zdbg_cmd.disable.break:
 zdbg_cmd.disable.watch:
    res ZDBG_FLAGS_WATCH,(ix)
    jr zdbg_cmd.disable.done
+
+
+zdbg_cmd.print:
+   ; print variable
+   ld a,16 ; hex
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld l,0
+   call cp_hl_0
+   ret nz
+   ; fetch variable
+   call zvar_fetch
+   ; format
+   push hl ; value
+   ld hl,zdbg_cmd.print.fmt
+   push hl ; format
+   ld hl,zdbg_cmd.print.buf
+   push hl ; buffer
+   call _sprintf
+   pop hl \ pop hl \ pop hl
+   ld hl,zdbg_cmd.print.buf
+   call zdbg_puts
+   call _GetKey ; TODO: should have its own window
+   or a,a
+   ret
+
+zdbg_cmd.print.buf: RESB(8)
+zdbg_cmd.print.fmt: .db " %4x",0
 
 ;; zdbg_status -- display status information
 zdbg_status:
@@ -385,6 +420,70 @@ zdbg_watch_hook.done:
    ret
 
 zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0
+
+
+ZDBG_DISP_STACK.SPACE .equ 3 * (4 + 1)
+;; zdbg_disp_stack -- display stack
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: (all), ix
+zdbg_disp_stack:
+   push ix
+   push iy
+   ld iy,0
+   add iy,sp
+   lea hl,iy-ZDBG_DISP_STACK.SPACE
+   ld sp,hl
+   ld ix,win_dbgstack
+   call zwin_clear
+   ld hl,(zframe_fp) ; (points to first local)
+   ld a,(zframe_nl) ; fetch number of locals to skip over
+   sla a ; multiply by 2
+   ld de,0
+   ld e,a
+   add hl,de ; hl points to first stack entyr
+   jr zdbg_disp_stack.entry
+zdbg_disp_stack.loop:
+   ld (iy-9),de ; arg3
+   ld de,0
+   ld d,(hl)
+   inc hl
+   ld e,(hl)
+   inc hl
+   ld (iy-3),hl ; loc1 -- save iterator
+   ld (iy-6),de ; arg4
+   ld hl,zdbg_disp_stack.fmt
+   ld (iy-12),hl ; arg2
+   ld hl,zdbg_disp_stack.buf
+   ld (iy-15),hl ; arg1
+   call _sprintf
+   ; print result
+   ld ix,win_dbgstack
+   ld hl,zdbg_disp_stack.buf
+   push iy
+   ld iy,flags
+   call zwin_puts_bare
+   call zwin_newline
+   pop iy
+   ; restore iterator
+   ld hl,(iy-3) ; loc1
+zdbg_disp_stack.entry:
+   ld de,(zframe_sp) ; end
+   or a,a ; NC
+   ex de,hl
+   sbc hl,de
+   ex de,hl
+   jr nz,zdbg_disp_stack.loop
+zdbg_disp_stack.done:
+   ld sp,iy
+   pop iy
+   pop ix
+   ret
+
+zdbg_disp_stack.buf: RESB(16)
+zdbg_disp_stack.fmt: .db "%2x: %4x",0
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; DEBUGGING GLOBALS ;;;;

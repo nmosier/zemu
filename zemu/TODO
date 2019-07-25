@@ -1,5 +1,6 @@
 zemu TODO
 
+Features
 [X] Find out max size of app vars -- 256^2 bytes
 [X] Write program/script to split story file into multiple `zpages'
 [ ] Have script also generate master variable of `zpages'
@@ -31,7 +32,7 @@ zemu TODO
 [ ] Use Z80 MODE for all 16-bit calculations.
 [X] Display alerts in zdbg_status
 [ ] Support for displaying stack.
-
+[ ] Merging windows
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page
@@ -53,7 +54,4 @@ Testing
 [X] String library
 
 Bugs/Tests
-[ ] mlt rr -- this only effetcs the lower bits??
-[ ] fetchwu
-[ ] Is word-index in storew signed or unsigned?
-[ ] Need to find a way to indicate which value to store retval in. Perhaps add it to the stack frame, or incorporate it in the ret instruction.
+[ ] zwin_split_left is buggy

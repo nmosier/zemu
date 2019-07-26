@@ -202,3 +202,31 @@ zaddr_storew:
 zaddr_unpack:
    add hl,hl
    ret
+
+
+;; zaddr_fetchn -- fetch n bytes
+;; INPUTS:
+;;  hl = logical address
+;;  de = destination buffer
+;;  b = count
+;; OUTPUTS:
+;;  hl <- hl + b
+;;  de = destination buffer
+;; ERRORS:
+;; DESTROYS:
+zaddr_fetchn:
+   push de
+   or a,a ; NC
+   inc b \ dec b
+   jr z,zaddr_fetchn.done ; nothing to do
+zaddr_fetchn.loop:
+   push bc
+   call zaddr_fetch ; fetch byte at logical address hl
+   pop bc
+   jr c,zaddr_fetchn.done
+   ld (de),a
+   inc de
+   djnz zaddr_fetchn.loop
+zaddr_fetchn.done:
+   pop de
+   ret

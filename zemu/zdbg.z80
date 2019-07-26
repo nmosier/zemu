@@ -1,6 +1,7 @@
 ;; zdbg.z80 -- debugging routines
 
 #include "zdbg.inc"
+#include "zobj.inc"
 
 ;; zdbg_init -- initialize debugger
 ;; INPUTS: (none)
@@ -41,7 +42,11 @@ zdbg_step:
    call nz,zdbg_disp_stack
    bit ZDBG_FLAGS_INTR,(ix)
    ld a,0
-   call nz,_GetKey
+   call nz,zdbg_step.input
+   jr zdbg_step.done
+
+zdbg_step.input:
+   call _GetKey
    cp a,kClear
    jr z,zdbg_step.intr
    cp a,kEnter
@@ -50,9 +55,11 @@ zdbg_step:
    cp a,kAdd ; read command
    jr z,zdbg_step.cmd
    or a,a
-   jr zdbg_step.done
+   ret ; NC
+   
 
 zdbg_step.run:
+   ld ix,ZDBG_FLAGS
    res ZDBG_FLAGS_MODE,(ix)
    jr zdbg_step.done
 
@@ -64,6 +71,7 @@ _  ld (zdbg_stepn),a
    jr  zdbg_step.done
 
 zdbg_step.done:
+   ld ix,ZDBG_FLAGS
    res ZDBG_FLAGS_STEP,(ix)
    ret
    
@@ -77,6 +85,7 @@ zdbg_step.cmd:
    ld bc,32
    call zdbg_getsn
    call zdbg_cmd
+   jr nc,zdbg_step.input
    jr zdbg_step.done
 
 zdbg_step.cmd_buf: RESB(32)
@@ -88,7 +97,6 @@ zdbg_step.cmd_buf: RESB(32)
 ;;  hl = command string
 ;; OUTPUTS:
 ;;  CF = whether failed
-;;  ix = zdbg_flags
 ;; ERRORS: no.
 ;; DESTROYS: (all)
 zdbg_cmd:
@@ -153,6 +161,16 @@ zdbg_cmd.disable.watch:
 
 
 zdbg_cmd.print:
+   ld a,(hl)
+   inc hl
+   cp a,'V' ; variable
+   jr z,zdbg_cmd.print.var
+   cp a,'O' ; object
+   jr z,zdbg_cmd.print.obj
+   or a,a
+   ret
+
+zdbg_cmd.print.var:
    ; print variable
    ld a,16 ; hex
    call strtoul
@@ -166,20 +184,141 @@ zdbg_cmd.print:
    call zvar_fetch
    ; format
    push hl ; value
-   ld hl,zdbg_cmd.print.fmt
+   ld hl,zdbg_cmd.print.var.fmt
    push hl ; format
-   ld hl,zdbg_cmd.print.buf
+   ld hl,zdbg_cmd.print.var.buf
    push hl ; buffer
    call _sprintf
    pop hl \ pop hl \ pop hl
-   ld hl,zdbg_cmd.print.buf
+   ld hl,zdbg_cmd.print.var.buf
    call zdbg_puts
    call _GetKey ; TODO: should have its own window
    or a,a
    ret
 
-zdbg_cmd.print.buf: RESB(8)
-zdbg_cmd.print.fmt: .db " %4x",0
+zdbg_cmd.print.var.buf: RESB(8)
+zdbg_cmd.print.var.fmt: .db " %04x",0
+
+zdbg_cmd.print.obj:
+   ; print object
+   ld a,16 ; hex
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld l,0
+   call cp_hl_0
+   ret nz
+   call zobj_objaddr
+   ret c
+   lea hl,ix
+   ld de,zdbg_cmd.print.obj.dat
+   ld b,ZOBJSIZE
+   call zaddr_fetchn
+   ret c ; error
+   ld ix,zdbg_cmd.print.obj.dat
+   ; format string
+   push iy
+   ld iy,0
+   add iy,sp
+   ld hl,0
+   ; property Table
+   ld h,(ix+ZOBJ_O_PROPS)
+   ld l,(ix+ZOBJ_O_PROPS+1)
+   push hl
+   ; child
+   ld h,0
+   ld l,(ix+ZOBJ_O_CHILD)
+   push hl
+   ; sibling
+   ld l,(ix+ZOBJ_O_SIBLING)
+   push hl
+   ; parent
+   ld l,(ix+ZOBJ_O_PARENT)
+   push hl
+   ; attrtibutes
+   ld h,(ix+ZOBJ_O_ATTRS+2)
+   ld l,(ix+ZOBJ_O_ATTRS+3)
+   push hl
+   ld h,(ix+ZOBJ_O_ATTRS)
+   ld l,(ix+ZOBJ_O_ATTRS+1)
+   push hl
+   ld hl,zdbg_cmd.print.obj.fmt
+   push hl
+   ld hl,zdbg_cmd.print.obj.buf
+   push hl
+   call _sprintf
+   ld sp,iy
+   pop iy
+   ld hl,zdbg_cmd.print.obj.buf
+   call zdbg_puts
+   ; print object properties
+   call zdbg_cmd.print.obj.props
+   or a,a
+   ret
+   
+zdbg_cmd.print.obj.buf: RESB(32)
+zdbg_cmd.print.obj.fmt: .db "A%04x%04x/P%02x/S%02x/C%02x/T%04x",0
+zdbg_cmd.print.obj.dat: RESB(9)
+
+;; ix = pointer to object
+;; a = object
+zdbg_cmd.print.obj.props:
+   ld ix,win_dbgstack
+   call zwin_clear
+   ld ix,zdbg_cmd.print.obj.dat
+   ld hl,0
+   ld h,(ix+ZOBJ_O_PROPS+0)
+   ld l,(ix+ZOBJ_O_PROPS+1)
+   ; hl = logical byte address of object properties
+   call zobj_proptab_body_alt
+   ; hl = LBA of object's first property
+   ; bring from Z-mem address space into ez80 address space
+   jr zdbg_cmd.print.obj.props.entry
+zdbg_cmd.print.obj.props.loop:
+   push hl
+   ld (zdbg_cmd.print.obj.props.propid),a
+   ; print prop id number
+   call zobj_propid_to_num
+   ld hl,zdbg_cmd.print.obj.props.buf_hex
+   call hexbyte ; put leading byte
+   ld (hl),':'
+   inc hl
+   ld (hl),' '
+   inc hl
+   ; transfer prop data into buf
+   ld a,(zdbg_cmd.print.obj.props.propid)
+   call zobj_propid_to_size
+   ld b,a
+   ex (sp),hl ; swap LBA into hl
+   ld de,zdbg_cmd.print.obj.props.buf_bytes
+   push bc
+   call zaddr_fetchn
+   pop bc
+   ex (sp),hl
+   ex de,hl
+   ; now hl = start address of byte buf
+   ; b = count of data bytes
+   ; de = output buffer
+   call hexdump
+   ; print line
+   ld ix,win_dbgstack
+   ld hl,zdbg_cmd.print.obj.props.buf_hex
+   call zwin_puts
+   call zwin_newline
+   pop hl
+zdbg_cmd.print.obj.props.entry:
+   call zaddr_fetch ; get propid
+   or a,a ; check if terminating null byte
+   jr nz,zdbg_cmd.print.obj.props.loop
+zdbg_cmd.print.obj.props.done:
+   ret
+
+
+
+zdbg_cmd.print.obj.props.propid: .db 0
+zdbg_cmd.print.obj.props.buf_bytes: RESB(8)
+zdbg_cmd.print.obj.props.buf_hex: RESB(32)
 
 ;; zdbg_status -- display status information
 zdbg_status:
@@ -483,6 +622,65 @@ zdbg_disp_stack.done:
 
 zdbg_disp_stack.buf: RESB(16)
 zdbg_disp_stack.fmt: .db "%2x: %4x",0
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; UTIL FUNCTIONS ;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; hexbyte -- convert byte to hex string
+;; INPUTS:
+;;  a = byte
+;;  hl = buffer
+;; OUTPUTS:
+;;  hl <- hl + 2; (points to null-term)
+;; ERRORS: no.
+;; DESTROYS: a
+hexbyte:
+   push af
+   and a,$f0
+   rrca
+   rrca
+   rrca
+   rrca
+   call xtoc
+   ld (hl),a
+   inc hl
+   pop af
+   and a,$0f
+   call xtoc
+   ld (hl),a
+   inc hl
+   ld (hl),0
+   ret
+
+;; hexdump -- dump hex values at given address
+;; INPUTS:
+;;  hl = start address
+;;  b = count
+;;  de = output buffer
+;; OUTPUTS:
+;;  hl = output buffer
+;; DESTROYS:
+;; ERRORS:
+hexdump:
+   push de ; save beginning of output buffer
+   inc b \ dec b
+   jr z,hexdump.done
+hexdump.loop:
+   ld a,(hl)
+   ex de,hl
+   call hexbyte
+   ex de,hl
+   inc hl
+   djnz hexdump.loop
+hexdump.done:
+   ex de,hl
+   ld (hl),0
+   pop hl
+   ret
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;

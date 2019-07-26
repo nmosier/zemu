@@ -172,6 +172,7 @@ zwin_newline.base:
    call c,zwin_bufc ; put newline character in buffer
 zwin_newline.loop:
    ld a,(ix+ZWIN.CURROW)
+   sub a,(ix+ZWIN.ORGROW)   
    add a,SFONT_HEIGHT
    cp a,(ix+ZWIN.HEIGHT)
    jr c,zwin_newline.curset

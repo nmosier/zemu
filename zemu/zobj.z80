@@ -315,6 +315,7 @@ zobj_proptab_hdr:
    ret
 
 ;; zobj_proptab_body -- get logical address of object's property table body
+;; zobj_proptab_body_alt -- alternate entry point if property table already computed in hl
 ;; INPUTS:
 ;;  a = object number
 ;; OUTPUTS:
@@ -324,6 +325,7 @@ zobj_proptab_hdr:
 zobj_proptab_body:
    call zobj_proptab
    ret c
+zobj_proptab_body_alt:
    call zaddr_fetch
    ret c
    ex de,hl
@@ -332,7 +334,7 @@ zobj_proptab_body:
    add hl,hl
    add hl,de
 zobj_proptab_body.done:
-   scf \ ccf
+   or a,a
    ret
 
 ;; zobj_propaddr -- get logical address of object property data
@@ -402,7 +404,7 @@ zobj_propid_to_size:
 ;; OUTPUTS:
 ;;  a = property number
 ;; DESTROYS: a
-;; ERRORS: yes.
+;; ERRORS: no.
 zobj_propid_to_num:
    and a,$1F
    ret

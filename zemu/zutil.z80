@@ -919,8 +919,7 @@ _  cp a,16
    call strtoul.prefix.16
    jr strtoul.main
 _  or a,a
-   scf
-   ret nz ; invalid base
+   jr nz,strtoul.error ; invalid base
    call strtoul.prefix ; infer prefix
 strtoul.main:
    ex de,hl
@@ -1090,6 +1089,30 @@ ctox.lwr:
 ctox.cap:
    sub a,'A'-10
    ret ; NC
+
+;; xtoc -- convert hex digit to character
+;; INPUTS:
+;;  a = hex digit (0 <= a < 16)
+;; OUTPUTS:
+;;  a = character (0 if invalid)
+;; ERRORS: no.
+;; DESTROYS: (none)
+xtoc:
+   cp a,10
+   jr c,xtoc.digit
+   cp a,16
+   jr c,xtoc.letter
+   ; not a hex digit
+   xor a,a
+   ret
+   
+xtoc.letter:
+   add a,'a'-10
+   ret
+   
+xtoc.digit:
+   add a,'0'
+   ret
 
 
 ;; cp_hl_0 -- compare hl to 0

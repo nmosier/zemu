@@ -379,7 +379,7 @@ zobj_propaddr.found:
    ; found
    ld a,c
    call zobj_propid_to_size
-   scf \ ccf
+   or a,a
    ret
 
 ;; zobj_propid_to_size -- extract raw byte size from property ID byte
@@ -446,9 +446,9 @@ zobj_propval:
    cp a,c
    ld a,ZERR_BADPROP
    ret c
-   push hl
-   add hl,hl
-   pop hl
+   ld de,0
+   or a,a
+   sbc hl,de
    ; if hl is NULL, then fetch prop default val
    jp z,zobj_propdefault ; hl == NULL
    dec a

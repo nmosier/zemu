@@ -480,6 +480,7 @@ zexec.jz:
    call zop_readn
    call nc,zexec_cmp.zero
    jp nc,zexec_cjmp
+   ret
 
 zexec.get_sibling:
    ld a,1
@@ -490,7 +491,11 @@ zexec.get_sibling:
    call zobj_sibling
    call nc,btolu ; upcast obj val
    call nc,zcode_readvarnum
-   jp nc,zvar_store
+   push hl
+   call nc,zvar_store
+   pop hl
+   call nc,zexec_cmp.zero
+   call nc,zexec_cjmp
    ret
 
 zexec.get_child:
@@ -502,7 +507,11 @@ zexec.get_child:
    call zobj_child
    call nc,btolu ; upcast obj val
    call nc,zcode_readvarnum
-   jp nc,zvar_store
+   push hl
+   call nc,zvar_store
+   pop hl
+   call nc,zexec_cmp.zero
+   call nc,zexec_cjmp
    ret
 
 zexec.get_parent:
@@ -514,7 +523,7 @@ zexec.get_parent:
    call zobj_parent
    call nc,btolu
    call nc,zcode_readvarnum
-   jp nc,zvar_store
+   call nc,zvar_store
    ret
 
 zexec.get_prop_len:

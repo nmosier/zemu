@@ -31,8 +31,9 @@ Features
 [X] Random number generator.
 [ ] Use Z80 MODE for all 16-bit calculations.
 [X] Display alerts in zdbg_status
-[ ] Support for displaying stack.
+[X] Support for displaying stack.
 [ ] Merging windows
+[ ] dbg: display call stack
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

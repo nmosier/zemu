@@ -15,6 +15,7 @@ ZDBG_FLAGS_INTR .equ 2 ; whether to test for interrupt
 ZDBG_FLAGS_STAT .equ 3 ; whether to display status info
 ZDBG_FLAGS_WATCH .equ 4 ; whether to watch variable
 ZDBG_FLAGS_STACK .equ 5 ; whether to display the stack
+ZDBG_FLAGS_BT    .equ 6 ; whether to display backtrace
 
 ZDBG_FLAGS_STEP .equ 7 ; used by debugger -- don't set directly
 

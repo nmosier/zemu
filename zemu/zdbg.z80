@@ -16,6 +16,7 @@ zdbg_init:
    set ZDBG_FLAGS_INTR,(hl)
    set ZDBG_FLAGS_STAT,(hl)
    set ZDBG_FLAGS_STACK,(hl)
+   set ZDBG_FLAGS_BT,(hl)
    xor a,a
    ld (zdbg_alerts),a
    ret
@@ -40,6 +41,8 @@ zdbg_step:
    call nz,zdbg_status
    bit ZDBG_FLAGS_STACK,(ix)
    call nz,zdbg_disp_stack
+   bit ZDBG_FLAGS_BT,(ix)
+   call nz,zdbg_disp_backtrace
    bit ZDBG_FLAGS_INTR,(ix)
    ld a,0
    call nz,zdbg_step.input
@@ -192,7 +195,6 @@ zdbg_cmd.print.var:
    pop hl \ pop hl \ pop hl
    ld hl,zdbg_cmd.print.var.buf
    call zdbg_puts
-   call _GetKey ; TODO: should have its own window
    or a,a
    ret
 
@@ -264,7 +266,7 @@ zdbg_cmd.print.obj.dat: RESB(9)
 ;; ix = pointer to object
 ;; a = object
 zdbg_cmd.print.obj.props:
-   ld ix,win_dbgstack
+   ld ix,win_dbg1
    call zwin_clear
    ld ix,zdbg_cmd.print.obj.dat
    ld hl,0
@@ -302,7 +304,7 @@ zdbg_cmd.print.obj.props.loop:
    ; de = output buffer
    call hexdump
    ; print line
-   ld ix,win_dbgstack
+   ld ix,win_dbg1
    ld hl,zdbg_cmd.print.obj.props.buf_hex
    call zwin_puts
    call zwin_newline
@@ -561,70 +563,135 @@ zdbg_watch_hook.done:
 zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0
 
 
-ZDBG_DISP_STACK.SPACE .equ 3 * (4 + 1)
-;; zdbg_disp_stack -- display stack
-;; INPUTS: (none)
-;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: (all), ix
+;; zdbg_disp_locals -- display locals
+;; INPUTS:
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_disp_locals:
+;   push ix
+;; TODO
+
+
+;; zdbg_disp_stack -- display stack contents
+;; INPUTS:
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
 zdbg_disp_stack:
+   call zframe_sp_base
+   ld de,(zframe_sp)
+   ex de,hl
+   or a,a
+   sbc hl,de
+   srl h
+   rr l
+   ex de,hl
+   jp zdbg_disp_stack_bare
+   
+
+;; zdbg_disp_stack_bare -- generic stack printing routine
+;; INPUTS:
+;;  de = number of elements
+;;  hl = pointer to beginning of stack
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_disp_stack_bare:
+   ; setup
    push ix
    push iy
    ld iy,0
    add iy,sp
-   lea hl,iy-ZDBG_DISP_STACK.SPACE
-   ld sp,hl
-   ld ix,win_dbgstack
+   lea ix,iy-(4+3)*3
+   ld sp,ix
+   ld (iy-3),hl ; stack pointer
+   ld (iy-6),de ; number of elements
+   ld bc,0
+   ld (iy-9),bc ; index
+   ; clear display
+   ld ix,win_dbg1
    call zwin_clear
-   ld hl,(zframe_fp) ; (points to first local)
-   ld a,(zframe_nl) ; fetch number of locals to skip over
-   sla a ; multiply by 2
-   ld de,0
-   ld e,a
-   add hl,de ; hl points to first stack entyr
    jr zdbg_disp_stack.entry
 zdbg_disp_stack.loop:
-   ld (iy-9),de ; arg3
+   ld (iy-15),hl  ; arg3 -- index
+   inc hl
+   ld (iy-9),hl  ; update index
+   ld hl,(iy-3)
    ld de,0
-   ld d,(hl)
+   ld d,(hl)  ; load word from stack pointer
    inc hl
    ld e,(hl)
    inc hl
-   ld (iy-3),hl ; loc1 -- save iterator
-   ld (iy-6),de ; arg4
+   ld (iy-3),hl ; update stack pointer
+   ld (iy-12),de ; arg4 -- value
    ld hl,zdbg_disp_stack.fmt
-   ld (iy-12),hl ; arg2
+   ld (iy-18),hl ; arg2 -- fmt
    ld hl,zdbg_disp_stack.buf
-   ld (iy-15),hl ; arg1
+   ld (iy-21),hl ; arg1 -- buf
    call _sprintf
    ; print result
-   ld ix,win_dbgstack
    ld hl,zdbg_disp_stack.buf
+   ld ix,win_dbg1
    push iy
    ld iy,flags
-   call zwin_puts_bare
+   call zwin_puts
    call zwin_newline
    pop iy
-   ; restore iterator
-   ld hl,(iy-3) ; loc1
 zdbg_disp_stack.entry:
-   ld de,(zframe_sp) ; end
-   or a,a ; NC
-   ex de,hl
+   ld de,(iy-6) ; load number
+   ld hl,(iy-9) ; load index
+   or a,a
    sbc hl,de
-   ex de,hl
+   add hl,de
    jr nz,zdbg_disp_stack.loop
 zdbg_disp_stack.done:
+   ; cleanup
    ld sp,iy
    pop iy
    pop ix
    ret
 
 zdbg_disp_stack.buf: RESB(16)
-zdbg_disp_stack.fmt: .db "%2x: %4x",0
+zdbg_disp_stack.fmt: .db "%02x: %04x",0
 
 
+;; zdbg_disp_backtrace -- display backtrace
+;; INPUTS:
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_disp_backtrace:
+   push ix
+   ld ix,win_dbg2
+   call zwin_clear
+   ld ix,zframe_end
+   jr zdbg_disp_backtrace.entry
+zdbg_disp_backtrace.loop:
+   push ix
+   ; format string
+   ex de,hl ; val in de
+   ld hl,zdbg_disp_backtrace.buf
+   call hexlong
+   ; print string
+   ld hl,zdbg_disp_backtrace.buf
+   ld ix,win_dbg2
+   call zwin_puts
+   call zwin_newline
+   pop ix
+   ld de,(ix+zframe_fp-zframe_end)
+   ld ix,0
+   add ix,de
+zdbg_disp_backtrace.entry:
+   ld hl,(ix+zframe_pc-zframe_end)
+   ld de,$ffffff
+   call cp_hl_de
+   jr nz,zdbg_disp_backtrace.loop
+zdbg_disp_backtrace.done:
+   pop ix
+   ret
 
+zdbg_disp_backtrace.buf: RESB(7)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; UTIL FUNCTIONS ;;;;;
@@ -656,6 +723,25 @@ hexbyte:
    ld (hl),0
    ret
 
+;; hexlong -- convert long to hex string
+;; INPUTS:
+;;  de = val
+;;  hl = nuffer
+;; OUTPUTS:
+;;  hl <- hl + 6 (points to null term)
+;; ERRORS: no.
+;; DESTROYS:
+hexlong:
+   ld (hexlong.val),de
+   ld a,(hexlong.val+2)
+   call hexbyte
+   ld a,(hexlong.val+1)
+   call hexbyte
+   ld a,(hexlong.val+0)
+   call hexbyte
+   ret
+hexlong.val: .dl 0
+
 ;; hexdump -- dump hex values at given address
 ;; INPUTS:
 ;;  hl = start address
@@ -681,7 +767,6 @@ hexdump.done:
    ld (hl),0
    pop hl
    ret
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; DEBUGGING GLOBALS ;;;;

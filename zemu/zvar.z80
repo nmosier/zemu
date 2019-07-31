@@ -12,18 +12,19 @@
 zvar_localaddr:
    ; validate var num
    dec a
-   ld de,2
-   ld d,a
    ld hl,zframe_nl
    cp a,(hl)
-   ld a,ZERR_NOLOCL
-   ccf
-   ret c
-   ; calculate address
-   mlt de
-   ld hl,(zframe_fp)
+   jr nc,zvar_localaddr.error
+   ld hl,0
+   ld l,a
+   add hl,hl ; a * ZWORD_SIZE
+   ld de,(zframe_fp)
    add hl,de
-   scf \ ccf ; success
+   or a,a ; NC, success
+   ret
+zvar_localaddr.error:
+   ld a,ZERR_NOLOCL
+   scf
    ret
 
 ;; zvar_globaladdr -- get address of global variable

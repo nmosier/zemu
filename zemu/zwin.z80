@@ -184,6 +184,7 @@ zwin_newline.loop:
    call zwin_scroll
    jr zwin_newline.loop ; retry now
 zwin_newline.curset:
+   add a,(ix+ZWIN.ORGROW)
    ld (ix+ZWIN.CURROW),a
    ld hl,(ix+ZWIN.ORGCOL)
    ld (ix+ZWIN.CURCOL),hl

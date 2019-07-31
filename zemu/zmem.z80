@@ -59,6 +59,8 @@ zmem_init:
    ld (zframe_sp),hl
    xor a,a
    ld (zframe_nl),a
+   ld hl,$ffffff
+   ld (zframe_pc),hl
    ret
    
 
@@ -184,3 +186,32 @@ zstack_leave:
    ldir
    ret
 
+
+;; zframe_sp_base -- get base of stack pointer
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = pointer to s.p. base
+;; ERRORS: no.
+;; DESTROYS: (none)
+zframe_sp_base:
+   push de
+   ld hl,0
+   ld a,(zframe_nl)
+   ld l,a
+   add hl,hl
+   ld de,(zframe_fp)
+   add hl,de
+   pop de
+   ret
+
+   push ix
+   ld ix,(zframe_fp)
+   ld hl,0
+   ld l,(ix+zframe_nl-zframe_end)
+   add hl,hl ; multiply by word size
+   ex de,hl
+   add ix,de
+   ex de,hl
+   lea hl,ix
+   pop ix
+   ret

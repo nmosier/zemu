@@ -729,9 +729,31 @@ zexec.call:
    ; read packed address of routine
    call zcode_readop_force
    ret c
+   push hl ; save packed address for after we've read in the params
+   call zexec.call.readvars
+   pop hl ; restore packed address
+   ret c
+   push bc
    ; set up bare call state
    call zcall0
+   pop bc
    ret c
+   push hl ; save new address
+   call zexec.call.storevars
+   pop hl ; restore new address
+   ret c
+zexec.call.returnval:
+   call zcode_readvarnum
+   ret c
+   ld (zframe_rv),a
+zexec.call.done:
+   ld ix,(zframe_fp)
+   ld de,(zframe_pc) ; end of CALL instruction
+   ld (ix+zframe_pc-zframe_end),de ; save return address
+   ld (zframe_pc),hl ; save new PC
+   or a,a
+   ret
+
    push hl ; save PC after procedure is entered
    ; assign arguments to locals
    xor a,a
@@ -761,6 +783,63 @@ zexec.call.pc:
    ret
 zexec.call.varno: .db 0
 
+;; get variables before setting up new call frame
+zexec.call.readvars:
+   ld de,zexec.call.locals ; locals are temporarily stored here
+   or a,a
+   jr zexec.call.readvars.entry
+zexec.call.readvars.loop:
+   ex de,hl
+   ld (hl),d
+   inc hl
+   ld (hl),e
+   inc hl
+   ex de,hl
+zexec.call.readvars.entry:
+   push de
+   call zcode_readop
+   pop de
+   ret c ; error
+   jr nz,zexec.call.readvars.loop
+zexec.call.readvars.done:
+   ex de,hl
+   ld de,zexec.call.locals
+   or a,a
+   sbc hl,de
+   ld b,l
+   rr b ; b = # of locals
+   or a,a ; NC
+   ret
+
+;; store variables after setting up new call frame
+;; b = # of vars
+zexec.call.storevars:
+   ld hl,zexec.call.locals
+   ld de,0
+   ld e,b
+   add hl,de
+   add hl,de
+   ld a,b
+   or a,a
+   ret z ; no vars to store
+zexec.call.storevars.loop:
+   ld de,0
+   dec hl
+   ld e,(hl)
+   dec hl
+   ld d,(hl)
+   push hl
+   ex de,hl
+   ld a,b
+   call zvar_store
+   pop hl
+   ret c ; error
+   djnz zexec.call.storevars.loop
+zexec.call.storevars.done:
+   or a,a
+   ret
+
+zexec.call.locals: RESW(16) ; 16 = max # of locals
 
 zexec.storew:
    ;; stores the given value in the word at address array+2*word-index

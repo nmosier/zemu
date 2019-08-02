@@ -170,6 +170,8 @@ zdbg_cmd.print:
    jr z,zdbg_cmd.print.var
    cp a,'O' ; object
    jr z,zdbg_cmd.print.obj
+   cp a,'L' ; locals
+   jp z,zdbg_cmd.print.locals
    or a,a
    ret
 
@@ -316,11 +318,14 @@ zdbg_cmd.print.obj.props.entry:
 zdbg_cmd.print.obj.props.done:
    ret
 
-
-
 zdbg_cmd.print.obj.props.propid: .db 0
 zdbg_cmd.print.obj.props.buf_bytes: RESB(8)
 zdbg_cmd.print.obj.props.buf_hex: RESB(32)
+
+zdbg_cmd.print.locals:
+   call zdbg_disp_locals
+   or a,a
+   ret
 
 ;; zdbg_status -- display status information
 zdbg_status:
@@ -569,15 +574,18 @@ zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0
 ;; DESTROYS:
 ;; ERRORS:
 zdbg_disp_locals:
-;   push ix
-;; TODO
+   ld hl,(zframe_fp) ; address of locals
+   ld a,(zframe_nl)
+   ld de,0
+   ld e,a
+   jp zdbg_disp_stack_bare
 
 
 ;; zdbg_disp_stack -- display stack contents
-;; INPUTS:
-;; OUTPUTS:
-;; DESTROYS:
-;; ERRORS:
+;; INPUTS:   (none)
+;; OUTPUTS:  (none)
+;; DESTROYS: (all)
+;; ERRORS:   no
 zdbg_disp_stack:
    call zframe_sp_base
    ld de,(zframe_sp)

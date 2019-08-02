@@ -33,7 +33,8 @@ Features
 [X] Display alerts in zdbg_status
 [X] Support for displaying stack.
 [ ] Merging windows
-[ ] dbg: display call stack
+[X] dbg: display call stack
+[ ] Parameterize variable access.
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

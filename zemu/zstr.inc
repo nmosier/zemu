@@ -18,18 +18,58 @@ ZSTR_AMAX .equ $1f
 
 ZSTR_ALEN .equ ZSTR_AMAX - ZSTR_AMIN + 1
 
-ZSTR_NEWLINE .equ '^'
+;ZSTR_NEWLINE .equ '^'
 
-ASCII_NEWLINE .equ $F2
-ASCII_DEL .equ $F3
-ASCII_CLEAR .equ $F4
+ASCII_NEWLINE     .equ $F2
+ASCII_DEL         .equ $F3
+ASCII_CLEAR       .equ $F4
+ASCII_NUL         .equ $00
+;; unsupported:
+ASCII_UP          .equ $F5
+ASCII_DOWN        .equ $F6
+ASCII_LEFT        .equ $F7
+ASCII_RIGHT       .equ $F8
+ASCII_FN1         .equ $F9
+ASCII_FN2         .equ $FA
+ASCII_FN3         .equ $FB
+ASCII_FN4         .equ $FC
+ASCII_FN5         .equ $FD
+
+ZSCII_NUL         .equ 0
+ZSCII_DEL         .equ 8
+ZSCII_NEWLINE     .equ 13
+ZSCII_ESC         .equ 27
+ZSCII_UP          .equ 129
+ZSCII_DOWN        .equ 130
+ZSCII_LEFT        .equ 131
+ZSCII_RIGHT       .equ 132
+ZSCII_FN1         .equ 133
+ZSCII_FN2         .equ 134
+ZSCII_FN3         .equ 135
+ZSCII_FN4         .equ 136
+ZSCII_FN5         .equ 137
+
+;; equates for WCHAR table
+WCHAR_IN   .equ 7
+WCHAR_OUT  .equ 6
+
+WCHAR_INM  .equ MASK(WCHAR_IN)
+WCHAR_OUTM .equ MASK(WCHAR_OUT)
+WCHAR_IOM  .equ WCHAR_INM|WHCAR_OUTM
+
+WCHAR_ENT_FLAGS .equ 0
+WCHAR_ENT_ZSCII .equ 1
+WCHAR_ENT_ASCII .equ 4
+WCHAR_ENT_COUNT .equ 5
+WCHAR_ENTSIZE .equ 6
 
 ZSTR_NCODES .equ 32
 ZSTR_CODEMASK .equ $1f
 
-ZSTR_FLAGS_SHIFT .equ 0  ; shift enabled for next character?
-ZSTR_FLAGS_AX    .equ 1  ; Z = A1, NZ = A2
-ZSTR_FLAGS_ABBR  .equ 2  ; expecting abbreviation code?
+ZSTR_FLAGS_SHIFT     .equ 0  ; shift enabled for next character?
+ZSTR_FLAGS_AX        .equ 1  ; Z = A1, NZ = A2
+ZSTR_FLAGS_ABBR      .equ 2  ; expecting abbreviation code?
+ZSTR_FLAGS_WCHAR     .equ 3  ; expecting 10-bit ASCII char?
 
 STRLEN_LONG .equ 8
 

@@ -95,6 +95,29 @@ zaddr_fetch.cleanup:
    pop de
    ret
 
+;; zaddr_fetch_c -- C wrapper for zaddr_fetch
+;; ARGS:
+;;  arg1 = uint24_t address
+;; RETV: uint8_t byte = *address
+;; ERRORS: no.
+;; DESTROYS: (all)
+zaddr_fetch_c:
+   push ix
+   push iy
+   ld iy,0
+   add iy,sp
+   ld hl,(iy+9) ; address
+   call zaddr_fetch
+   jr nc,_ ; error, but can't propogate
+   xor a,a  
+_  ld hl,0
+   ld l,a
+   ld sp,iy
+   pop iy
+   pop ix
+   ret
+
+
 ;; zaddr_fetchw -- fetch big-endian word at logical address
 ;; INPUTS:
 ;;  hl = logical address

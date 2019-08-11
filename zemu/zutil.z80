@@ -371,6 +371,21 @@ cp_hl_de:
    pop af
    ret
 
+;; cp_hl_bc -- flags(hl - bc)
+;; INPUTS:
+;;  hl, bc
+;; OUTPUTS:
+;;  all flags
+;; DESTROYS: (none)
+;; ERRORS: no.
+cp_hl_bc:
+   or a,a
+   sbc hl,bc
+   push af
+   add hl,bc
+   pop af
+   ret
+
 
 ;; cp_hl_de_sgn -- signed flags(hl - de)
 ;; TODO -- there must be a more elegant way to do this.
@@ -820,11 +835,43 @@ xstrtoul.shift:
 ktoch:
    JCLASS(kCapA,kCapZ,ktoch.alpha)
    JCLASS(k0,k9,ktoch.digit)
-   JCHAR(kEnter,ASCII_NEWLINE,ktoch.done)
-   JCHAR(kDel,ASCII_DEL,ktoch.done)
-   JCHAR(kClear,ASCII_CLEAR,ktoch.done)
+   push hl
+   push bc
+   ld hl,ktoch.tab
+   ld c,a ; move key
+   jr ktoch.loop_search.entry
+ktoch.loop_search: ; search table
+   inc hl
+   cp a,c
+   jr z,ktoch.found
+   inc hl
+ktoch.loop_search.entry:
+   ld a,(hl)
+   or a,a   ; reached end of table?
+   jr nz,ktoch.loop_search
+ktoch.notfound:   
    xor a,a
+   jr ktoch.done
+   
+ktoch.found:
+   ld a,(hl)
 ktoch.done:
+   pop bc
+   pop hl
+   ret
+
+ktoch_old:
+   JCLASS(kCapA,kCapZ,ktoch.alpha)
+   JCLASS(k0,k9,ktoch.digit)
+   JCHAR(kEnter,ASCII_NEWLINE,ktoch_old.done)
+   JCHAR(kDel,ASCII_DEL,ktoch_old.done)
+   JCHAR(kClear,ASCII_CLEAR,ktoch_old.done)
+   JCHAR(kDiv,'/',ktoch_old.done)
+   JCHAR(kMul,'*',ktoch_old.done)
+   JCHAR(kAdd,'+',ktoch_old.done)
+   JCHAR(kSub,'-',ktoch_old.done)
+   xor a,a
+ktoch_old.done:
    ret
 
 ktoch.alpha:
@@ -835,7 +882,16 @@ ktoch.digit:
    add a,'0'-k0
    ret
 
-
+ktoch.tab:
+   .db kEnter, ASCII_NEWLINE
+   .db kDel,   ASCII_DEL
+   .db kClear, ASCII_CLEAR
+   .db kDiv,   '/'
+   .db kMul,   '*'
+   .db kAdd,   '+'
+   .db kSub,   '-'
+ktoch.tab.end:
+   .db 0
    
 ;; isprint -- is printable ASCII character
 ;; INPUTS:

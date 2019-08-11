@@ -396,7 +396,6 @@ zobj_propid_to_size:
    rlca
    inc a
    ret
-   
 
 ;; zobj_propid_to_num -- extract property number from property ID byte
 ;; INPUTS:
@@ -407,8 +406,10 @@ zobj_propid_to_size:
 ;; ERRORS: no.
 zobj_propid_to_num:
    and a,$1F
+   ; dec a ;; TODO -- check whether this is correct
+         ;; would make sense b/c otherwise 0 would describe valid
+         ;; property of ID 0, length 8
    ret
-
 
 ;; zobj_propsize -- get size of object property data
 ;; INPUTS:
@@ -439,22 +440,25 @@ zobj_propsize.done:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zobj_propval:
+   push bc ; preserve property #
    call zobj_propaddr
+   pop bc  ; restore property #
    ret c
-   ld de,0
-   or a,a
-   sbc hl,de
+   call cp_hl_0
    jp z,zobj_propval.default
-   ld c,a
-   ld a,2
-   cp a,c
-   ld a,ZERR_BADPROP
-   ret c
+   or a,a ; check if invalid size
+   jr z,zobj_propval.error
    dec a
    jp z,zaddr_fetchb
-   jp zaddr_fetchw
+   dec a
+   jp z,zaddr_fetchw
+zobj_propval.error:
+   ld a,ZERR_BADPROP
+   scf
+   ret
+
 zobj_propval.default:
-   ld a,c
+   ld a,c ; set property number parameter
    jp zobj_propdefault
 
 ;; zobj_nextprop -- fetch next prop number
@@ -509,7 +513,7 @@ zobj_propdefault:
    lea hl,ix
    add hl,de
    add hl,de ; hl <- ix + de*WORD_SIZE
-   jp zaddr_fetchwu
+   jp zaddr_fetchw;u
    
 
 ;------------------------------;

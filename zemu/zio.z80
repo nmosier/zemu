@@ -1,0 +1,37 @@
+;; zio.z80 -- input/output routines
+
+;; zio_hexdump -- print hex values at given address
+;; INPUTS:
+;;  arg1 = base address        (3)
+;;  arg2 = start index         (3)
+;;  arg3 = item count          (3)
+;;  arg4 = memory read routine (3)
+;;  arg5 = bytes per item      (1)
+;;  arg6 = items per line      (1)
+;;  arg7 = flags               (1)
+;;                             (15)
+;; OUTPUTS:
+;; ERRORS: yes.
+;; DESTROYS:
+zio_hexdump:
+   push iy
+   ld iy,0
+   add iy,sp
+
+zio_hexdump.loop:
+   ; update count
+   dec hl
+   ld (iy-6),hl
+   ;
+
+zio_hexdump.entry:
+   ld hl,(iy-6) ; count
+   call cp_hl_0
+   jr nz,zio_hexdump.loop
+zio_hexdump.done:
+   or a,a ; NC
+   ret
+
+
+zio_hexdump.resbuf:
+

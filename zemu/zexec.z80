@@ -778,7 +778,8 @@ zexec.rfalse:
    jp zvar_store
 
 zexec.print:
-   ; NOTE: This is analogous to a Z80 string operation.
+   ; NOTE: This is analogous to a Z80 string operation. (???)
+   call zstr_reset
    ld hl,(zframe_pc)
    call zstr_puts
    ld (zframe_pc),hl
@@ -856,6 +857,10 @@ zexec.call:
    call zexec.call.readvars
    pop hl ; restore packed address
    ret c
+   ; check if CALL address is 0; if so, execute `rfalse`
+   call cp_hl_0
+   jp z,zexec.rfalse
+   ; make CALL
    push bc
    ; set up bare call state
    call zcall0
@@ -1028,7 +1033,8 @@ zexec.put_prop.err:
    scf
    ret
 
-zexec.sread:
+zexec.read:
+   ;; TODO
 
 ;; TODO -- should this support multiple chars?
 zexec.print_char:

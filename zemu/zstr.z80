@@ -3,7 +3,8 @@
 #include "zstr.inc"
 
 zstr_flags: .db 0
-zstr_abbrtab: .dl 0
+zstr_wchar: .dl 0    ; for 10-bit ASCII chars
+zstr_abbrtab: .dl 0  ; for abbreviation mode
 
 zstr_abbraddr:
    ld ix,(zmap_header)
@@ -23,18 +24,21 @@ zstr_putc:
    ; 1. Interpet as abbreviation code?
    bit ZSTR_FLAGS_ABBR,(hl)
    jr nz,zstr_putc.abbr_apply
-   ; 2. Is it a space?
+   ; 2. Interpret as wide char bits?
+   bit ZSTR_FLAGS_WCHAR,(hl)
+   jr nz,zstr_putc.wchar_add
+   ; 3. Is it a space?
    or a,a
    jr z,zstr_putc.space
-   ; 3. Is it an abbreviation prefix?
+   ; 4. Is it an abbreviation prefix?
    cp a,ZSTR_ABBRMAX+1
    jr c,zstr_putc.abbr_select
-   ; 4. Is it a shift code?
+   ; 5. Is it a shift code?
    cp a,ZSTR_A1
    jr z,zstr_putc.shift_A1
    cp a,ZSTR_A2
    jr z,zstr_putc.shift_A2
-   ; 5. Otherwise, is a character.
+   ; 6. Otherwise, is a regular character.
 zstr_putc.char:
    sub a,ZSTR_AMIN
    bit ZSTR_FLAGS_SHIFT,(hl)
@@ -47,7 +51,7 @@ zstr_putc.char:
 zstr_putc.shift_A1:
    set ZSTR_FLAGS_SHIFT,(hl)
    res ZSTR_FLAGS_AX,(hl)
-   scf \ ccf
+   or a,a
    ret
 
 zstr_putc.shift_A2:
@@ -69,8 +73,6 @@ zstr_putc.char.A2:
    cp a,1
    ld hl,zstr_A2.tab
    jr nz,zstr_putc.char.print
-   ;; newline
-   ;   call _NewLine
    call zwin_newline
    or a,a
    ret
@@ -81,13 +83,13 @@ zstr_putc.char.print:
    add hl,de
    ld a,(hl)
    call zwin_putc
-   scf \ ccf
+   or a,a
    ret
 
 zstr_putc.space:
    ld a,' '
    call zwin_putc
-   scf \ ccf
+   or a,a
    ret
 
 zstr_putc.abbr_apply:
@@ -108,7 +110,7 @@ zstr_putc.abbr_apply:
    ld a,(zstr_flags)
    res ZSTR_FLAGS_SHIFT,a
    ld (zstr_flags),a
-   ret   
+   ret
 
 
 zstr_putc.abbr_select:
@@ -125,8 +127,32 @@ zstr_putc.abbr_select:
    ld e,b
    add hl,de
    ld (zstr_abbrtab),hl
-   scf \ ccf
+   or a,a
    ret
+
+zstr_putc.wchar_add:
+   ld de,(zstr_wchar)
+   bit 7,d
+   jr nz,zstr_putc.wchar_add.10bits
+zstr_putc.wchar_add.5bits:
+   rrca
+   rrca
+   rrca
+   ld e,a
+   and a,$03
+   or a,$80
+   ld d,a
+   ld (zstr_wchar),de
+   or a,a
+   ret ; success, but don't print anything b/c expecting more bits
+
+zstr_putc.wchar_add.10bits:
+   or a,e
+   ld e,a
+   res 7,d
+   ;; TODO -- need to display extended whcar.   
+   ;; CONTINUE HERE
+
 
 ;; zstr_putw -- print Z-string contained in z-word
 ;; INPUTS:
@@ -531,10 +557,126 @@ zstr_encode.buf_end:
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
 ;; ERRORS: no.
-;; DESTROYS:
+;; DESTROYS: ???
 zstr_putln:
    push ix
    ld ix,win_main
    call zwin_newline
    pop ix
    ret
+
+
+;; zstr_reset -- reset string state flags
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: (none)
+zstr_reset:
+   push af
+   xor a,a ; no flags
+   ld (zstr_flags),a
+   pop af
+   ret
+
+
+;; zstr_wchartoch -- convert ZSCII char (wide char) to TI char
+;; INPUTS:
+;;  hl[15:0] = ZSCII char
+;; OUTPUTS:
+;;  a = TI char
+;; ERRORS: yes.
+;; DESTROYS: ???
+zstr_wchartoch:
+   
+
+
+#macro WCHAR_ENT_RANGE(in_first, in_last, out_first, ioflags)
+   .db ioflags
+   .dl in_first
+   .db out_last
+   .db in_last - in_first + 1
+#endmacro
+
+#macro WCHAR_ENT_SINGLE(in_ch, out_ch, ioflags)
+   .db ioflags | 1
+   .dl in_ch
+   .db out_ch
+   .db 1
+#endmacro
+
+#macro WCHAR_ENT_END()
+   .db 0
+#endmacro
+
+zstr_wchartab:
+   WCHAR_ENT_SINGLE(ZSCII_NUL, ASCII_NUL, WCHAR_OUTM)
+   WCHAR_ENT_SINGLE(ZSCII_DEL, ASCII_DEL, WCHAR_INM)
+   WCHAR_ENT_SINGLE(ZSCII_NEWLINE, ASCII_NEWLINE, WCHAR_IOM)
+   WCHAR_ENT_SINGLE(ZSCII_ESC, ASCII_CLEAR, WCHAR_INM)
+   WCHAR_ENT_RANGE(32, 126, ' ', '~', WCHAR_IOM)
+   WCHAR_ENT_RANGE(ZSCII_UP, ZSCII_RIGHT, ASCII_UP, WCHAR_INM)
+   WCHAR_ENT_RANGE(ZSCII_FN1, ZSCII_FN5, ASCII_FN1, WCHAR_INM)
+   WCHAR_ENT_END()
+
+;; zstr_wchartab_.find -- find entry in ZSCII and TI char interchange table
+;;   zstr_wchartab_zfind -- ... given ZSCII char
+;;   zstr_wchartab_afind -- ... given TI char
+;; INPUTS:
+;;  (zfind) hl[15:0] = ZSCII char
+;;  (afind) a = TI char
+;; OUTPUTS:
+;;  ix = pointer to entry
+;;  CF = whether not found
+;; ERRORS: no.
+;; DESTROYS: ???
+zstr_wchartab_zfind:
+   ld de,zstr_wchartab_find.zcmp
+   jr zstr_wchartab_find.base
+
+zstr_wchartab_afind:
+   ld hl,0
+   ld l,a ; uextend TI char for symmetry
+   ld de,zstr_wchartab_find.acmp
+   jr zstr_wchartab_find.base
+
+zstr_wchartab_find.base:
+   ld ix,zstr_wchartab
+   
+   jr zstr_wchartab_find.entry
+zstr_wchartab_find.loop:
+   ld a,(ix+WCHAR_ENT_COUNT)
+   ex de,hl
+   jp (hl) ; de contains char param
+zstr_wchartab_find.reentry:
+   call cp_hl_bc
+   jr c,zstr_wchartab_find.continue
+   ld a,(ix+WCHAR_ENT_COUNT)
+   add a,c ;; add bc,count
+   ld c,a
+   ld a,b
+   adc a,0
+   ld b,a
+   call cp_hl_bc
+   jr c,zstr_wchartab_find.found
+zstr_wchartab_find.continue:
+   lea ix,ix+WCHAR_ENTSIZE
+zstr_wchartab_find.entry:
+   ld a,(ix+WCHAR_ENT_FLAGS)
+   or a,a
+   jr nz,zstr_wchartab_find.loop ; valid entry
+zstr_wchartab_find.notfound:
+   scf ; not found
+   ret
+   
+zstr_wchartab_find.found:
+   or a,a
+   ret
+
+zstr_wchartab_find.zcmp:
+   ld bc,(ix+WCHAR_ENT_ZSCII)
+   jr zstr_wchartab_find.reentry
+
+zstr_wchartab_find.acmp:
+   ld bc,0
+   ld c,(ix+WCHAR_ENT_ASCII)
+   jr zstr_wchartab_find.reentry

@@ -75,9 +75,6 @@ win_dbg1: RES_ZWIN(0) ; not buffered
 win_dbg2: RES_ZWIN(0) ; not buffered
 
 test:
-   jp test_hex
-   
-
    ; test call & run until
    ld hl,zdbg_step
    ld (zcode_stepuntil.fn),hl

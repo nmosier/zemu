@@ -35,6 +35,7 @@ Features
 [ ] Merging windows
 [X] dbg: display call stack
 [ ] Parameterize variable access.
+[ ] Paging option for zwin_puts
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

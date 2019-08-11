@@ -114,6 +114,8 @@ zdbg_cmd:
    jr z,zdbg_cmd.disable
    cp a,'P'
    jr z,zdbg_cmd.print
+   cp a,'X'
+   jp z,zdbg_cmd.examine
    or a,a
    ret
 
@@ -326,6 +328,112 @@ zdbg_cmd.print.locals:
    call zdbg_disp_locals
    or a,a
    ret
+
+;; hexdump at given address
+;; format: X<addr>/<count>/<size>/<ipl>
+zdbg_cmd.examine:
+   ; initialize values
+   ld de,1
+   ld (zdbg_cmd.examine.count),de
+   ld a,1
+   ld (zdbg_cmd.examine.size),a
+   ld a,1
+   ld (zdbg_cmd.examine.ipl),a
+   ; parse string
+   ld a,16 ; hex
+   call strtoul ; parse address
+   ccf
+   ret nc
+   ld (zdbg_cmd.examine.addr),hl
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   cp a,'/'
+   scf \ ccf
+   ret nz
+   inc hl
+   ; parse count
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld (zdbg_cmd.examine.count),a
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   cp a,'/'
+   scf \ ccf
+   ret nz
+   inc hl
+   ; parse size
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld (zdbg_cmd.examine.size),a
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   cp a,'/'
+   scf \ ccf
+   ret nz
+   inc hl
+   ; parse ipl
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld (zdbg_cmd.examine.ipl),a
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   ; invalid char at end
+   scf
+   ret
+   
+zdbg_cmd.examine.hexdump:
+   push ix
+   ld ix,0
+   add ix,sp
+   ld hl,zdbg_cmd.examine.print_args
+   push hl ; print context
+   ld hl,zwin_puts_c
+   push hl ; print
+   ld hl,zaddr_fetch_c
+   push hl ; fetch
+   ld hl,MASK(HEXDUMP_IDXSIZE)
+   push hl ; flags
+   ld hl,0
+   ld a,(zdbg_cmd.examine.ipl)
+   ld l,a
+   push hl ; ipl
+   ld a,(zdbg_cmd.examine.size)
+   ld l,a
+   push hl ; size
+   ld hl,(zdbg_cmd.examine.count)
+   push hl ; count
+   ld hl,(zdbg_cmd.examine.addr)
+   push hl ; index
+   push hl ; base
+   call _hexdump
+zdbg_cmd.examine.hexdump.done:
+   ld sp,ix
+   pop ix
+   or a,a
+   ret
+
+zdbg_cmd.examine.addr: .dl 0
+zdbg_cmd.examine.count: .dl 0
+zdbg_cmd.examine.size: .db 0
+zdbg_cmd.examine.ipl: .db 0
+zdbg_cmd.examine.print_args: .dl win_dbg1
 
 ;; zdbg_status -- display status information
 zdbg_status:

@@ -358,6 +358,12 @@ zwin_trunc:
 zwin_puts:
    jr zwin_puts.entry
 zwin_puts.loop:
+   ;; DEBUG HOOK
+   cp a,'r'
+   jr nz,_
+   nop
+_  ;; DEBUG HOOK END
+
    call zwin_putc
    inc hl
 zwin_puts.entry:
@@ -379,6 +385,29 @@ zwin_puts_bare.entry:
 zwin_puts_bare.end:
    ret
 
+;; zwin_puts_c -- C wrapper for zwin_puts
+;; INPUTS:
+;;  arg1 = char *string
+;;  arg2 = struct zwin **win
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: (all)
+zwin_puts_c:
+   push ix
+   push iy
+   ld iy,0
+   add iy,sp
+   ld hl,(iy+9)  ; arg1 -- string
+   ld ix,(iy+12) ; arg2 -- context
+   ld ix,(ix)   ; window
+   push iy
+   ld iy,flags
+   call zwin_puts
+   pop iy
+   ld sp,iy
+   pop iy
+   pop ix
+   ret
 
 ;; zwin_putsn -- put string in window, buffered, n bytes
 ;; zwin_putsn_bare -- put string in window, unbuffered, n bytes

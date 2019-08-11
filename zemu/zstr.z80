@@ -525,3 +525,16 @@ zstr_encode.nospace:
 zstr_encode.buf:
    .db 0,0,0,0,0,0
 zstr_encode.buf_end:
+
+
+;; zstr_putln -- put newline in main window
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS:
+zstr_putln:
+   push ix
+   ld ix,win_main
+   call zwin_newline
+   pop ix
+   ret

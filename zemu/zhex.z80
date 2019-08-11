@@ -1,0 +1,220 @@
+;   15	#define HEXDUMP_IDX_SIZE 0
+;   16	#define HEXDUMP_SIZE_MAX 8
+;   17	#define HEXDUMP_CHARS_PER_BYTE 2
+;   18	#define HEXDUMP_NEWLINE 0xf2
+;   19	int8_t hexdump(uint24_t base, uint24_t index, uint24_t count, uint8_t size, uint8_t ipl,
+;   20	               uint8_t flags, uint8_t (*fetch)(uint24_t), void (*print)(char *, void *),
+;   21	               void *print_context) {
+_hexdump:
+	LD	HL,-36
+	CALL	__frameset
+;   22	   const char *pfxfmt = "%0*x:";
+	LD	BC,L__1
+	LD	(IX+-15),BC
+;   23	   const char *bytefmt = "%02x";
+	LD	BC,L__2
+	LD	(IX+-18),BC
+;   24	   char newline[2] = {HEXDUMP_NEWLINE, 0};
+	LEA	DE,IX+-12
+	LD	HL,_0temp1
+	LD	BC,2
+	LDIR	
+;   25	   char buf[HEXDUMP_SIZE_MAX * HEXDUMP_CHARS_PER_BYTE + 1 + 1]; // max size
+;   26	   char *bufptr;
+;   27	   uint8_t lines, line, item, byte, val, idxsize;
+;   28	
+;   29	   /* check size */
+;   30	   if (size > HEXDUMP_SIZE_MAX) {
+	LD	A,8
+	CP	A,(IX+15)
+	JP	NC,L_7
+;   31	      return -1;
+	LD	A,255
+	JP	L_22
+;   32	   }
+L_7:
+;   33	
+;   34	   /* determine index size */
+;   35	   idxsize = (flags & HEXDUMP_IDX_SIZE) ? 3 : 1;
+	LD	A,(IX+21)
+	AND	A,0
+	JP	Z,L_5
+	LD	BC,3
+	LD	(IX+-10),BC
+	JP	L_6
+L_5:
+	LD	BC,1
+	LD	(IX+-10),BC
+L_6:
+	LD	A,(IX+-10)
+	LD	(IX+-7),A
+;   36	   
+;   37	   while (count > 0) {
+	JP	L_19
+L_20:
+;   38	      sprintf(buf, pfxfmt, idxsize, index); // format prefix
+	LD	BC,(IX+9)
+	PUSH	BC
+	LD	A,(IX+-7)
+   ld hl,0
+	LD	L,A
+	PUSH	HL
+	LD	BC,(IX+-15)
+	PUSH	BC
+	PEA	IX+-36
+	CALL	_sprintf
+	POP	BC
+	POP	BC
+	POP	BC
+	POP	BC
+;   39	      print(buf, print_context); // print prefix
+	LD	IY,(IX+27)
+	LD	BC,(IX+30)
+	PUSH	BC
+	PEA	IX+-36
+	CALL	__indcall
+	POP	BC
+	POP	BC
+;   40	
+;   41	      for (item = 0; item < ipl && count > 0; ++item, ++index, --count) {
+	LD	(IX+-1),0
+	JP	L_17
+L_15:
+;   42	         /* put leading space ' ' */
+;   43	         bufptr = buf;
+;   44	         *bufptr++ = ' ';
+	LD	(IX+-36),32
+	LEA	BC,IX+-36
+	INC	BC
+	LD	(IX+-5),BC
+;   45	
+;   46	         /* format item in buffer */
+;   47	         for (byte = 0; byte < size; ++byte) {
+	LD	(IX+-2),0
+	JP	L_13
+L_11:
+;   48	            val = fetch(base++);
+	LD	DE,(IX+6)
+	INC	DE
+	LD	BC,(IX+6)
+	LD	(IX+6),DE
+	LD	IY,(IX+24)
+	PUSH	BC
+	CALL	__indcall
+	POP	BC
+	LD	(IX+-6),A
+;   49	            bufptr += sprintf(bufptr, bytefmt, val);
+    ld hl,0
+	LD	L,A
+	PUSH	HL
+	LD	BC,(IX+-18)
+	PUSH	BC
+	LD	BC,(IX+-5)
+	PUSH	BC
+	CALL	_sprintf
+	POP	BC
+	POP	BC
+	POP	BC
+	LD	BC,(IX+-5)
+	ADD	HL,BC
+	LD	(IX+-5),HL
+	INC	(IX+-2)
+;   50	         }
+L_13:
+	LD	A,(IX+-2)
+	CP	A,(IX+15)
+	JP	C,L_11
+;   51	
+;   52	         /* print item */
+;   53	         print(buf, print_context);
+	LD	IY,(IX+27)
+	LD	BC,(IX+30)
+	PUSH	BC
+	PEA	IX+-36
+	CALL	__indcall
+	POP	BC
+	POP	BC
+	INC	(IX+-1)
+	LD	BC,(IX+9)
+	INC	BC
+	LD	(IX+9),BC
+	LD	IY,(IX+12)
+	LEA	IY,IY+-1
+	LD	(IX+12),IY
+;   54	      }
+L_17:
+	LD	A,(IX+-1)
+	CP	A,(IX+18)
+	JP	NC,L_18
+	LD	BC,(IX+12)
+	OR	A,A
+	SBC	HL,HL
+	OR	A,A
+	SBC	HL,BC
+	JP	C,L_15
+L_18:
+;   55	      
+;   56	      /* print newline */
+;   57	      print(&newline, print_context);
+	LD	IY,(IX+27)
+	LD	BC,(IX+30)
+	PUSH	BC
+	PEA	IX+-12
+	CALL	__indcall
+	POP	BC
+	POP	BC
+;   58	   }
+L_19:
+	LD	BC,(IX+12)
+	OR	A,A
+	SBC	HL,HL
+	OR	A,A
+	SBC	HL,BC
+	JP	C,L_20
+;   59	
+;   60	   /* success */
+;   61	   return 0;
+	XOR	A,A
+;   62	}
+L_22:
+	LD	SP,IX
+	POP	IX
+	RET	
+
+
+;**************************** _hexdump ***************************
+;Name                         Addr/Register   Size   Type
+;_sprintf                            IMPORT  -----   function
+;_0temp1                             STATIC      2   variable
+;buf                                  IX-36     18   variable
+;bytefmt                              IX-18      3   variable
+;pfxfmt                               IX-15      3   variable
+;newline                              IX-12      2   variable
+;temp3                                IX-10      3   variable
+;idxsize                               IX-7      1   variable
+;val                                   IX-6      1   variable
+;bufptr                                IX-5      3   variable
+;byte                                  IX-2      1   variable
+;item                                  IX-1      1   variable
+;print_context                        IX+30      3   parameter
+;print                                IX+27      3   parameter
+;fetch                                IX+24      3   parameter
+;flags                                IX+21      1   parameter
+;ipl                                  IX+18      1   parameter
+;size                                 IX+15      1   parameter
+;count                                IX+12      3   parameter
+;index                                 IX+9      3   parameter
+;base                                  IX+6      3   parameter
+
+
+; Stack Frame Size: 69 (bytes)
+;       Spill Code: 0 (instruction)
+L__1:
+	.db	"%0*x:"
+	.db	0
+L__2:
+	.db	"%02x"
+	.db	0
+_0temp1:
+	.db	242
+	.db	0

@@ -79,6 +79,11 @@ zexec_cmp.zero:
    cpl
    ret
 
+zexec_cmp.nonzero:
+   call zexec_cmp.zero
+   cpl
+   ret
+
 ;---------------------------;
 ;   unary operations        ;
 ;---------------------------;
@@ -212,8 +217,13 @@ zexec_binop.loadb:
 zexec_binop.propval:
    ;; hl = object number
    ;; de = property number
-   ld a,l
-   ld c,e
+   ex de,hl
+   call zobj_downcast
+   ret c
+   ld c,a
+   ex de,hl
+   call zobj_downcast
+   ret c
    call zobj_propval
    ex de,hl
    ret
@@ -221,9 +231,14 @@ zexec_binop.propval:
 zexec_binop.propaddr:
    ;; hl = object number
    ;; de = property number
-   ld a,l
-   ld c,e
-   jp zobj_propaddr
+   ex de,hl
+   call zobj_downcast
+   ret c
+   ld c,a
+   ex de,hl
+   call zobj_downcast
+   ret c
+   call zobj_propaddr
    
 zexec_binop.propsize:
    ;; hl = object number
@@ -247,6 +262,71 @@ zexec_binop.nextprop:
    scf \ ccf
    ret
 
+;----------------------------------;
+;     variable arg functions       ;
+;----------------------------------;
+
+;; zexec_repbcmp -- repeat binary comparison for variable number of arguments
+;; INPUTS:
+;;  hl = comparison function
+;; OUTPUTS:
+;;  a = truth value of comparison
+;; ERROR: yes.
+;; DESTROYS: (all), ix
+zexec_repbcmp:
+   ld (zexec_repcmp.cmp),hl ; save comparison function
+   ld a,1
+   call zop_readn
+   ret c ; require at least one argument
+   ld (zexec_repbcmp.lhs),hl
+   jr zexec_repbcmp.entry
+zexec_repbcmp.loop:
+   ex de,hl
+   ld hl,(zexec_repbcmp.lhs)
+   call zexec_repcmp.call ; perform comparison
+   ret c
+   or a,a ; NC
+   ret nz ; true
+zexec_repbcmp.entry:
+   call zcode_readop
+   ret c
+   jr nz,zexec_repbcmp.loop
+zexec_repbcmp.false:
+   xor a,a ; NC
+   ret
+   
+zexec_repbcmp.lhs: .dl 0
+
+;; zexec_repucmp -- repeat unary comparison for variable number of arguments
+;; INPUTS:
+;;  hl = comparison function
+;; OUTPUTS:
+;;  a = truth value of comparison
+;; ERRORS: yes.
+;; DESTROYS: (all), ix
+zexec_repucmp:
+   ld (zexec_repcmp.cmp),hl ; save comparison function
+   jr zexec_repucmp.entry
+zexec_repucmp.loop:
+   call zexec_repcmp.call
+   ret c
+   or a,a ; NC
+   ret nz ; true
+zexec_repucmp.entry:
+   call zcode_readop
+   ret c
+   jr nz,zexec_repucmp.loop
+zexec_repucmp.false:
+   xor a,a ; NC
+   ret ; false
+
+;; shared
+zexec_repcmp.call:
+   ld ix,(zexec_repcmp.cmp)
+   jp (ix)
+
+zexec_repcmp.cmp: .dl 0
+
 
 ;------------------------------------;
 ;           opcode handlers          ;
@@ -263,13 +343,17 @@ zexec_binop.nextprop:
 ;-------------------------;
 
 zexec.je:
-   ld a,2
-   call zop_readn
-   call nc,zexec_cmp.eq
+   ld hl,zexec_cmp.eq
+   call zexec_repbcmp
    jp nc,zexec_cjmp
    ret
 
 zexec.jl:
+   ld hl,zexec_cmp.lt
+   call zexec_repbcmp
+   jp nc,zexec_cjmp
+   ret
+   
    ld a,2
    call zop_readn
    call nc,zexec_cmp.lt
@@ -277,6 +361,11 @@ zexec.jl:
    ret
 
 zexec.jg:
+   ld hl,zexec_cmp.gt
+   call zexec_repbcmp
+   jp nc,zexec_cjmp
+   ret
+
    ld a,2
    call zop_readn
    call nc,zexec_cmp.gt
@@ -314,6 +403,11 @@ zexec.inc_chk:
    ret
 
 zexec.jin:
+   ld hl,zexec_cmp.in
+   call zexec_repbcmp
+   jp nc,zexec_cjmp
+   ret
+
    ld a,2
    call zop_readn
    call nc,zexec_cmp.in
@@ -321,6 +415,11 @@ zexec.jin:
    ret
 
 zexec.test:
+   ld hl,zexec_cmp.tst
+   call zexec_repbcmp
+   jp nc,zexec_cjmp
+   ret
+
    ld a,2
    call zop_readn
    call nc,zexec_cmp.tst
@@ -344,13 +443,17 @@ zexec.and:
    ret
 
 zexec.test_attr:
+   ld hl,zexec_cmp.attr
+   call zexec_repbcmp
+   jp nc,zexec_cjmp
+   ret
+
    ld a,2
    call zop_readn
    call nc,zexec_cmp.attr
    jp nc,zexec_cjmp
    ret
 
-;; TODO -- continue from here.
 zexec.set_attr:
    ld a,2
    call zop_readn
@@ -476,6 +579,11 @@ zexec.mod:
 ;        1 OP        ;
 ;--------------------;
 zexec.jz:
+   ld hl,zexec_cmp.zero
+   call zexec_repucmp
+   jp nc,zexec_cjmp
+   ret
+
    ld a,1
    call zop_readn
    call nc,zexec_cmp.zero
@@ -494,7 +602,7 @@ zexec.get_sibling:
    push hl
    call nc,zvar_store
    pop hl
-   call nc,zexec_cmp.zero
+   call nc,zexec_cmp.nonzero
    call nc,zexec_cjmp
    ret
 
@@ -510,7 +618,7 @@ zexec.get_child:
    push hl
    call nc,zvar_store
    pop hl
-   call nc,zexec_cmp.zero
+   call nc,zexec_cmp.nonzero
    call nc,zexec_cjmp
    ret
 
@@ -679,18 +787,27 @@ zexec.print:
 zexec.print_ret:
    call zexec.print
    ret c
-   call _NewLine
+   call zstr_putln
    jp zexec.rtrue
 
 zexec.nop:
-   scf \ ccf
+   or a,a
    ret
 
 zexec.save:
+   ld a,ZERR_BADINSTR
+   scf
+   ret
 
 zexec.restore:
+   ld a,ZERR_BADINSTR
+   scf
+   ret
 
 zexec.restart:
+   ld a,ZERR_BADINSTR
+   scf
+   ret
 
 zexec.ret_popped:
    ld a,ZVAR_STACK
@@ -703,23 +820,29 @@ zexec.ret_popped:
    ret c
    jp zvar_store
 
-;; TODO -- this could be optimized
 zexec.pop:
    ld a,ZVAR_STACK
    jp zvar_fetch 
 
 zexec.quit:
+   ld a,ZERR_BADINSTR
+   scf
+   ret
 
 zexec.new_line:
-   call _NewLine
+   call zstr_putln
    or a,a
    ret
 
 zexec.show_status:
+   ld a,ZERR_BADINSTR
+   scf
+   ret
    
-
 zexec.verify:
-
+   ld a,ZERR_BADINSTR
+   scf
+   ret
 
 ;------------------------------------;
 ;           VAR opcodes              ;

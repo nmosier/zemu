@@ -441,20 +441,21 @@ zobj_propsize.done:
 zobj_propval:
    call zobj_propaddr
    ret c
+   ld de,0
+   or a,a
+   sbc hl,de
+   jp z,zobj_propval.default
    ld c,a
    ld a,2
    cp a,c
    ld a,ZERR_BADPROP
    ret c
-   ld de,0
-   or a,a
-   sbc hl,de
-   ; if hl is NULL, then fetch prop default val
-   jp z,zobj_propdefault ; hl == NULL
    dec a
    jp z,zaddr_fetchb
    jp zaddr_fetchw
-
+zobj_propval.default:
+   ld a,c
+   jp zobj_propdefault
 
 ;; zobj_nextprop -- fetch next prop number
 ;; INPUTS:
@@ -555,6 +556,27 @@ zobj_child:
    lea hl,ix+ZOBJ_O_CHILD
    jp zaddr_fetch
 
+;---------------;
+;    OTHER      ;
+;---------------;
+
+;; zobj_downcast -- downcast from word size to object id
+;; INPUTS:
+;;  hl = value
+;; OUTPUTS:
+;;  a = object ID
+;; ERRORS: yes.
+;; DESTROYS: (none)
+zobj_downcast:
+   push de
+   ld de,$100
+   call cp_hl_de
+   pop de
+   ccf
+   ld a,l
+   ret nc
+   ld a,ZERR_BADOBJ
+   ret
 
 ;---------------------------;
 ;    DEBUGGING FUNCTIONS    ;

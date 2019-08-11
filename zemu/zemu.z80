@@ -3,6 +3,7 @@
 #include "zhdr.inc"
 #include "zutil.inc"
 #include "zwin.inc"
+#include "zhex.inc"
 
 .assume ADL=1
 .org userMem-2
@@ -74,6 +75,9 @@ win_dbg1: RES_ZWIN(0) ; not buffered
 win_dbg2: RES_ZWIN(0) ; not buffered
 
 test:
+   jp test_hex
+   
+
    ; test call & run until
    ld hl,zdbg_step
    ld (zcode_stepuntil.fn),hl
@@ -88,54 +92,85 @@ test:
 
 test_str: .db "test",0
 
-test_addrs:
+test_hex:
+   push ix
+   ld ix,0
+   add ix,sp
+
+   ld hl,test_hex.print_params
+   push hl ; print_context
+   ld hl,test_hex.print
+   push hl ; print
+   ld hl,test_hex.fetch_z80
+   push hl ; fetch
+   ld hl,MASK(HEXDUMP_IDXSIZE)
+   push hl ; flags
+   ld hl,4
+   push hl ; ipl
+   ld hl,2
+   push hl ; size
+   ld hl,16
+   push hl ; count
+   ld hl,$D00000
+   push hl ; index
+   ld hl,$D00000
+   push hl ; base
+
+   call _hexdump
+
+   ld sp,ix
+   pop ix
+
+   ret
+   
+   
+
+test_hex.print_params: .dl win_main
+test_hex.print:
+   push ix
+   push iy
+   ld iy,0
+   add iy,sp
+   ld hl,(iy+9)  ; arg1 -- string
+   ld ix,(iy+12) ; arg2 -- context
+   ld ix,(ix)   ; window
+   
+   push iy
+   ld iy,flags
+   call zwin_puts
+   pop iy
+   
+   ld sp,iy
+   pop iy
+   pop ix
+   ret
+
+test_hex.fetch:
+   push ix
+   push iy
+   ld iy,0
+   add iy,sp
+
+   ld hl,(iy+9) ; address
+   call zaddr_fetch
    ld hl,0
-   call addr_test
-   ld hl,1
-   call addr_test
-   ld hl,$1000
-   call addr_test
-   ld hl,$4321
-   call addr_test
-   ld ix,(zmap_header)
-   ld hl,(ix+ZMAP_HDR_STORYSIZE)
-   push hl
-   dec hl
-   call addr_test
-   pop hl
-   call addr_test
-   ld hl,$FFFFFF
-   call addr_test
+   ld l,a
+   
+   ld sp,iy
+   pop iy
+   pop ix
    ret
 
-addr_test:
-   call addr_print
-   call zaddr_to_paddr
-   call addr_show
-   ret
 
-addr_show:
-   jp c,addr_err
-   jp nc,addr_println
-
-addr_err:
-   ld hl,zaddr_to_paddr_str
-   jp zemu_perror
-
-addr_print:
-   push hl
-   call _DispHL
-   ld hl,addr_print.sep
-   call _PutS
-   pop hl
-   ret
-addr_print.sep: .db "->",0
-
-addr_println:
-   push hl
-   call _DispHL
-   call _NewLine
-   pop hl
+test_hex.fetch_z80:
+   push ix
+   ld ix,0
+   add ix,sp
+   ld hl,(ix+6) ; address
+   ld a,(hl)
+   ld hl,0
+   ld l,a
+   pop ix
    ret
 
 zemu_open_str: .db "zemu_open",0
@@ -256,3 +291,5 @@ zork_save: .db "SAVE1",0
 #include "zinput.z80"
 #include "zdbg.z80"
 #include "zwin.z80"
+#include "zio.z80"
+#include "zhex.z80"

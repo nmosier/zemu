@@ -126,3 +126,4 @@ zcall_ext.exit:
 zcall_ext.err:
    ld a,ZERR_ARGC
    jr zcall_ext.exit
+OB

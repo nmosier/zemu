@@ -203,15 +203,3 @@ zframe_sp_base:
    add hl,de
    pop de
    ret
-
-   push ix
-   ld ix,(zframe_fp)
-   ld hl,0
-   ld l,(ix+zframe_nl-zframe_end)
-   add hl,hl ; multiply by word size
-   ex de,hl
-   add ix,de
-   ex de,hl
-   lea hl,ix
-   pop ix
-   ret

@@ -19,6 +19,7 @@ zerrmsg_badprop:    .db "invalid property length",0
 zerrmsg_badchar:    .db "bad character",0
 zerrmsg_argc:       .db "too many arguments",0
 zerrmsg_intr:       .db "interrupt",0
+zerrmsg_zchar:      .db "not a ZSCII character",0
 
 zerrtab:
    .dl zerrmsg_success
@@ -38,6 +39,7 @@ zerrtab:
    .dl zerrmsg_badchar
    .dl zerrmsg_argc
    .dl zerrmsg_intr
+   .dl zerrmsg_zchar
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

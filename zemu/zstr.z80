@@ -19,14 +19,14 @@ zstr_abbraddr:
 ;; DESTROYS:
 ;; ERRORS:
 zstr_putc:
-   ld ix,win_main
+   ; ld ix,win_main
    ld hl,zstr_flags
    ; 1. Interpet as abbreviation code?
    bit ZSTR_FLAGS_ABBR,(hl)
    jr nz,zstr_putc.abbr_apply
    ; 2. Interpret as wide char bits?
    bit ZSTR_FLAGS_WCHAR,(hl)
-   jr nz,zstr_putc.wchar_add
+   jp nz,zstr_putc.wchar_add
    ; 3. Is it a space?
    or a,a
    jr z,zstr_putc.space
@@ -57,7 +57,7 @@ zstr_putc.shift_A1:
 zstr_putc.shift_A2:
    set ZSTR_FLAGS_SHIFT,(hl)
    set ZSTR_FLAGS_AX,(hl)
-   scf \ ccf
+   or a,a
    ret
 
 
@@ -71,6 +71,7 @@ zstr_putc.char.A1:
 
 zstr_putc.char.A2:
    cp a,1
+   jp c,zstr_putc.wchar_select
    ld hl,zstr_A2.tab
    jr nz,zstr_putc.char.print
    call zwin_newline
@@ -82,13 +83,15 @@ zstr_putc.char.print:
    ld e,a
    add hl,de
    ld a,(hl)
-   call zwin_putc
+   ; call zwin_putc
+   call zstr_putc_raw
    or a,a
    ret
 
 zstr_putc.space:
    ld a,' '
-   call zwin_putc
+   call zstr_putc_raw
+   ; call zwin_putc
    or a,a
    ret
 
@@ -130,6 +133,14 @@ zstr_putc.abbr_select:
    or a,a
    ret
 
+zstr_putc.wchar_select:
+   ; update flags
+   set ZSTR_FLAGS_WCHAR,(hl)
+   ld de,0
+   ld (zstr_wchar),de ; initialize new wchar value
+   or a,a
+   ret
+
 zstr_putc.wchar_add:
    ld de,(zstr_wchar)
    bit 7,d
@@ -147,12 +158,22 @@ zstr_putc.wchar_add.5bits:
    ret ; success, but don't print anything b/c expecting more bits
 
 zstr_putc.wchar_add.10bits:
+   ; update flags
+   res ZSTR_FLAGS_WCHAR,(hl) ; no longer expecting
+   ; mask in lower 5 bits
    or a,e
    ld e,a
    res 7,d
-   ;; TODO -- need to display extended whcar.   
-   ;; CONTINUE HERE
-
+   ; convert to ASCII char
+   ex de,hl
+   call zstr_wchartoch
+   ret c
+   jp zstr_putc_raw ; put raw ASCII character
+zstr_putc_raw:
+   ld ix,win_main
+   call zwin_putc
+   or a,a
+   ret
 
 ;; zstr_putw -- print Z-string contained in z-word
 ;; INPUTS:
@@ -585,15 +606,22 @@ zstr_reset:
 ;; OUTPUTS:
 ;;  a = TI char
 ;; ERRORS: yes.
-;; DESTROYS: ???
+;; DESTROYS: (all)
 zstr_wchartoch:
-   
-
+   call zstr_wchartab_zfind
+   ret c
+   ld de,(ix+WCHAR_ENT_ZSCII)
+   or a,a
+   sbc hl,de ; index in l
+   ld a,l
+   add a,(ix+WCHAR_ENT_ASCII)
+   or a,a ; NC
+   ret   
 
 #macro WCHAR_ENT_RANGE(in_first, in_last, out_first, ioflags)
    .db ioflags
    .dl in_first
-   .db out_last
+   .db out_first
    .db in_last - in_first + 1
 #endmacro
 
@@ -613,7 +641,7 @@ zstr_wchartab:
    WCHAR_ENT_SINGLE(ZSCII_DEL, ASCII_DEL, WCHAR_INM)
    WCHAR_ENT_SINGLE(ZSCII_NEWLINE, ASCII_NEWLINE, WCHAR_IOM)
    WCHAR_ENT_SINGLE(ZSCII_ESC, ASCII_CLEAR, WCHAR_INM)
-   WCHAR_ENT_RANGE(32, 126, ' ', '~', WCHAR_IOM)
+   WCHAR_ENT_RANGE(32, 126, ' ', WCHAR_IOM)
    WCHAR_ENT_RANGE(ZSCII_UP, ZSCII_RIGHT, ASCII_UP, WCHAR_INM)
    WCHAR_ENT_RANGE(ZSCII_FN1, ZSCII_FN5, ASCII_FN1, WCHAR_INM)
    WCHAR_ENT_END()
@@ -626,9 +654,8 @@ zstr_wchartab:
 ;;  (afind) a = TI char
 ;; OUTPUTS:
 ;;  ix = pointer to entry
-;;  CF = whether not found
-;; ERRORS: no.
-;; DESTROYS: ???
+;; ERRORS: yes.
+;; DESTROYS: all but hl
 zstr_wchartab_zfind:
    ld de,zstr_wchartab_find.zcmp
    jr zstr_wchartab_find.base
@@ -641,13 +668,13 @@ zstr_wchartab_afind:
 
 zstr_wchartab_find.base:
    ld ix,zstr_wchartab
-   
    jr zstr_wchartab_find.entry
 zstr_wchartab_find.loop:
    ld a,(ix+WCHAR_ENT_COUNT)
    ex de,hl
    jp (hl) ; de contains char param
 zstr_wchartab_find.reentry:
+   ex de,hl
    call cp_hl_bc
    jr c,zstr_wchartab_find.continue
    ld a,(ix+WCHAR_ENT_COUNT)
@@ -666,6 +693,7 @@ zstr_wchartab_find.entry:
    jr nz,zstr_wchartab_find.loop ; valid entry
 zstr_wchartab_find.notfound:
    scf ; not found
+   ld a,ZERR_ZCHAR
    ret
    
 zstr_wchartab_find.found:

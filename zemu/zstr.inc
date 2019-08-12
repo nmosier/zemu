@@ -4,6 +4,7 @@
 #define __ZSTR_INC
 
 #include "ti84pce.inc"
+#include "zutil.inc"
 
 ZSTR_CODE_WIDTH .equ 5
 
@@ -50,12 +51,12 @@ ZSCII_FN4         .equ 136
 ZSCII_FN5         .equ 137
 
 ;; equates for WCHAR table
-WCHAR_IN   .equ 7
-WCHAR_OUT  .equ 6
+WCHAR_IN   .equ 0
+WCHAR_OUT  .equ 1
 
 WCHAR_INM  .equ MASK(WCHAR_IN)
 WCHAR_OUTM .equ MASK(WCHAR_OUT)
-WCHAR_IOM  .equ WCHAR_INM|WHCAR_OUTM
+WCHAR_IOM  .equ WCHAR_INM|WCHAR_OUTM
 
 WCHAR_ENT_FLAGS .equ 0
 WCHAR_ENT_ZSCII .equ 1

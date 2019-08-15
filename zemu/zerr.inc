@@ -23,5 +23,7 @@ ZERR_BADCHAR     .equ 14
 ZERR_ARGC        .equ 15
 ZERR_INTR        .equ 16
 ZERR_ZCHAR       .equ 17
+ZERR_TXTBUF      .equ 18
+ZERR_PRSBUF      .equ 19
 
 #endif

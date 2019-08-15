@@ -614,7 +614,7 @@ zwin_getc_bare:
 ;;  bc = number of bytes
 ;; OUTPUTS:
 ;;  hl = pointer to buffer
-;;  bc = number of bytes written (including possible null byte)
+;;  bc = number of non-null ASCII chars written (not including null byte)
 ;; ERRORS: no.
 ;; DESTROYS: all but hl
 ;; NOTE: No null-byte written if number of bytes written = number requested.
@@ -635,14 +635,15 @@ zwin_getsn.loop:
    jr c,zwin_getsn.done
 
 zwin_getsn.entry:
-   ld de,0
+   ld de,1 ; ld de,0
    ex de,hl
    or a,a
    sbc hl,bc
    ex de,hl
-   ; continue if count > 0
+   ; continue if count > 1
    jr nz,zwin_getsn.loop
 zwin_getsn.done:
+   ld (hl),ASCII_NUL ; null byte
    pop hl
    or a,a
    sbc hl,bc

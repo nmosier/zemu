@@ -1034,6 +1034,12 @@ zexec.put_prop.err:
    ret
 
 zexec.read:
+   ld a,2
+   call zop_readn
+   push de
+   call zin_read ; read text into buffer
+   pop de
+   ret
    ;; TODO
 
 ;; TODO -- should this support multiple chars?

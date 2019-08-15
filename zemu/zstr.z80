@@ -500,13 +500,15 @@ zstr_encode.pack:
 
 ;; zstr_encode -- encode ASCII string as Z-string
 ;; INPUTS:
-;;  hl = source ASCII string
+;;  hl = source ASCII string (ASCII-NUL terminated)
 ;;  de = destination Z-string
 ;;  c = destination max size in words
 ;; OUTPUTS:
 ;;  Z if full string written; NZ if ran out of space
 ;; DESTROYS:
 ;; ERRORS: yes.
+;; TODO: this does NOT handle ASCII codes -> ZSCII codes yet and will
+;        cause undefined behavior.
 zstr_encode:
    ld b,0 ; none in buffer initially
    xor a,a
@@ -618,6 +620,8 @@ zstr_wchartoch:
    or a,a ; NC
    ret   
 
+;; zstr_ach2zch -- convert 
+
 #macro WCHAR_ENT_RANGE(in_first, in_last, out_first, ioflags)
    .db ioflags
    .dl in_first
@@ -708,3 +712,47 @@ zstr_wchartab_find.acmp:
    ld bc,0
    ld c,(ix+WCHAR_ENT_ASCII)
    jr zstr_wchartab_find.reentry
+
+
+
+
+
+
+;;;;; ASCII ROUTINES ;;;;;;
+;; tolower -- convert ASCII to lowercase
+;; INPUTS:
+;;  a = ASCII char
+;; OUTPUTS:
+;;  a is lowercase char if input uppercase; otherwise unchanged
+;; ERRORS: no.
+;; DESTROYS: (none)
+tolower:
+   cp a,'A'
+   ret c
+   cp a,'Z'+1
+   ret nc
+   add a,'a'-'A'
+   ret
+
+;; tolowers -- convert ASCII string to lowercase, in place
+;; INPUTS:
+;;  hl = pointer to string
+;; OUTPUTS:
+;;  hl = pointer to lowercase string
+;; ERRORS: no.
+;; DESTROYS: %a
+tolowers:
+   push hl
+   jr tolowers.entry
+tolowers.loop:
+   call tolower
+   ld (hl),a
+tolowers.inc:
+   inc hl
+tolowers.entry:
+   ld a,(hl)
+   or a,a
+   jr nz,tolowers.loop
+tolowers.done:
+   pop hl
+   ret

@@ -44,8 +44,9 @@ zdict_tab:
 ;;  hl = pointer to (4-byte / 2-word) Z-string in memory
 ;; OUTPUTS:
 ;;  a = 0 on success; a != 0 if error
-;;  C if not found
-;;  NC if found
+;;  hl = pointer to entry, if found
+;;  C if not found -- check for error in this case
+;;  NC if found -- don't need to check for error
 ;; DESTROYS: 
 ;; ERRORS: yes.
 zdict_search:

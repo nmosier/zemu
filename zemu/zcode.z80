@@ -342,7 +342,7 @@ zcode_LUT.VAR:
    .dl zexec.storew        ; $01
    .dl zexec.storeb        ; $02
    .dl zexec.put_prop      ; $03
-   .dl zcode_err.notavail  ; $04
+   .dl zexec.read          ; $04
    .dl zexec.print_char    ; $05
    .dl zexec.print_num     ; $06
    .dl zexec.random        ; $07

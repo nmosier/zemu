@@ -36,7 +36,7 @@ Features
 [X] dbg: display call stack
 [ ] Parameterize variable access.
 [ ] Paging option for zwin_puts
-[ ] zstr -- wide characters
+[X] zstr -- wide characters
 
 
 Optimizations
@@ -57,6 +57,8 @@ Testing
     [ ] zcode_readop_force
         [ ] zcode_readop
 [X] String library
+[ ] What to do about text buffers?
 
 Bugs/Tests
 [ ] zwin_split_left is buggy
+[ ] zwin_redraw doesn't fully clear screen?

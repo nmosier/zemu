@@ -595,16 +595,18 @@ zwin_split_horiz.org_right:
 ;;  ix = pointer to window struct
 ;; OUTPUTS:
 ;;  a = char
-;; ERRORS: no.
+;; ERRORS: yes. 
 ;; DESTROYS: all but a, ix
 zwin_getc:
-   call _GetKey
-   call ktoch
-   jp zwin_putc
+   call sys_getkey
+   call nc,ktoch
+   call nc,zwin_putc
+   ret
    
 zwin_getc_bare:
-   call _GetKey
-   jp ktoch
+   call sys_getkey
+   call nc,ktoch
+   ret
 
 
 ;; zwin_getsn -- get input string
@@ -615,17 +617,18 @@ zwin_getc_bare:
 ;; OUTPUTS:
 ;;  hl = pointer to buffer
 ;;  bc = number of non-null ASCII chars written (not including null byte)
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; DESTROYS: all but hl
-;; NOTE: No null-byte written if number of bytes written = number requested.
+;; NOTE: bc = 0 means # bytes == 2^16
 zwin_getsn:
    push hl
    push bc
-   jr zwin_getsn.entry   
+   jr zwin_getsn.entry
 zwin_getsn.loop:
    push hl \ push bc
    call zwin_getc_bare ; preserves a
    pop bc \ pop hl
+   jr c,zwin_getsn.error
    or a,a ; check for null term
    jr z,zwin_getsn.done
 
@@ -703,3 +706,7 @@ zwin_getsn.clear:
    or a,a
    ret
 
+zwin_getsn.error:
+   pop de
+   pop hl
+   ret

@@ -694,8 +694,9 @@ bsearch.gt:
    jr bsearch.loop
 
 bsearch.none
-   xor a,a
-   scf
+   ld hl,0
+   ; xor a,a
+   ; scf
    ret
    
 bsearch.err:
@@ -829,7 +830,7 @@ xstrtoul.shift:
 ;;  a = key scan code
 ;; OUTPUTS:
 ;;  a = ASCII char
-;; ERRORS: a == 0 if not convertible to character.
+;; ERRORS: a == 0 if not convertible to character. And CF set properly.
 ;; DESTROYS: (none)
 ;; TODO: this is not completed.
 ktoch:
@@ -851,27 +852,15 @@ ktoch.loop_search.entry:
    jr nz,ktoch.loop_search
 ktoch.notfound:   
    xor a,a
+   scf
    jr ktoch.done
    
 ktoch.found:
    ld a,(hl)
+   or a,a ; NC
 ktoch.done:
    pop bc
    pop hl
-   ret
-
-ktoch_old:
-   JCLASS(kCapA,kCapZ,ktoch.alpha)
-   JCLASS(k0,k9,ktoch.digit)
-   JCHAR(kEnter,ASCII_NEWLINE,ktoch_old.done)
-   JCHAR(kDel,ASCII_DEL,ktoch_old.done)
-   JCHAR(kClear,ASCII_CLEAR,ktoch_old.done)
-   JCHAR(kDiv,'/',ktoch_old.done)
-   JCHAR(kMul,'*',ktoch_old.done)
-   JCHAR(kAdd,'+',ktoch_old.done)
-   JCHAR(kSub,'-',ktoch_old.done)
-   xor a,a
-ktoch_old.done:
    ret
 
 ktoch.alpha:
@@ -1248,7 +1237,7 @@ strchr.loop:
 strchr.entry:
    ld a,(hl)
    cp a,b
-   jr z,strchr.found
+   jr z,strchr.done ; found
    or a,a
    jr nz,strchr.loop
 strchr.done:
@@ -1256,7 +1245,21 @@ strchr.done:
    pop bc
    ret
 
-
+;; sys_getkey -- lowest-level wrapper for keyboard input
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  a = key scan code
+;; DESTROYS: ???
+;; ERRORS: generates interrupt `error' when `ON' is pressed.
+sys_getkey:
+   call _GetKey
+   or a,a
+   ret nz
+   ;; ON key
+   res onInterrupt,(iy+onFlags)
+   ld a,ZERR_INTR
+   scf
+   ret
 
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;

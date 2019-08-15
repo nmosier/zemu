@@ -289,3 +289,4 @@ zork_save: .db "SAVE1",0
 #include "zwin.z80"
 #include "zhex.z80"
 #include "zin.z80"
+#include "zdict.z80"

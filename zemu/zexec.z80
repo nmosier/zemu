@@ -1036,9 +1036,7 @@ zexec.put_prop.err:
 zexec.read:
    ld a,2
    call zop_readn
-   push de
-   call zin_read ; read text into buffer
-   pop de
+   jp nc,zin_read ; read text into buffer
    ret
    ;; TODO
 

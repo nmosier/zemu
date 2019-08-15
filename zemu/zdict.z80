@@ -20,7 +20,7 @@ zdict_hdraddr:
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  hl = logical address of dictionary table (points to first entry)
-;;  b = entry size
+;;  a = entry size
 ;;  de = number of entries
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
@@ -37,6 +37,7 @@ zdict_tab:
    push af
    call zaddr_fetchwu ; number of entries
    pop bc
+   ld a,b
    ret   
 
 ;; zdict_search -- search for Z-string in dictionary
@@ -52,25 +53,29 @@ zdict_tab:
 zdict_search:
    push hl ; key
    call zdict_tab
-   ret c
    ; compute de * b = table size
    push hl ; base
    ex de,hl
-   call mul_hl_b
+   call nc,mul_hl_a
    ld b,h
    ld c,l ; size
    pop hl ; base
    pop de ; key
    ld ix,zdict_search.cmp ; comp
-   jp bsearch
+   jp nc,bsearch
+   ;; ERROR
+   ret
+
 
 ;; hl = key
 ;; de = val
 zdict_search.cmp:
    ld b,ZDICT_WORDLEN
+   push ix
    push hl
    push de
    call zmemcmp
    pop de
    pop hl
+   pop ix
    ret

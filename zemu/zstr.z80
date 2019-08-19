@@ -511,6 +511,7 @@ zstr_encode.pack:
 ;; OUTPUTS:
 ;;  c = remaining words
 ;;  Z if full string written; NZ if ran out of space
+;;  hl = pointer to destination Z-string
 ;; DESTROYS:
 ;; ERRORS: yes.
 ;; TODO: this does NOT handle ASCII codes -> ZSCII codes yet and will
@@ -579,6 +580,7 @@ zstr_encode.empty:
    ret
 
 zstr_encode.nospace:
+   ex de,hl
    or a,$ff ; NC, NZ -- not enough space
    ret
 
@@ -593,14 +595,14 @@ zstr_encode.buf_end:
 ;;  hl = source ASCII string (ASCII-NUL terminated)
 ;;  de = destination Z-string
 ;;  c = destination size in words
-;; OUTPUTS:
-;;  Z if full string written; NZ if ran out of space
+;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; NOTE: terminates string if not enough space to encode in entirety.
 zstr_encode_pad:
    call zstr_encode
    ret c
-   ret nz ; ran out of room
+   jr nz,zstr_encode_pad.terminate ; ran out of room, so terminate
    ;; need to pad?
    ld b,c
    inc b \ dec b
@@ -618,6 +620,7 @@ zstr_encode_pad.loop:
    ld (hl),LOW(ZSTR_PADWORD)
    inc hl
    djnz zstr_encode_pad.loop
+zstr_encode_pad.terminate:
    ;; terminate
    dec hl
    dec hl
@@ -627,7 +630,7 @@ zstr_encode_pad.loop:
 zstr_encode_pad.done:
    or a,a ; NC
    ret
-  
+
 
 
 ;; zstr_putln -- put newline in main window

@@ -1,3 +1,4 @@
+#include "zutil.inc"
 
 ;; NOTE: each zexec.* function expects operands to be set properly
 ;;       and to have %a hold the relevant opcode.
@@ -243,12 +244,11 @@ zexec_binop.propaddr:
    ;; de = property number
    ex de,hl
    call zobj_downcast
-   ret c
    ld c,a
    ex de,hl
-   call zobj_downcast
-   ret c
-   call zobj_propaddr
+   call nc,zobj_downcast
+   jp nc, zobj_propaddr
+   ret
    
 zexec_binop.propsize:
    ;; hl = object number
@@ -438,12 +438,6 @@ zexec.and:
 zexec.test_attr:
    ld hl,zexec_cmp.attr
    call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
-
-   ld a,2
-   call zop_readn
-   call nc,zexec_cmp.attr
    jp nc,zexec_cjmp
    ret
 
@@ -761,20 +755,18 @@ zexec.not:
 zexec.rtrue:
    ld a,(zframe_rv)
    call zstack_leave ; %a preserved
-   ret c
-   ; need to do this after in case return value is onto stack
    ld hl,ZTRUE
-   jp zvar_store
+   jp nc,zvar_store
+   ret
 
 zexec.rfalse:
    ld a,(zframe_rv)
    call zstack_leave ; %a preserved
-   ret c
    ld hl,ZFALSE
-   jp zvar_store
+   jp nc,zvar_store
+   ret
 
 zexec.print:
-   ; NOTE: This is analogous to a Z80 string operation. (???)
    call zstr_reset
    ld hl,(zframe_pc)
    ld ix,win_main

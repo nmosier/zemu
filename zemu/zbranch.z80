@@ -1,5 +1,7 @@
 ; zbranch.z80 -- branch & jump utility routines
 
+#include "zutil.inc"
+
 ;; zexec_cjmp -- execute conditional branches (jumps)
 ;; INPUTS:
 ;;  a = predicate's truth value ($00 = false, $FF = true)
@@ -30,9 +32,9 @@ zexec_cjmp.inv:
    ld de,1
    call cp_hl_de
    pop de
-   ; if offset in {0,1}, then return with appropriate bool
-   jr c,zexec_cjmp.ret
-   jr z,zexec_cjmp.ret
+   jp c,zexec.rfalse ; offset == 0 => RFALSE
+   jp z,zexec.rtrue  ; offset == 1 => RTRUE
+zexec_cjmp.jump:
    ; otherwise, apply offset
    add hl,de
    dec hl
@@ -40,17 +42,5 @@ zexec_cjmp.inv:
    ; hl = new PC
 zexec_cjmp.store_pc:
    ld (zframe_pc),hl
-   scf \ ccf
-   ret
-zexec_cjmp.ret:
-   push hl
-   call zstack_leave ; NOTE: does not fail.
-   pop hl
-   ld a,l
    or a,a
-   ld hl,ZTRUE
-   jr nz,zexec_cjmp.ret.push
-   ld hl,ZFALSE
-zexec_cjmp.ret.push:
-   ld a,ZVAR_STACK
-   jp zvar_store
+   ret

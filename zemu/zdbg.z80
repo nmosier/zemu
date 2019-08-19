@@ -315,6 +315,7 @@ zdbg_cmd.print.obj.props.loop:
    call zobj_propid_to_num
    ld hl,zdbg_cmd.print.obj.props.buf_hex
    call hexbyte ; put leading byte
+#if ZDBG_PRINT_PROPDATA
    ld (hl),':'
    inc hl
    ld (hl),' '
@@ -334,11 +335,18 @@ zdbg_cmd.print.obj.props.loop:
    ; b = count of data bytes
    ; de = output buffer
    call hexdump
+#else
+   ld (hl),','
+   inc hl
+   ld (hl),0
+#endif
    ; print line
    ld ix,win_dbg1
    ld hl,zdbg_cmd.print.obj.props.buf_hex
    call zwin_puts
+#if ZDBG_PRINT_PROPDATA   
    call zwin_newline
+#endif
    pop hl
 zdbg_cmd.print.obj.props.entry:
    call zaddr_fetch ; get propid
@@ -561,6 +569,13 @@ zdbg_exec.step:
    jr c,zdbg_exit
 
 zdbg_exec.instr:
+#ifdef ZDBG_LOG
+   ld (zdbg_exec.log_pc),hl ; save PC
+   .db LOG_PREFIX, LOGNUM_OPCODE
+zdbg_exec.log_pc:
+   .dl 0
+   LOGLN()
+#endif
    push hl
    call zcode_decode
    pop hl

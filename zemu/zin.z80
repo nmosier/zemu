@@ -215,6 +215,8 @@ zin_parse_word.spaces_entry:
    ; end spaces loop
    ; save word-index
    ld (iy-2),e ; local 1 -- save word-index
+   ;; save text-buf pointer
+   ld (iy+0),bc
    jr zin_parse_word.term_entry
    ; find word terminator
 zin_parse_word.term_loop:
@@ -244,6 +246,7 @@ zin_parse_word.encode:
    ld sp,hl
    ex de,hl
    ; temporarily replace word-sep with NUL-terinator
+   ld a,(bc)
    ld (iy-1),a  ; local 0 -- displaced delimiter
    ld hl,(iy+0) ; text-buf pointer
    ld (iy+0),bc ; update text-buf pointer
@@ -253,6 +256,7 @@ zin_parse_word.encode:
    ld c,ZDICT_WORDLEN/2 ; in words, not bytes
    call zstr_encode_pad
    ld a,(iy-1)
+   ld bc,(iy+0)   ; restore text-pointer
    ld (bc),a    ; restore word terminator
    jr c,zin_parse_word.leave ; ERROR
    ; search for word in dictionary

@@ -16,8 +16,6 @@ start:
    call zdbg_init
    call init_windows
 
-   call zlog_init
-
    ; clear screen & reset cursor
    ; no scrolling for now
    res appAutoScroll,(iy+appFlags)
@@ -61,7 +59,7 @@ init_windows:
 
    ld ix,win_dbg1
    ld iy,win_dbg2
-   ld a,lcdHeight/3-SFONT_HEIGHT
+   ld a,lcdHeight/2
    ld b,0 ; don't buffer
    call zwin_split_bottom
 
@@ -70,6 +68,7 @@ init_windows:
    ret
 
 win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 512)
+win_main_protector: .db $42
 
 win_dbgout: RES_ZWIN(0) ; not buffered
 win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
@@ -303,4 +302,3 @@ zork_save: .db "SAVE1",0
 #include "zhex.z80"
 #include "zin.z80"
 #include "zdict.z80"
-#include "zlog.z80"

@@ -3,6 +3,10 @@
 #ifndef __ZDBG_INC
 #define __ZDBG_INC
 
+#ifdef ZDBG_LOG
+#include "zlog.inc"
+#endif
+
 ZDBG_OUTPUT_ROW .equ 7
 ZDBG_OUTPUT_COL .equ 0
 
@@ -20,5 +24,10 @@ ZDBG_FLAGS_BT    .equ 6 ; whether to display backtrace
 ZDBG_FLAGS_STEP .equ 7 ; used by debugger -- don't set directly
 
 ZDBG_ALERTS_WATCH .equ 0
+
+
+;; compiler flags
+#define ZDBG_PRINT_PROPDATA 0
+
 
 #endif

@@ -914,6 +914,8 @@ ktoch.tab:
    .db kMul,   '*'
    .db kAdd,   '+'
    .db kSub,   '-'
+   .db kSpace, ' '
+   .db kQuote, '\"'
 ktoch.tab.end:
    .db 0
    

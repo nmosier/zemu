@@ -2,10 +2,16 @@ CFLAGS=-g -c -Wall -pedantic
 ZSOURCES=$(wildcard z*.z80)
 ZMAIN=zemu.z80
 ZTARGET=$(ZMAIN:.z80=.8xp)
-
+ZTARGET_LOG=$(ZMAIN:.z80=log.8xp)
 
 $(ZTARGET): $(ZSOURCES)
 	spasm -E -L $(ZMAIN) $@
+
+$(ZTARGET_LOG): $(ZSOURCES)
+	spasm -E -L -DZDBG_LOG $(ZMAIN) $@
+
+.PHONY: log
+log: $(ZTARGET_LOG)
 
 %.8xp: %.z80
 	spasm -E -L $^ $@

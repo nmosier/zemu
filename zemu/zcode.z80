@@ -327,14 +327,14 @@ zcode_LUT.0OP:
    .dl zexec.print         ; $2
    .dl zexec.print_ret     ; $3
    .dl zexec.nop           ; $4
-   .dl zexec.save          ; $5
-   .dl zexec.restore       ; $6
-   .dl zexec.restart       ; $7
+   .dl zcode_err.notavail  ; $5
+   .dl zcode_err.notavail  ; $6
+   .dl zcode_err.notavail  ; $7
    .dl zexec.ret_popped    ; $8
    .dl zexec.pop           ; $9
    .dl zexec.quit          ; $A
    .dl zexec.new_line      ; $B
-   .dl zexec.show_status   ; $C
+   .dl zcode_err.notavail  ; $C
    .dl zexec.verify        ; $D
 
 zcode_LUT.VAR:
@@ -348,8 +348,8 @@ zcode_LUT.VAR:
    .dl zexec.random        ; $07
    .dl zexec.push          ; $08
    .dl zexec.pull          ; $09
-   .dl zexec.split_window  ; $0A
-   .dl zexec.set_window    ; $0B
+   .dl zcode_err.notavail  ; $0A
+   .dl zcode_err.notavail  ; $0B
    .dl zcode_err.notavail  ; $0C
    .dl zcode_err.notavail  ; $0D
    .dl zcode_err.notavail  ; $0E
@@ -357,7 +357,7 @@ zcode_LUT.VAR:
    .dl zcode_err.notavail  ; $10
    .dl zcode_err.notavail  ; $11
    .dl zcode_err.notavail  ; $12
-   .dl zexec.output_stream ; $13
+   .dl zcode_err.notavail  ; $13
 
 
 ;; zcode_decoden -- decode and execute a given number of instructions

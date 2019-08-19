@@ -22,11 +22,10 @@ zexec_cmp.eq:
 ;; hl < de ?
 zexec_cmp.lt:
    call cp_hl_de;_sgn
-   scf
-   ccf
-   ld a,$FF
-   ret p ; positive result, so hl < de
-   xor a,a
+   scf \ ccf
+   ld a,0
+   ret p ; S flag reset, so (hl-de) is non-negative, so hl >= de
+   dec a ; ld a,$ff
    ret
 
 ;; hl > de ?
@@ -36,9 +35,10 @@ zexec_cmp.gt:
 
 ;; (hl & de) == hl ?
 zexec_cmp.tst:
-   push hl
+   push de
    call zexec_binop.and
    pop de
+   or a,a
    sbc hl,de
    ld a,$FF
    jr z,zexec_cmp.tst.clr
@@ -48,24 +48,34 @@ zexec_cmp.tst.clr:
    ret
 
 ;; obj(de) is parent of obj(hl) ?
-;; TODO -- should perform downcasting checks. But if failure is not an option...
 zexec_cmp.in:
-   ld a,l ; last byte
+   call zobj_downcast
    push de
-   call zobj_parent
-   pop de
-   ret c ; obj tree error
-   cp a,e
+   call nc,zobj_parent
+   pop hl
+   ld b,a ; save actual parent
+   call nc,zobj_downcast
+   ret c
+   cp a,b
+   ld a,$ff
    ret z ; NC
-   or a,a
+   xor a,a
    ret   ; NC
 
 ;; does obj(hl) have attribute attr(de)?
 ;; TODO -- should perform downcasting checks.
 zexec_cmp.attr:
-   ld a,l
-   ld c,e
-   jp zobj_attrtest ; sets flags properly
+   ex de,hl
+   call zobj_downcast
+   ld c,a
+   ex de,hl
+   call nc,zobj_downcast
+   call nc,zobj_attrtest ; sets flags properly
+   ret c
+   ld a,0
+   ret z
+   dec a ; ld a,$ff
+   ret
 
 ;-----------------------;
 ;    unary comparisons  ;
@@ -157,7 +167,7 @@ zexec_binop.and:
    ld b,3
 zexec_binop.and.loop:
    ld a,(de)
-   or (hl)
+   and (hl)
    ld (de),a
    inc hl
    inc de
@@ -210,8 +220,8 @@ zexec_binop.loadb:
    add hl,de
    call zaddr_fetch
    ret c
-   call btols
-   scf \ ccf
+   call btolu
+   or a,a
    ret
 
 zexec_binop.propval:
@@ -279,20 +289,23 @@ zexec_repbcmp:
    call zop_readn
    ret c ; require at least one argument
    ld (zexec_repbcmp.lhs),hl
+   xor a,a
    jr zexec_repbcmp.entry
 zexec_repbcmp.loop:
    ex de,hl
    ld hl,(zexec_repbcmp.lhs)
-   call zexec_repcmp.call ; perform comparison
+   or a,a                    ; NC
+   call z,zexec_repcmp.call ; perform comparison (only if truth-value is still FALSE)
    ret c
-   or a,a ; NC
-   ret nz ; true
 zexec_repbcmp.entry:
+   push af  ; preserve truth-value
    call zcode_readop
-   ret c
+   pop bc
+   ld a,b   ; restore truth-value
+   ret c    
    jr nz,zexec_repbcmp.loop
-zexec_repbcmp.false:
-   xor a,a ; NC
+zexec_repbcmp.done:
+   or a,a
    ret
    
 zexec_repbcmp.lhs: .dl 0
@@ -306,19 +319,21 @@ zexec_repbcmp.lhs: .dl 0
 ;; DESTROYS: (all), ix
 zexec_repucmp:
    ld (zexec_repcmp.cmp),hl ; save comparison function
+   xor a,a
    jr zexec_repucmp.entry
 zexec_repucmp.loop:
-   call zexec_repcmp.call
+   or a,a
+   call z,zexec_repcmp.call   ; compare iff truth-value is still FALSE
    ret c
-   or a,a ; NC
-   ret nz ; true
 zexec_repucmp.entry:
+   push af  ; preserve truth-value
    call zcode_readop
+   pop bc
+   ld a,b   ; restore truth-value
    ret c
    jr nz,zexec_repucmp.loop
-zexec_repucmp.false:
-   xor a,a ; NC
-   ret ; false
+zexec_repucmp.done:
+   ret
 
 ;; shared
 zexec_repcmp.call:
@@ -353,22 +368,10 @@ zexec.jl:
    call zexec_repbcmp
    jp nc,zexec_cjmp
    ret
-   
-   ld a,2
-   call zop_readn
-   call nc,zexec_cmp.lt
-   jp nc,zexec_cjmp
-   ret
 
 zexec.jg:
    ld hl,zexec_cmp.gt
    call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
-
-   ld a,2
-   call zop_readn
-   call nc,zexec_cmp.gt
    jp nc,zexec_cjmp
    ret
 
@@ -381,11 +384,8 @@ zexec.dec_chk:
    push de
    call zvar_modify
    pop de
-   ret c
-   call zexec_cmp.lt
-   ret c
-   or a,a
-   jp nz,zexec_cjmp
+   call nc,zexec_cmp.lt
+   jp nc,zexec_cjmp
    ret
 
 zexec.inc_chk:
@@ -397,8 +397,7 @@ zexec.inc_chk:
    push de
    call zvar_modify
    pop de
-   ret c
-   call zexec_cmp.gt
+   call nc,zexec_cmp.gt
    jp nc,zexec_cjmp
    ret
 
@@ -417,12 +416,6 @@ zexec.jin:
 zexec.test:
    ld hl,zexec_cmp.tst
    call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
-
-   ld a,2
-   call zop_readn
-   call nc,zexec_cmp.tst
    jp nc,zexec_cjmp
    ret
 
@@ -676,6 +669,7 @@ zexec.print_addr:
    ld hl,0
    ld h,d
    ld l,e
+   ld ix,win_main
    jp zstr_puts
 
 
@@ -701,6 +695,7 @@ zexec.print_obj:
    call zaddr_fetchwu
    ex de,hl
    inc hl ; skip length byte
+   ld ix,win_main
    jp zstr_puts
 
 
@@ -737,6 +732,7 @@ zexec.print_paddr:
    ld h,d
    ld l,e
    call zaddr_unpack
+   ld ix,win_main
    jp zstr_puts
 
 zexec.load:
@@ -781,15 +777,17 @@ zexec.print:
    ; NOTE: This is analogous to a Z80 string operation. (???)
    call zstr_reset
    ld hl,(zframe_pc)
+   ld ix,win_main
    call zstr_puts
    ld (zframe_pc),hl
    ret
 
 zexec.print_ret:
    call zexec.print
-   ret c
-   call zstr_putln
-   jp zexec.rtrue
+   ld ix,win_main
+   call nc,zstr_putln
+   jp nc,zexec.rtrue
+   ret
 
 zexec.nop:
    or a,a
@@ -831,6 +829,7 @@ zexec.quit:
    ret
 
 zexec.new_line:
+   ld ix,win_main
    call zstr_putln
    or a,a
    ret
@@ -850,30 +849,34 @@ zexec.verify:
 ;------------------------------------;
 zexec.call:
    ;; NOTE: 6.4.4 Arguments are written onto local variables.
-   ; read packed address of routine
+   ;; read packed address of routine
    call zcode_readop_force
    ret c
+   call wtolu
+   ;; read parameters into locals
    push hl ; save packed address for after we've read in the params
    call zexec.call.readvars
-   pop hl ; restore packed address
-   ret c
-   ; check if CALL address is 0; if so, execute `rfalse`
-   call cp_hl_0
-   jp z,zexec.rfalse
-   ; make CALL
+   ;; read return value
    push bc
-   ; set up bare call state
+   call nc,zcode_readvarnum
+   pop bc
+   pop hl
+   ret c
+   ;; check if CALL address is 0 -- if so, do nothing
+   call cp_hl_0
+   ret z
+   ;; set up bare call state
+   ld c,a ; save return varno
+   push bc
    call zcall0
    pop bc
    ret c
+   ld a,c
+   ld (zframe_rv),a ; save return value
    push hl ; save new address
    call zexec.call.storevars
    pop hl ; restore new address
    ret c
-zexec.call.returnval:
-   call zcode_readvarnum
-   ret c
-   ld (zframe_rv),a
 zexec.call.done:
    ld ix,(zframe_fp)
    ld de,(zframe_pc) ; end of CALL instruction
@@ -882,6 +885,7 @@ zexec.call.done:
    or a,a
    ret
 
+#if 0
    push hl ; save PC after procedure is entered
    ; assign arguments to locals
    xor a,a
@@ -910,6 +914,8 @@ zexec.call.pc:
    ld (zframe_pc),hl
    ret
 zexec.call.varno: .db 0
+
+#endif
 
 ;; get variables before setting up new call frame
 zexec.call.readvars:
@@ -1040,19 +1046,20 @@ zexec.read:
    ret
    ;; TODO
 
-;; TODO -- should this support multiple chars?
 zexec.print_char:
    ld a,1
    call zop_readn
    call nc,ltobu     ; downcast to byte
-   jp nc,zstr_putc
-   ret               ; error
+   ld ix,win_main
+   jp nc,zstr_putcode
+   ret               ; ERROR
 
 ;; print_num -- print signed number in decimal
 zexec.print_num:
    ld a,1
    call zop_readn
    ret c
+   ld ix,win_main
    call zstr_putn
    or a,a ; NC
    ret
@@ -1068,15 +1075,16 @@ zexec.random:
    jr z,zexec.random.newseed
 zexec.random.gen:
    call zrand_gen
-   or a,a
-   ret
+zexec.random.store:
+   call zcode_readvarnum
+   jp nc,zvar_store
+   ret ; ERROR
+
 zexec.random.newseed:
    call zrand_newseed
 zexec.random.seed:
    call zrand_seed
-   or a,a
-   ret
-
+   jr zexec.random.store
 
 zexec.push:
    ld a,1

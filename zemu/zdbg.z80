@@ -83,7 +83,12 @@ zdbg_step.cmd:
    call zdbg_getsn
    call nc,zdbg_cmd
    jr nc,zdbg_step.input
+   or a,a
+   jr z,zdbg_step.input
+   scf
    jr zdbg_step.done
+   
+
 
 zdbg_step.cmd_buf: RESB(32)
 
@@ -110,6 +115,8 @@ zdbg_cmd:
    jr z,zdbg_cmd.print
    cp a,'X'
    jp z,zdbg_cmd.examine
+   cp a,'J'
+   jp z,zdbg_cmd.jump
    or a,a
    ret
 
@@ -202,7 +209,7 @@ zdbg_cmd.print.var.fmt: .db " %04x",0
 zdbg_cmd.print.obj:
    ; print object
    ld a,16 ; hex
-   call strtoul
+   call zdbg_readop ; strtoul
    ccf
    ret nc
    ld a,l
@@ -252,6 +259,32 @@ zdbg_cmd.print.obj:
    pop iy
    ld hl,zdbg_cmd.print.obj.buf
    call zdbg_puts
+   ; put object name
+   ld hl,0
+   ld h,(ix+ZOBJ_O_PROPS+0)
+   ld l,(ix+ZOBJ_O_PROPS+1)
+   call zaddr_fetch ; get word count
+   ld b,a
+   push bc
+   push hl
+   ld ix,win_dbgout
+   ld a,'/'
+   call zwin_putc
+   ld a,'\"'
+   call zwin_putc
+   pop hl
+   ld a,(zstr_flags)
+   call zstr_reset
+   pop bc
+   push af
+   ld a,b
+   or a,a
+   call nz,zstr_puts ; nonzero word count
+   pop af
+   ld (zstr_flags),a
+   ld a,'\"'
+   call zwin_putc
+
    ; print object properties
    call zdbg_cmd.print.obj.props
    or a,a
@@ -428,6 +461,20 @@ zdbg_cmd.examine.count: .dl 0
 zdbg_cmd.examine.size: .db 0
 zdbg_cmd.examine.ipl: .db 0
 zdbg_cmd.examine.print_args: .dl win_dbg1
+
+
+zdbg_cmd.jump:
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   scf \ ccf
+   ret nz
+   ; jump to address
+   ld (zframe_pc),hl
+   ret
 
 ;; zdbg_status -- display status information
 zdbg_status:
@@ -767,10 +814,10 @@ zdbg_disp_stack.fmt: .db "%02x: %04x",0
 
 
 ;; zdbg_disp_backtrace -- display backtrace
-;; INPUTS:
-;; OUTPUTS:
-;; DESTROYS:
-;; ERRORS:
+;; INPUTS: ???
+;; OUTPUTS: ???
+;; DESTROYS: ???
+;; ERRORS: ???
 zdbg_disp_backtrace:
    push ix
    ld ix,win_dbg2
@@ -878,6 +925,64 @@ hexdump.done:
    pop hl
    ret
 
+;; zdbg_readop -- read ``operand'' from dbgin. Accepts constants (no alphabetical prefix) and
+;;                variables.
+;; INPUTS:
+;;  hl = string pointer
+;; OUTPUTS:
+;;  hl = long number (unsigned)
+;;  de = pointer to first invalid char
+;;  CF = whether conversion was successful
+;; DESTROYS: (all)
+;; ERRORS: no.
+zdbg_readop:
+   ld a,(hl)
+   or a,a
+   scf
+   ret z          ; empty string
+   ex de,hl
+   ld hl,zdbg_readop.prefixes
+   call strchr
+   cp a,(hl)
+   jr z,zdbg_readop.var ; handle variables
+   ;; plain constant
+   ex de,hl
+   ld a,16      ; auto base
+   jp strtoul
+
+zdbg_readop.var:
+   ld bc,zdbg_readop.offsets-zdbg_readop.prefixes
+   add hl,bc
+   ld bc,0
+   ld c,(hl)   ; get variable ``offset''
+   ex de,hl
+   ld a,16     ; parse as hex
+   push bc     ; save offset
+   inc hl      ; skip prefix
+   call strtoul
+   pop bc      ; restore offset
+   ret c
+   add hl,bc   ; hl = actual variable number
+   ;; fetch variable
+   call ltobu
+   ret c
+   push de  ; restore string pointer
+   call zvar_fetch
+   pop de   ; restore string pointer
+   ret
+      
+      
+
+zdbg_readop.global:
+
+zdbg_readop.local:
+
+zdbg_readop.stack:
+
+zdbg_readop.variable:
+
+zdbg_readop.prefixes: .db "GLSV",0
+zdbg_readop.offsets:  .db $10,$1,$0,$0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; DEBUGGING GLOBALS ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;

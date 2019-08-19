@@ -37,6 +37,7 @@ zdict_tab:
    push af
    call zaddr_fetchwu ; number of entries
    pop bc
+   ret c
    ld a,b
    ret   
 
@@ -53,14 +54,10 @@ zdict_tab:
 zdict_search:
    push hl ; key
    call zdict_tab
-   ; compute de * b = table size
-   push hl ; base
-   ex de,hl
-   call nc,mul_hl_a
-   ld b,h
-   ld c,l ; size
-   pop hl ; base
-   pop de ; key
+   pop bc  ; key
+   ;; hl = base
+   ;; de = number of elements
+   ;; a = element size
    ld ix,zdict_search.cmp ; comp
    jp nc,bsearch
    ;; ERROR
@@ -74,8 +71,9 @@ zdict_search.cmp:
    push ix
    push hl
    push de
-   call zmemcmp
+   call pmemcmpz_b
    pop de
    pop hl
    pop ix
+   ld a,0
    ret

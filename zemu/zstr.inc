@@ -19,6 +19,9 @@ ZSTR_AMAX .equ $1f
 
 ZSTR_ALEN .equ ZSTR_AMAX - ZSTR_AMIN + 1
 
+ZSTR_PADWORD .equ $14a5
+ZSTR_TERM .equ $8000
+
 ;ZSTR_NEWLINE .equ '^'
 
 ASCII_NEWLINE     .equ $F2

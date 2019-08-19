@@ -135,8 +135,7 @@ zin_parse:
    ld (iy-8),a          ; store word-maxcnt
    ;; put arguments in place for zin_parse_word
    ex de,hl
-   inc de
-   inc de       ; de <- parse-buf (pointer to 1st entry)
+   inc de       ; de <- parse-buf (pointer to 1st entry), skip over word-cnt
    ld hl,0
    add hl,sp    ; recompute word-sep PA dst => hl
    ld bc,(iy-3) ; fetch text-buf pointer (PA)
@@ -191,6 +190,7 @@ zin_parse.done:
 ;; DESTROYS: ???
 ;; ERRORS: yes.
 ;; NOTE: assumes there is space in the parse buffer.
+;; BUGS: word-len and word-index are incorrect.
 zin_parse_word:
    push iy
    ld iy,-9
@@ -201,6 +201,7 @@ zin_parse_word:
    push af ; local 0,1,2
    ;; initialize counters
    ld d,0 ; word-len
+   add a,ZIN_TXTBUF_HDRSIZE
    ld e,a ; word-index
    jr zin_parse_word.spaces_entry
    ; skip over leading spaces
@@ -250,7 +251,7 @@ zin_parse_word.encode:
    ld (bc),a    ; temporarily NUL-terminate word
    ; all args (hl, de, c) set
    ld c,ZDICT_WORDLEN/2 ; in words, not bytes
-   call zstr_encode
+   call zstr_encode_pad
    ld a,(iy-1)
    ld (bc),a    ; restore word terminator
    jr c,zin_parse_word.leave ; ERROR

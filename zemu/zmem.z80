@@ -176,7 +176,7 @@ zstack_enter:
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
 ;; DESTROYS: hl,bc,de,ix
-;; ERRORS: (none)
+;; ERRORS: yes.
 zstack_leave:
    ; restore stack frame
    ld ix,(zframe_fp)
@@ -184,6 +184,7 @@ zstack_leave:
    ld de,zframe_begin
    ld bc,ZFRAME_BASESIZE
    ldir
+   or a,a
    ret
 
 

@@ -627,7 +627,7 @@ cftoa:
    ret
 
 
-;; binsearch -- binary search
+;; bsearch -- binary search
 ;; INPUTS:
 ;;  ix = comparison function
 ;;  de = number of elements
@@ -652,8 +652,11 @@ bsearch.loop:
    jr z,bsearch.none
    srl d
    rr e
-   push de ; save count
    ex de,hl
+   push hl  ; save left-count
+   ld bc,0
+   adc hl,bc
+   push hl  ; save right-count
    ld a,(bsearch.size)
    call mul_hl_a ; preserves de
    add hl,de ; new mid
@@ -675,22 +678,25 @@ bsearch.loop:
 
 bsearch.eq:
    ex de,hl ; return mid
-   pop de ; discard left
-   pop de ; discard count
+   pop bc ; discard left
+   pop bc ; discard right-count
+   pop bc ; discard left-count
    xor a,a ; no error
    ret
 
 bsearch.lt:
    ; left <- left
    pop hl ; left <- left
-   pop de ; count <- count
+   pop bc ; discard right-count
+   pop de ; count <- left-count
    jr bsearch.loop
 
 bsearch.gt:
    ; left <- mid
    ex de,hl ; left <- mid
-   pop de ; discard left
-   pop de ; count <- count
+   pop bc ; discard left
+   pop de ; count <- right-count
+   pop bc ; discard left-count
    jr bsearch.loop
 
 bsearch.none
@@ -700,10 +706,9 @@ bsearch.none
    ret
    
 bsearch.err:
-   pop hl
-bsearch.fail:
-   pop hl
-   pop hl
+   ld hl,4*3
+   add hl,sp
+   ld sp,hl
    scf
    ret
 
@@ -716,7 +721,35 @@ bsearch.key: .dl 0
 
 
 
-;; zmemcmp -- compare Z-strings in memory
+;; pmemcmpz_b -- compare physical buffer with Z-addr buffer
+;; INPUTS:
+;;  hl = buffer, physical (PA)
+;;  de = buffer, Z-addr   (ZA)
+;;  b = number of bytes to compare
+;; OUTPUTS:
+;;  ZF, CF modified appropriately
+;;  a = 0 on success
+;;  a != 0 on error
+;; DESTROYS: (all)
+;; ERRORS: yes.
+pmemcmpz_b:
+   ex de,hl
+pmemcmpz_b.loop:
+   push bc
+   call zaddr_fetch
+   pop bc
+   ret c
+   ld c,a
+   ld a,(de)
+   cp a,c
+   ld a,ZERR_SUCCESS
+   ret nz
+   inc de
+   djnz pmemcmpz_b.loop
+   or a,a ; NC
+   ret
+
+;; zmemcmpz -- compare Z-strings in memory
 ;; INPUTS:
 ;;  hl = pointer to first Z-string
 ;;  de = pointer to second Z-string
@@ -727,27 +760,27 @@ bsearch.key: .dl 0
 ;;  a != 0 on error
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
-zmemcmp:
+zmemcmpz:
    push bc
    ex de,hl
    call zaddr_fetch
    ex de,hl
-   jr c,zmemcmp.err   
+   jr c,zmemcmpz.err   
    push af
    call zaddr_fetch
    pop bc
-   jr c,zmemcmp.err   
+   jr c,zmemcmpz.err   
    ; lhs val = a
    ; rhs val = b
    cp a,b
    pop bc
    ld a,ZERR_SUCCESS
    ret nz ; if nonzero
-   djnz zmemcmp
+   djnz zmemcmpz
    ; are equal
    ret
    
-zmemcmp.err:
+zmemcmpz.err:
    pop bc ; discard
    ret
 
@@ -865,10 +898,12 @@ ktoch.done:
 
 ktoch.alpha:
    add a,'A'-kCapA
+   or a,a
    ret
 
 ktoch.digit:
    add a,'0'-k0
+   or a,a
    ret
 
 ktoch.tab:
@@ -949,7 +984,6 @@ strtol.negate:
 ;;  CF = whether conversion was successful 
 ;; DESTROYS: (all)
 ;; ERRORS: no.
-;; NOTES: currently only supports base 0.
 strtoul:
    cp a,8
    jr nz,_
@@ -1189,7 +1223,7 @@ pmemcpyz_b:
    inc hl
    ex de,hl
    push bc
-   call zaddr_fetch ; preserves de
+   call zaddr_store ; preserves de
    pop bc
    ret c
    ex de,hl
@@ -1252,6 +1286,7 @@ strchr.done:
 ;; DESTROYS: ???
 ;; ERRORS: generates interrupt `error' when `ON' is pressed.
 sys_getkey:
+   ld iy,flags
    call _GetKey
    or a,a
    ret nz

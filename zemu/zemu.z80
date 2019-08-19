@@ -15,7 +15,9 @@ start:
    call zdisp_init
    call zdbg_init
    call init_windows
-   
+
+   call zlog_init
+
    ; clear screen & reset cursor
    ; no scrolling for now
    res appAutoScroll,(iy+appFlags)
@@ -43,7 +45,7 @@ init_windows:
    push iy
    
    ld iy,win_dbgout
-   ld a,SFONT_HEIGHT
+   ld a,SFONT_HEIGHT*2
    ld b,0 ; don't buffer
    call zwin_split_bottom
 
@@ -53,13 +55,13 @@ init_windows:
    call zwin_split_bottom
 
    ld iy,win_dbg1
-   ld hl,75
+   ld hl,100
    ld b,0 ; don't buffer
    call zwin_split_right
 
    ld ix,win_dbg1
    ld iy,win_dbg2
-   ld a,lcdHeight/2-SFONT_HEIGHT
+   ld a,lcdHeight/3-SFONT_HEIGHT
    ld b,0 ; don't buffer
    call zwin_split_bottom
 
@@ -67,7 +69,7 @@ init_windows:
    
    ret
 
-win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 256)
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 512)
 
 win_dbgout: RES_ZWIN(0) ; not buffered
 win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
@@ -88,6 +90,17 @@ test:
    ret
 
 test_str: .db "test",0
+
+
+test_dict:
+   ld hl,word1
+   call zdict_search
+test_dict.done:
+   or a,a
+   ret
+
+word1: .db $18,$a5,$94,$a5
+
 
 test_hex:
    push ix
@@ -290,3 +303,4 @@ zork_save: .db "SAVE1",0
 #include "zhex.z80"
 #include "zin.z80"
 #include "zdict.z80"
+#include "zlog.z80"

@@ -11,7 +11,7 @@ zstr_abbraddr:
    lea ix,ix+ZHDR_ABBR
    ret
 
-;; zstr_printc -- print single zcode of z-string
+;; zstr_putc -- print single Z-char of z-string
 ;; INPUTS:
 ;;  a = Z-code (0 <= a < 32)
 ;; OUTPUTS:
@@ -19,7 +19,6 @@ zstr_abbraddr:
 ;; DESTROYS:
 ;; ERRORS:
 zstr_putc:
-   ; ld ix,win_main
    ld hl,zstr_flags
    ; 1. Interpet as abbreviation code?
    bit ZSTR_FLAGS_ABBR,(hl)
@@ -83,7 +82,6 @@ zstr_putc.char.print:
    ld e,a
    add hl,de
    ld a,(hl)
-   ; call zwin_putc
    call zstr_putc_raw
    or a,a
    ret
@@ -91,7 +89,6 @@ zstr_putc.char.print:
 zstr_putc.space:
    ld a,' '
    call zstr_putc_raw
-   ; call zwin_putc
    or a,a
    ret
 
@@ -103,7 +100,9 @@ zstr_putc.abbr_apply:
    ld de,0
    ld e,a
    add hl,de
+   push ix
    call zaddr_fetchwu ; get word address to expanded string
+   pop ix
    ret c
    ex de,hl
    ; convert to byte address
@@ -123,7 +122,9 @@ zstr_putc.abbr_select:
    rrca ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
    ld hl,ZHDR_ABBR
    push af
+   push ix
    call zaddr_fetchwu
+   pop ix
    pop bc
    ex de,hl
    ld de,0
@@ -166,11 +167,14 @@ zstr_putc.wchar_add.10bits:
    res 7,d
    ; convert to ASCII char
    ex de,hl
+   push ix
    call zstr_wchartoch
+   pop ix
    ret c
    jp zstr_putc_raw ; put raw ASCII character
+   
 zstr_putc_raw:
-   ld ix,win_main
+   ; ld ix,win_main
    call zwin_putc
    or a,a
    ret
@@ -230,7 +234,9 @@ zstr_puts:
    res ZSTR_FLAGS_SHIFT,a
    ld (zstr_flags),a
 zstr_puts.loop:
+   push ix
    call zaddr_fetchwu
+   pop ix
    ret c
    ex de,hl
    push de
@@ -264,7 +270,8 @@ zstr_A0.tab:
    .db "abcdefghijklmnopqrstuvwxyz"
 zstr_A1.tab:
    .db "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-zstr_A2.tab: .db " ^0123456789.,!?_#'\"/\-:()"
+zstr_A2.tab:
+   .db " ^0123456789.,!?_#'\"/\\-:()"
 
 ;; zstr_putn -- print signed number
 ;; INPUTS:
@@ -273,8 +280,6 @@ zstr_A2.tab: .db " ^0123456789.,!?_#'\"/\-:()"
 ;; DESTROYS: (all)
 ;; ERRORS: no.
 zstr_putn:
-   ; 0. Set main window.
-   ld ix,win_main
    ; 1. Check sign
    ex de,hl
    ld hl,0
@@ -504,6 +509,7 @@ zstr_encode.pack:
 ;;  de = destination Z-string
 ;;  c = destination max size in words
 ;; OUTPUTS:
+;;  c = remaining words
 ;;  Z if full string written; NZ if ran out of space
 ;; DESTROYS:
 ;; ERRORS: yes.
@@ -531,15 +537,18 @@ zstr_encode.loop:
 zstr_encode.entry:
    ld a,c
    or a,a
-   jr z,zstr_encode.nospace ; out of words
-   ld a,(hl)
+   jr nz,_
+   cp a,b ; cp b,0
+   jr nz,zstr_encode.nospace
+_  ld a,(hl)
    inc hl
    or a,a
    jr nz,zstr_encode.loop
 zstr_encode.term:
-   ld a,b
+   ld a,b ; number of Z-chars in buffer
    or a,a
    jr z,zstr_encode.mark
+   dec c  ; use +1 word for remaining characters
    ld ix,zstr_encode.buf
    cp a,2
    jr z,zstr_encode.pad2
@@ -554,15 +563,18 @@ zstr_encode.mark:
    dec hl
    dec hl
    set 7,(hl)
+   inc hl
+   inc hl
    xor a,a ; NC, Z (string fit)
    ret
    
 zstr_encode.empty:
    ex de,hl
-   ld de,ZSTR_EMPTYSTR
-   ld (hl),d
+   ld (hl),HIGH(ZSTR_EMPTYSTR)
    inc hl
-   ld (hl),e
+   ld (hl),LOW(ZSTR_EMPTYSTR)
+   inc hl
+   dec c   ; empty Z-string takes up 1 word
    xor a,a ; NC, Z
    ret
 
@@ -576,16 +588,56 @@ zstr_encode.buf:
 zstr_encode.buf_end:
 
 
+;; zstr_encode_pad -- encode Z-string and pad out remaining words
+;; INPUTS:
+;;  hl = source ASCII string (ASCII-NUL terminated)
+;;  de = destination Z-string
+;;  c = destination size in words
+;; OUTPUTS:
+;;  Z if full string written; NZ if ran out of space
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zstr_encode_pad:
+   call zstr_encode
+   ret c
+   ret nz ; ran out of room
+   ;; need to pad?
+   ld b,c
+   inc b \ dec b
+   ret z  ; don't need to pad
+   ;; un-null terminate Z-string
+   dec hl
+   dec hl
+   res 7,(hl)
+   inc hl
+   inc hl
+   ;; pad out
+zstr_encode_pad.loop:
+   ld (hl),HIGH(ZSTR_PADWORD)
+   inc hl
+   ld (hl),LOW(ZSTR_PADWORD)
+   inc hl
+   djnz zstr_encode_pad.loop
+   ;; terminate
+   dec hl
+   dec hl
+   set 7,(hl)
+   inc hl
+   inc hl
+zstr_encode_pad.done:
+   or a,a ; NC
+   ret
+  
+
+
 ;; zstr_putln -- put newline in main window
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; DESTROYS: ???
 zstr_putln:
-   push ix
-   ld ix,win_main
    call zwin_newline
-   pop ix
+   or a,a
    ret
 
 
@@ -755,4 +807,17 @@ tolowers.entry:
    jr nz,tolowers.loop
 tolowers.done:
    pop hl
+   ret
+
+;; zstr_putcode -- put ZSCII code
+;; INPUTS:
+;;  a = ZSCII code (lower 8 bits)
+;;  ix = window pointer
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zstr_putcode:
+   ;; TODO -- special conversion & checks for ZSCII codes
+   call zwin_putc
+   or a,a ; NC
    ret

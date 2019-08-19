@@ -52,7 +52,7 @@ _  ex de,hl
 ;; INPUTS:
 ;;  hl = range (unsigned word)
 ;; OUTPUTS:
-;;  hl = random number n such that 0 <= n < range
+;;  hl = random number n such that 1 <= n <= range
 ;; ERRORS: no.
 ;; DESTROYS: (all)
 zrand_gen:
@@ -63,5 +63,6 @@ zrand_gen:
    pop de
    call div_hl_de
    ex de,hl
+   inc hl
    ret
 

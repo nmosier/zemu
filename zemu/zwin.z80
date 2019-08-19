@@ -217,9 +217,13 @@ zwin_scroll:
 ;; ERRORS: no.
 ;; DESTROYS: all but ix
 ;; TODO: this could be optimized to just copy contents in VRAM.
+;; NOTE: for now, this just clears if unbuffered.
 zwin_redraw:
    call zwin_clear
    call zwin_org ; reset internal cursor to origin
+   or a,a ; NC
+   bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+   ret z ; if not buffered, then nothing to redisplay
    lea bc,ix+ZWIN.BUF
    ld hl,(ix+ZWIN.BUFPTR)
    or a,a ; NC
@@ -358,12 +362,6 @@ zwin_trunc:
 zwin_puts:
    jr zwin_puts.entry
 zwin_puts.loop:
-   ;; DEBUG HOOK
-   cp a,'r'
-   jr nz,_
-   nop
-_  ;; DEBUG HOOK END
-
    call zwin_putc
    inc hl
 zwin_puts.entry:
@@ -652,6 +650,7 @@ zwin_getsn.done:
    sbc hl,bc
    push hl \ pop bc
    pop hl
+   or a,a
    ret
 
 ;; handle character

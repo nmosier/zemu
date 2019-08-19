@@ -74,14 +74,15 @@ zop_readn.loop:
    lea ix,ix+3
    djnz zop_readn.loop
 zop_readn.load:
+   ld a,c
    ld hl,(zop_readn.data+0)
-   dec c
+   dec a
    ret z
    ld de,(zop_readn.data+3)
-   dec c
+   dec a
    ret z
    ld bc,(zop_readn.data+6)
-   dec c
+   dec a
    ret z
    ld ix,(zop_readn.data+9)
    ret

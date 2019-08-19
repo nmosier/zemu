@@ -36,4 +36,17 @@ VARNAMELEN .equ 8
     1 << n
 #endmacro
 
+#macro LOW(i)
+    i & $ff
+#endmacro
+
+#macro HIGH(i)
+    LOW((i >> 8))
+#endmacro
+
+#macro UPPER(i)
+   HIGH((i >> 8))
+#endmacro
+
 #endif
+

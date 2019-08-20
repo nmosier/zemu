@@ -57,6 +57,7 @@ zin_getsn:
    ld bc,0
    ld c,a
    push iy
+   call zwin_nopage  ; don't want to page when getting input
    call zwin_getsn
    pop iy
    jr c,zin_getsn.leave

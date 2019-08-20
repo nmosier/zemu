@@ -1,43 +1,6 @@
 zemu TODO
 
 Features
-[X] Find out max size of app vars -- 256^2 bytes
-[X] Write program/script to split story file into multiple `zpages'
-[ ] Have script also generate master variable of `zpages'
-[ ] Write caching / page management code.
-[-] Write function for reading/writing to z-addresses.
-[X] Rename zemu_open to zmap_open.
-[X] Convert zpage size from actual bytes to n, where actual page size is 2^n.
-[X] Write function for translating laddrs to paddrs.
-[X] Test function for translating laddrs to paddrs.
-[X] Rename function: zaddr_to_phys -> zaddr_to_paddr
-[X] Write function for fetching & decoding one instruction
-[X] Decode operand types.
-[X] Fix all push.s
-[X] Have zaddr_fetch update ptr (hl).
-[X] Unify stack and call state into same stack, updating save code.
-[ ] Update save routines to save all of dynamic memory.
-[ ] Fix operand fetching code to sign-extend values
-[X] Object tree -- function to return address of table, object
-[ ] Replace inline sign extension with new function calls
-[X] Write function to check if object number is valid
-[ ] Merge/reconcile zvar_downcast and ltobu
-[X] zexec_cmp.* ought to be failable
-[ ] Rewrite zvar_cast and zobj_cast functions to retrieve unsigned byte.
-[X] Fix zexec_cond_jump ???
-[ ] Replace zexec_cond_jump with function that parameterizes reading ops and calling funcs
-[ ] zmem_init ought to also look at first byte of routine and properly intialize stack.
-[ ] string library support for extended 10-bit codes
-[X] Random number generator.
-[ ] Use Z80 MODE for all 16-bit calculations.
-[X] Display alerts in zdbg_status
-[X] Support for displaying stack.
-[ ] Merging windows
-[X] dbg: display call stack
-[ ] Parameterize variable access.
-[ ] Paging option for zwin_puts
-[X] zstr -- wide characters
-[ ] write pmemcmpz_b
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

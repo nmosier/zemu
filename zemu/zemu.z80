@@ -31,9 +31,14 @@ start:
    call zmem_init ; initialize memory
    ld hl,zmem_init_str
    jp c,zemu_perror
-   call test
+   ; call test
+   call zcpu_init
+   call zcpu_run
+   ld hl,zemu_str
+   jp c,zemu_perror
    jp _GetKey
 
+zemu_str: .db "zemu",0
 
 ;; intialize windows
 init_windows:
@@ -302,3 +307,4 @@ zork_save: .db "SAVE1",0
 #include "zhex.z80"
 #include "zin.z80"
 #include "zdict.z80"
+#include "zcpu.z80"

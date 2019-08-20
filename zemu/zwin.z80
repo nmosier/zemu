@@ -55,10 +55,30 @@ zwin_fill:
 ;; DESTROYS: a, hl
 ;; ERRORS: no.
 zwin_org:
+   ;; reset cursor
    ld hl,(ix+ZWIN.ORGCOL)
    ld (ix+ZWIN.CURCOL),hl
    ld a,(ix+ZWIN.ORGROW)
    ld (ix+ZWIN.CURROW),a
+   ;; flush buffer
+   jp zwin_flush
+
+
+;; zwin_flush -- flush buffer of window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: hl
+;; ERRORS no.
+;; NOTE: does not assume that window is buffered.
+zwin_flush:
+   bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+   ret z
+   lea hl,ix+ZWIN.BUF
+   ld (ix+ZWIN.BUF),hl
+   bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
+   ret z
+   ld (ix+ZWIN.BUFANC),hl
    ret
 
 ;; zwin_putc -- put character in window, buffered
@@ -243,9 +263,7 @@ zwin_newline_bare:
 ;; DESTROYS: all but ix
 zwin_scroll:
    call zwin_trunc
-#if 0
-   jp zwin_redraw
-#else
+   call c,zwin_wait ; page if necessary
    ld a,SFONT_HEIGHT
    push ix
    lea ix,ix+ZWIN.RECT
@@ -256,8 +274,10 @@ zwin_scroll:
    jp c,zwin_org
    ld (ix+ZWIN.CURROW),a
    ret
-#endif
 
+
+zwin_wait:
+   jp sys_getkey
 
 ;; zwin_redraw -- clear and then display contents of window
 ;; INPUTS:
@@ -360,11 +380,15 @@ zwin_eol.found:
 ;; zwin_trunc -- truncate line from buffer
 ;; INPUTS:
 ;;  ix = pointer to window struct
-;; OUTPUTS: (none)
+;; OUTPUTS:
+;;  CF indicates paging status
+;;    NC = don't need to page
+;;    C = should page
 ;; DESTROYS: all but a
 ;; ERRORS: no.
 ;; NOTE: doesn't trigger redisplay of window.
 zwin_trunc:
+   or a,a   ; NC
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; can't truncate if not buffered
    ; hl = width of window
@@ -385,20 +409,42 @@ zwin_trunc:
    ; de = EOL ptr
    push de ; save EOL ptr
    ex de,hl ; hl = EOL ptr
+   ;; calculate deleted bytes
    lea de,ix+ZWIN.BUF
+   or a,a
    sbc hl,de ; size of bytes to delete
    ex de,hl
+   ;; shift bufptr
    ld hl,(ix+ZWIN.BUFPTR)
    or a,a
    sbc hl,de ; shifted bufptr
    ld (ix+ZWIN.BUFPTR),hl ; save new bufptr
+   ;; try to shift bufanc
+   or a,a
+   bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
+   jr z,zwin_trunc.move
+   ;; paging enabled
+   ld hl,(ix+ZWIN.BUFANC)
+   call cp_hl_0
+   jr z,zwin_trunc.move    ; no anchor set yet
+   or a,a
+   sbc hl,de   ; shifted anchor
+   lea de,ix+ZWIN.BUF
+   call cp_hl_de
+   ;; if CF is set, then anchored region will be scrolled offscreen
+   jr nc,_
+   ex de,hl
+_  ld (ix+ZWIN.BUFANC),hl
+zwin_trunc.move:
    pop hl ; restore EOL ptr
    lea de,ix+ZWIN.BUF
    ; hl = EOL ptr
    ; de = buf begin
    ; bc = number of bytes to keep
-   jp memmove
-   
+   push af
+   call memmove
+   pop af
+   ret
 
 ;; zwin_puts -- put string in window, buffered, null-terminated
 ;; zwin_puts_bare -- put string in window, unbuffered
@@ -571,6 +617,7 @@ zwin_split_vert.cont:
    ret
 
 
+
 ;; zwin_split_left -- split off window from left of base window
 ;; zwin_split_right -- split off window from right of base window
 ;; INPUTS:
@@ -646,13 +693,18 @@ zwin_split_horiz.org_right:
 ;; DESTROYS: all but a, ix
 zwin_getc:
    call sys_getkey
-   call nc,ktoch
-   call nc,zwin_putc
+   ret c
+   call ktoch
+   jr c,zwin_getc ; ignore unrecognized character
+   or a,a
+   call nz,zwin_putc ; only put non-null characters
    ret
    
 zwin_getc_bare:
    call sys_getkey
-   call nc,ktoch
+   ret c
+   call ktoch
+   jr c,zwin_getc_bare
    ret
 
 
@@ -745,4 +797,44 @@ zwin_getsn.del:
 zwin_getsn.error:
    pop de
    pop hl
+   ret
+
+
+
+;; zwin_page -- enable/update paging for window
+;; INPUTS:
+;;  ix = window
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; NOTE: Safe to call even if buffering isn't enabled on the window.
+zwin_page:
+   push hl
+   bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+   jr z,zwin_page.done            ; cannot page if unbuffered
+   bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
+   jr nz,zwin_page.test
+   set ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
+   ld hl,0
+   jr zwin_page.newanc
+zwin_page.test:
+   ld hl,(ix+ZWIN.BUFANC)
+   call cp_hl_0
+   jr nz,zwin_page.done ; don't need to update anchor, since it was already set
+   ld hl,(ix+ZWIN.BUFPTR)
+zwin_page.newanc:
+   ld (ix+ZWIN.BUFANC),hl
+zwin_page.done:
+   pop hl
+   ret
+
+;; zwin_nopage -- disable paging for window
+;; INPUTS:
+;;  ix = window
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; NOTE: Safe to call even if buffering isn't enabled on the window.
+zwin_nopage:
+   res ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret

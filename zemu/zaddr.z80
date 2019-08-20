@@ -223,7 +223,7 @@ zaddr_storew:
 ;; OUTPUTS:
 ;;  hl = byte address
 ;; ERRORS: no.
-;; DESTROYS:
+;; DESTROYS: (none)
 zaddr_unpack:
    add hl,hl
    ret

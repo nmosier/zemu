@@ -28,12 +28,15 @@ ZWIN.HEIGHT .equ 11     ; B 1
 ZWIN.FLAGS  .equ 12     ; B 1
 ZWIN.BUFLEN .equ 13     ; L 3
 ZWIN.BUFPTR .equ 16     ; L 3
-ZWIN.BUF    .equ 19
+ZWIN.BUFANC .equ 19     ; L 3 -- anchor for paging
+ZWIN.BUF    .equ 22
+
 
 ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
+ZWIN.FLAGS.PAGD .equ 1 ; whether paged (must be buffered)
 
 ZWIN_NOBUF_SIZE .equ 13 ; without buffering
-ZWIN_BUF_BASE_SIZE .equ 19 ; all fixed-sized fields, with buffering
+ZWIN_BUF_BASE_SIZE .equ 22 ; all fixed-sized fields, with buffering
 
 
 ZWIN_CLEARCOLOR .equ $ff
@@ -46,9 +49,10 @@ ZWIN_CLEARCOLOR .equ $ff
   .dl width  ; width
   .db height ; height
   .db flags  ; flags
-#if buflen > 0  
+#if buflen > 0
   .dl buflen ; buflen
   .dl _      ; bufptr
+  .dl 0      ; bufanc
 _ RESB(buflen) ; buf
 #endif
 #endmacro

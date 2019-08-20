@@ -230,6 +230,8 @@ zstr_putw:
 ;; DESTROYS:
 ;; ERRORS: yes.
 zstr_puts:
+   ;; enable paging for window
+   call zwin_page
    ld a,(zstr_flags)
    res ZSTR_FLAGS_SHIFT,a
    ld (zstr_flags),a
@@ -276,10 +278,13 @@ zstr_A2.tab:
 ;; zstr_putn -- print signed number
 ;; INPUTS:
 ;;  hl = signed long to print
+;;  ix = window
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: no.
 zstr_putn:
+   ; 0. Enable paging for window.
+   call zwin_page
    ; 1. Check sign
    ex de,hl
    ld hl,0
@@ -820,6 +825,7 @@ tolowers.done:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zstr_putcode:
+   call zwin_page    ; enable paging
    ;; TODO -- special conversion & checks for ZSCII codes
    call zwin_putc
    or a,a ; NC

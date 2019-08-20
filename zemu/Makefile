@@ -24,7 +24,7 @@ zmap: zmap.o
 
 .PHONY: clean
 clean:
-	rm -f *.8xp *.8xv zmap *.o
+	rm -f *.8xp *.8xv zmap *.o *.lab
 
 
 .PHONY: size

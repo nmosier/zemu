@@ -854,9 +854,9 @@ zexec.call:
    pop bc
    pop hl
    ret c
-   ;; check if CALL address is 0 -- if so, do nothing
+   ;; check if CALL address is 0 -- if so, call nothing and put false in return variable
    call cp_hl_0
-   ret z
+   jp z,zvar_store   ; this is a trick -- ZFALSE == 0000 == NULLFN
    ;; set up bare call state
    ld c,a ; save return varno
    push bc
@@ -876,38 +876,6 @@ zexec.call.done:
    ld (zframe_pc),hl ; save new PC
    or a,a
    ret
-
-#if 0
-   push hl ; save PC after procedure is entered
-   ; assign arguments to locals
-   xor a,a
-   ld (zexec.call.varno),a
-   jr zexec.call.entry
-zexec.call.loop:
-   ld a,(zexec.call.varno)
-   inc a
-   ld (zexec.call.varno),a
-   call nc,zvar_store
-zexec.call.entry:
-   call nc,zcode_readop
-   jr nz,zexec.call.loop
-zexec.call.rv:
-   ; read return variable
-   call zcode_readvarnum
-   ld de,(zframe_pc) ; save PC after call instruction
-   pop hl
-   ret c
-   ; save return variable
-   ld (zframe_rv),a
-zexec.call.pc:
-   ; hacky part -- don't like this
-   ld ix,(zframe_fp)
-   ld (ix+zframe_pc-zframe_end),de ; update PC
-   ld (zframe_pc),hl
-   ret
-zexec.call.varno: .db 0
-
-#endif
 
 ;; get variables before setting up new call frame
 zexec.call.readvars:

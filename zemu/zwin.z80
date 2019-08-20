@@ -138,23 +138,56 @@ zwin_putc.clear:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; ERRORS:
-;; DESTROYS:
+;; ERRORS: no.
+;; DESTROYS: ???
 ;; NOTES: erases character on screen.
-;; TODO: optimization.
 zwin_unputc:
    push hl \ push de
    ld hl,(ix+ZWIN.BUFPTR)
    lea de,ix+ZWIN.BUF
    or a,a
    sbc hl,de
-   jr z,_ ; nothing to unput
+   jr z,zwin_unputc.done ; nothing to unput
    add hl,de
    dec hl
+   ld a,(hl)
    ld (ix+ZWIN.BUFPTR),hl
-   call zwin_redraw
-_  pop de \ pop hl
+   ld hl,(ix+ZWIN.CURCOL)
+   ld bc,0
+   call sfont_width
+   or a,a
+   sbc hl,bc
+   ld de,(ix+ZWIN.ORGCOL)
+   sbc hl,de   ; NOTE: always NC
+   add hl,de
+   jr z,zwin_unputc.prevline
+   ld (ix+ZWIN.CURCOL),hl
+   ;; clear rectangle
+   ld a,(ix+ZRECT.ORGROW)
+   push ix
+   ld ix,-ZRECT_SIZE
+   add ix,sp
+   ld sp,ix
+   ld (ix+ZRECT.ORGCOL),hl
+   ld (ix+ZRECT.ORGROW),a
+   ld (ix+ZRECT.WIDTH),bc
+   ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
+   ld hl,$ffff          ; white
+   call zdisp_fillrect
+   ld ix,ZRECT_SIZE
+   add ix,sp
+   ld sp,ix
+   pop ix
+
+
+#endif   
+zwin_unputc.done:
+   pop de \ pop hl
    ret
+
+zwin_unputc.prevline:
+   call zwin_redraw
+   jr zwin_unputc.done
 
 ;; zwin_newline -- put newline in window, buffered
 ;; zwin_newline_bare -- put newline in window, unbuffered
@@ -652,7 +685,7 @@ zwin_getsn.loop:
    jr c,zwin_getsn.done
 
 zwin_getsn.entry:
-   ld de,1 ; ld de,0
+   ld de,1
    ex de,hl
    or a,a
    sbc hl,bc
@@ -669,29 +702,30 @@ zwin_getsn.done:
    or a,a
    ret
 
-;; handle character
-;; assumes there is space in the buffer
+
 zwin_getsn.handle:
-   push hl \ push bc
-   call zwin_putc ; only OK if this window isn't being shared
-   pop bc \ pop hl
-   call isprint   
-   jr nc,zwin_getsn.special
+   call isprint
+   jp nc,zwin_getsn.special
 zwin_getsn.print:
    ; is print
    ld (hl),a
    inc hl
    dec bc
-   ; check if newline
+zwin_getsn.putc:
+   push hl
+   push bc
+   call zwin_putc
+   pop bc
+   pop hl
    cp a,ASCII_NEWLINE
+   scf
+   ret z
    ccf
    ret
-   
+
 zwin_getsn.special:
    cp a,ASCII_DEL
    jr z,zwin_getsn.del
-   cp a,ASCII_CLEAR
-   jr z,zwin_getsn.clear
    or a,a
    ret ; do nothing
 
@@ -705,21 +739,8 @@ zwin_getsn.del:
    ret z ; nothing to delete
    dec hl ; delete one char
    inc bc
-   or a,a
-   ret
+   jr zwin_getsn.putc
 
-zwin_getsn.clear:
-   ; reset buffer pointer to start
-   push de ; full count
-   ex de,hl
-   or a,a
-   sbc hl,bc
-   ex de,hl
-   or a,a
-   sbc hl,de ; hl now at beginning
-   pop bc ; new count
-   or a,a
-   ret
 
 zwin_getsn.error:
    pop de

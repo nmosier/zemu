@@ -1,0 +1,13 @@
+#include "ti84pce.inc"
+#include "zlog.inc"
+
+.assume ADL=1
+.org userMem-2
+
+.db tExtTok, tAsm84CeCmp
+
+
+start:
+   LOGSTR("Hello, CEmu!")
+   LOGLN()
+   ret

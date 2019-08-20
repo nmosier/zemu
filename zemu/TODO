@@ -1,6 +1,8 @@
 zemu TODO
 
 Features
+[ ] Debug flag to build different debug vs. user targets
+
 
 Optimizations
 [ ] zaddr_fetch -- remember how much is left on page

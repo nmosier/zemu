@@ -1,0 +1,32 @@
+;; zcpu.z80 -- run Z-machine
+
+#include "zhdr.inc"
+
+;; zcpu_run -- run Z-machine in user mode
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zcpu_run:
+   call zcode_decode
+   jr nc,zcpu_run
+   or a,a
+   ret
+   scf
+   ret
+
+;; zcpu_init -- initialize Z-machine
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  sets PC (zframe_pc)
+;; DESTROYS: ???
+;; ERRORS: ???
+zcpu_init:
+   ld hl,ZHDR_INITPC
+   call zaddr_fetchwu
+   ret c
+   ex de,hl
+   ld (zframe_pc),hl
+   or a,a
+   ret
+

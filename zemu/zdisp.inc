@@ -13,6 +13,8 @@ SFONT_TAB_ENTLEN .equ $19
 DISP_WIDTH .equ lcdWidth
 DISP_HEIGHT .equ lcdHeight
 
+PIXEL_SIZE .equ 2
+
 ;; struct zrect
 ;; L orgcol
 ;; B orgrow

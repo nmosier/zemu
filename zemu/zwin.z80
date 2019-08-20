@@ -1,4 +1,4 @@
-A;; zwin.z80 -- window management routines
+;; zwin.z80 -- window management routines
 ;; TODO -- need to unscale rows
 
 
@@ -173,9 +173,10 @@ zwin_newline.base:
 zwin_newline.loop:
    ld a,(ix+ZWIN.CURROW)
    sub a,(ix+ZWIN.ORGROW)   
-   add a,SFONT_HEIGHT
+   add a,SFONT_HEIGHT*2
    cp a,(ix+ZWIN.HEIGHT)
    jr c,zwin_newline.curset
+   jr z,zwin_newline.curset
    ; test if window is single line
    ld a,(ix+ZWIN.HEIGHT)
    cp a,SFONT_HEIGHT*2
@@ -184,6 +185,7 @@ zwin_newline.loop:
    call zwin_scroll
    jr zwin_newline.loop ; retry now
 zwin_newline.curset:
+   sub a,SFONT_HEIGHT
    add a,(ix+ZWIN.ORGROW)
    ld (ix+ZWIN.CURROW),a
    ld hl,(ix+ZWIN.ORGCOL)
@@ -208,7 +210,21 @@ zwin_newline_bare:
 ;; DESTROYS: all but ix
 zwin_scroll:
    call zwin_trunc
+#if 0
    jp zwin_redraw
+#else
+   ld a,SFONT_HEIGHT
+   push ix
+   lea ix,ix+ZWIN.RECT
+   call zdisp_scrollrect_up
+   pop ix
+   ld a,(ix+ZWIN.CURROW)
+   sub a,SFONT_HEIGHT
+   jp c,zwin_org
+   ld (ix+ZWIN.CURROW),a
+   ret
+#endif
+
 
 ;; zwin_redraw -- clear and then display contents of window
 ;; INPUTS:

@@ -29,6 +29,7 @@ zwin_select:
 ;; DESTROYS: a, hl, de, bc
 ;; ERRORS: no.
 zwin_clear:
+   ;; white out window
    ld hl,$ffff
    call zwin_fill
    jp zwin_org
@@ -47,7 +48,35 @@ zwin_fill:
    call zdisp_fillrect
    pop ix
    ret
-   
+
+#ifdef ZBORDER
+;; zwin_border -- display window border
+;; INPUTS:
+;;  ix = window
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: no.
+;; NOTE: Assumes that window has display margin of at least 1px.
+zwin_border:
+   ;; fetch rows
+   ld a,(ix+ZWIN.ORGROW)
+   ld b,a
+   dec b
+   add a,(ix+ZWIN.HEIGHT)
+   ld c,a
+   ;; fetch cols
+   ld de,(ix+ZWIN.ORGCOL)
+   ld hl,(ix+ZWIN.WIDTH)
+   add hl,de
+   ex de,hl
+   dec hl
+   ;; draw rect
+   push ix
+   call _DrawRectBorder
+   pop ix
+   ret
+#endif
+
 ;; zwin_org -- set window's cursor back to the origin
 ;; INPUTS:
 ;;  ix = pointer to window struct
@@ -88,7 +117,7 @@ zwin_flush:
 ;;  a = character
 ;; OUTPUTS: (none)
 ;; DESTROYS: all but a,ix
-;; ERRORS: no.
+;; ERRORS: no, but safe.
 zwin_putc:
    scf
    jr zwin_putc.base
@@ -125,7 +154,10 @@ zwin_putc.base:
    sbc hl,bc ; new strlen - width - 1
    call nc,zwin_newline_bare ; don't buffer
    call zwin_select ; select window for writing
+   push iy
+   ld iy,flags
    call _VPutMap ; display char
+   pop iy
    pop bc
    pop ix
    ; update current column
@@ -138,6 +170,7 @@ zwin_putc.done:
    call c,zwin_bufc
 zwin_putc.done_nbuf:
    pop de \ pop hl \ pop bc
+   or a,a
    ret
 
 zwin_putc.newline:
@@ -158,10 +191,11 @@ zwin_putc.clear:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; ERRORS: no.
+;; ERRORS: no, but safe.
 ;; DESTROYS: ???
 ;; NOTES: erases character on screen.
 zwin_unputc:
+zwin_unputcursor:
    push hl \ push de
    ld hl,(ix+ZWIN.BUFPTR)
    lea de,ix+ZWIN.BUF
@@ -198,11 +232,9 @@ zwin_unputc:
    add ix,sp
    ld sp,ix
    pop ix
-
-
-#endif   
 zwin_unputc.done:
    pop de \ pop hl
+   or a,a ; NC
    ret
 
 zwin_unputc.prevline:
@@ -724,9 +756,19 @@ zwin_getsn:
    push bc
    jr zwin_getsn.entry
 zwin_getsn.loop:
-   push hl \ push bc
+   push hl
+   push bc
+#if ZCURSOR
+   call zwin_putcursor
+#endif
    call zwin_getc_bare ; preserves a
-   pop bc \ pop hl
+#if ZCURSOR
+   push af           ; NOTE: preserving error state.
+   call zwin_unputcursor
+   pop af
+#endif
+   pop bc
+   pop hl
    jr c,zwin_getsn.error
    or a,a ; check for null term
    jr z,zwin_getsn.done
@@ -838,3 +880,15 @@ zwin_page.done:
 zwin_nopage:
    res ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret
+
+
+
+;; zwin_putcursor -- display cursor in buffered window
+;; INPUTS:
+;;  ix = window
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: ???
+zwin_putcursor:
+   ld a,ZWIN_CURSOR
+   jp zwin_putc

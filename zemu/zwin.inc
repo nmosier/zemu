@@ -3,6 +3,7 @@
 #ifndef __ZWIN_INC
 #define __ZWIN_INC
 
+
 #include "zutil.inc"
 #include "zdisp.inc"
 
@@ -75,6 +76,8 @@ ZWIN.DEBUG.WIDTH .equ DISP_WIDTH
 ZWIN.DEBUG.ORGCOL .equ 0
 ZWIN.DEBUG.ORGROW .equ ZWIN.MAIN.ORGROW + ZWIN.MAIN.HEIGHT
 
+ZWIN_CURSOR .equ '_'
+;; SBAR?
 
 
 #endif

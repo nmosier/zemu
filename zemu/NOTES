@@ -17,6 +17,11 @@ zmap format:
       * whether currently in RAM
       * perhaps some LRU info?
 
+----
+
+
+----
+
 Environment variables:
 ZPAGE_SIZE: default zpage size, used in all C programs, scripts, and assembly
 
@@ -79,3 +84,5 @@ ix = fourth param
 3B21 -- dictionary
 
 2c, 2e, 22
+
+

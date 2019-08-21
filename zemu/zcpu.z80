@@ -11,7 +11,7 @@ zcpu_run:
    call zcode_decode
    jr nc,zcpu_run
    or a,a
-   ret
+   ret z
    scf
    ret
 

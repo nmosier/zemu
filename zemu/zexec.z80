@@ -816,7 +816,7 @@ zexec.pop:
    jp zvar_fetch 
 
 zexec.quit:
-   ld a,ZERR_BADINSTR
+   xor a,a
    scf
    ret
 

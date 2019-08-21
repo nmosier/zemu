@@ -13,12 +13,15 @@
 
 start:
    call zdisp_init
+
+#ifdef ZDBG
    call zdbg_init
+#endif
    call init_windows
 
    ; clear screen & reset cursor
    ; no scrolling for now
-   res appAutoScroll,(iy+appFlags)
+   res appAutoScroll,(iy+appFlags)  ; TODO: is this necessary?
 
    xor a,a
    ld (curRow),a
@@ -31,12 +34,16 @@ start:
    call zmem_init ; initialize memory
    ld hl,zmem_init_str
    jp c,zemu_perror
-   ; call test
+
+#ifndef ZDBG
    call zcpu_init
    call zcpu_run
+#else
+   call zdbg_init
+   call zdbg_run
+#endif
    ld hl,zemu_str
    jp c,zemu_perror
-   jp _GetKey
 
 zemu_str: .db "zemu",0
 
@@ -45,6 +52,7 @@ init_windows:
    ld ix,win_main
    call zwin_clear
 
+#ifdef ZDBG
    push iy
    
    ld iy,win_dbgout
@@ -69,123 +77,19 @@ init_windows:
    call zwin_split_bottom
 
    pop iy
-   
+#endif
    ret
 
-win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, MASK(ZWIN.FLAGS.BUFD), 512)
+win_main: D_ZWIN(2, 2, DISP_WIDTH-4, DISP_HEIGHT-4, MASK(ZWIN.FLAGS.BUFD), 512)
 win_main_protector: .db $42
 
+#ifdef ZDBG
 win_dbgout: RES_ZWIN(0) ; not buffered
 win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
 win_dbg1: RES_ZWIN(0) ; not buffered
 win_dbg2: RES_ZWIN(0) ; not buffered
+#endif
 
-test:
-   ; test call & run until
-   ld hl,zdbg_step
-   ld (zcode_stepuntil.fn),hl
-   
-   ld a,0 ; 3 arg
-   ld de,10
-   ld hl,$4f04
-   call zcall_ext
-   ld hl,test_str
-   jp c,zemu_perror
-   ret
-
-test_str: .db "test",0
-
-
-test_dict:
-   ld hl,word1
-   call zdict_search
-test_dict.done:
-   or a,a
-   ret
-
-word1: .db $18,$a5,$94,$a5
-
-
-test_hex:
-   push ix
-   ld ix,0
-   add ix,sp
-
-   ld hl,test_hex.print_params
-   push hl ; print_context
-   ld hl,test_hex.print
-   push hl ; print
-   ld hl,test_hex.fetch_z80
-   push hl ; fetch
-   ld hl,MASK(HEXDUMP_IDXSIZE)
-   push hl ; flags
-   ld hl,4
-   push hl ; ipl
-   ld hl,2
-   push hl ; size
-   ld hl,16
-   push hl ; count
-   ld hl,$D00000
-   push hl ; index
-   ld hl,$D00000
-   push hl ; base
-
-   call _hexdump
-
-   ld sp,ix
-   pop ix
-
-   ret
-   
-   
-
-test_hex.print_params: .dl win_main
-test_hex.print:
-   push ix
-   push iy
-   ld iy,0
-   add iy,sp
-   ld hl,(iy+9)  ; arg1 -- string
-   ld ix,(iy+12) ; arg2 -- context
-   ld ix,(ix)   ; window
-   
-   push iy
-   ld iy,flags
-   call zwin_puts
-   pop iy
-   
-   ld sp,iy
-   pop iy
-   pop ix
-   ret
-
-test_hex.fetch:
-   push ix
-   push iy
-   ld iy,0
-   add iy,sp
-
-   ld hl,(iy+9) ; address
-   call zaddr_fetch
-   ld hl,0
-   ld l,a
-   
-   ld sp,iy
-   pop iy
-   pop ix
-   ret
-
-
-test_hex.fetch_z80:
-   push ix
-   ld ix,0
-   add ix,sp
-   ld hl,(ix+6) ; address
-   ld a,(hl)
-   ld hl,0
-   ld l,a
-   pop ix
-   ret
 
 zemu_open_str: .db "zemu_open",0
 zmem_init_str: .db "zmem_init",0

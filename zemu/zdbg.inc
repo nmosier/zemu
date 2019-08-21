@@ -1,11 +1,10 @@
 ;; zdbg.inc -- debugging routines
 
+
 #ifndef __ZDBG_INC
 #define __ZDBG_INC
 
-#ifdef ZDBG_LOG
-#include "zlog.inc"
-#endif
+#ifdef ZDBG
 
 ZDBG_OUTPUT_ROW .equ 7
 ZDBG_OUTPUT_COL .equ 0
@@ -29,5 +28,7 @@ ZDBG_ALERTS_WATCH .equ 0
 ;; compiler flags
 #define ZDBG_PRINT_PROPDATA 0
 
+
+#endif
 
 #endif

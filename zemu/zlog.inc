@@ -3,6 +3,8 @@
 #ifndef __ZLOG_INC
 #define __ZLOG_INC
 
+#ifdef ZDBG_LOG
+
 LOG_PREFIX    .equ $ED
 LOGSTR_OPCODE .equ $F0
 LOGNUM_OPCODE .equ $F1
@@ -21,5 +23,7 @@ LOGNUM_OPCODE .equ $F1
 #macro LOGLN()
    LOGSTR($0A)
 #endmacro
+
+#endif
 
 #endif

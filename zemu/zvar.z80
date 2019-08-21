@@ -1,6 +1,7 @@
 ;; zvar.z80 -- variable manip routines
 
 #include "zvar.inc"
+#include "zdbg.inc"
 
 ;; localaddr -- get address of local variable
 ;; INPUTS:
@@ -62,6 +63,7 @@ zvar_fetch:
    pop bc
    ret c
    call wtols ; upcast
+#ifdef ZDBG
    push hl
    ld ix,ZDBG_FLAGS
    bit ZDBG_FLAGS_WATCH,(ix)
@@ -69,6 +71,7 @@ zvar_fetch:
    scf \ ccf ; NC -- read
    call nz,zdbg_watch_hook
    pop hl
+#endif
    or a,a
    ret
 
@@ -127,6 +130,7 @@ zvar_fetch.global:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zvar_store:
+#ifdef ZDBG
    ; debug watch hook
    push hl
    ld ix,ZDBG_FLAGS
@@ -134,6 +138,7 @@ zvar_store:
    scf
    call nz,zdbg_watch_hook
    pop hl
+#endif   
    ; switch on var type
    ex de,hl
    cp ZVAR_STACK
@@ -221,5 +226,3 @@ zvar_write:
    call zcode_readvarnum
    jp nc,zvar_store
    ret
-
-

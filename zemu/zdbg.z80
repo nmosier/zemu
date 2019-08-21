@@ -1,9 +1,12 @@
 ;; zdbg.z80 -- debugging routines
 
+#ifdef ZDBG
+
 #include "zdbg.inc"
+#include "zlog.inc"
 #include "zobj.inc"
 
-;; zdbg_init -- initialize debugger
+;; zdbg_init -- initialize debugger for execution
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
 ;; ERRORS: no.
@@ -19,6 +22,7 @@ zdbg_init:
    set ZDBG_FLAGS_BT,(hl)
    xor a,a
    ld (zdbg_alerts),a
+   call zcpu_init
    ret
 
 ;; zdbg_puts -- put string in debug line
@@ -517,26 +521,25 @@ zdbg_status.fmt: .db "%x %s",0   ; PC [WATCH]
 ;; OUTPUTS:
 ;; DESTROYS:
 ;; ERRORS: yes.
-zdbg_exec:
+zdbg_run:
    ld ix,zdbg_flags
-   ;res ZDBG_FLAGS_STEP,(ix)
    
-zdbg_exec.frame:
+zdbg_run.frame:
    ; 0. Check if exit frame has been reached.
    call zdbg_stkcmp
    ld hl,(zframe_pc)
    jp z,zdbg_exit
 
-zdbg_exec.break:
+zdbg_run.break:
    ; 1. Check if should break.
    bit ZDBG_FLAGS_BREAK,(ix)
    jr z,_
    call zdbg_brkcmp
-   jr nz,zdbg_exec.mode
+   jr nz,zdbg_run.mode
    set ZDBG_FLAGS_STEP,(ix)
    set ZDBG_FLAGS_MODE,(ix) ; back to step mode
 _
-zdbg_exec.alerts:
+zdbg_run.alerts:
    ; 1.5 Check for alerts.
    ld a,(zdbg_alerts)
    or a,a
@@ -544,35 +547,35 @@ zdbg_exec.alerts:
    set ZDBG_FLAGS_STEP,(ix)
    set ZDBG_FLAGS_MODE,(ix) ; back to step mode
 _
-zdbg_exec.mode:
+zdbg_run.mode:
    ; 2. Check mode.
    bit ZDBG_FLAGS_MODE,(ix)
-   jr z,zdbg_exec.step
+   jr z,zdbg_run.step
 
-zdbg_exec.stepn:
+zdbg_run.stepn:
    ld de,zdbg_stepn
    ld a,(de)
    or a,a
-   jr nz,zdbg_exec.stepn_dec
+   jr nz,zdbg_run.stepn_dec
    set ZDBG_FLAGS_STEP,(ix)
-   jr zdbg_exec.step
+   jr zdbg_run.step
 
-zdbg_exec.stepn_dec:
+zdbg_run.stepn_dec:
    dec a
    ld (de),a
 
-zdbg_exec.step:
+zdbg_run.step:
    or a,a
    bit ZDBG_FLAGS_STEP,(ix)
    call nz,zdbg_step
    ld hl,(zframe_pc)
    jr c,zdbg_exit
 
-zdbg_exec.instr:
+zdbg_run.instr:
 #ifdef ZDBG_LOG
-   ld (zdbg_exec.log_pc),hl ; save PC
+   ld (zdbg_run.log_pc),hl ; save PC
    .db LOG_PREFIX, LOGNUM_OPCODE
-zdbg_exec.log_pc:
+zdbg_run.log_pc:
    .dl 0
    LOGLN()
 #endif
@@ -580,7 +583,7 @@ zdbg_exec.log_pc:
    call zcode_decode
    pop hl
    jp c,zdbg_exit
-   jr zdbg_exec
+   jr zdbg_run
 
 ;; zdbg_brkcmp -- check if should break -- stored in ZF
 zdbg_brkcmp:
@@ -606,6 +609,10 @@ zdbg_exit:
    push af
    ld de,zdbg_exit.buf
    call hexstr
+   ex de,hl
+   ld (hl),' '
+   inc hl
+   ld (hl),0
    ld hl,zdbg_exit.buf
    call zdbg_puts
    pop af
@@ -986,18 +993,9 @@ zdbg_readop.var:
    pop de   ; restore string pointer
    ret
       
-      
-
-zdbg_readop.global:
-
-zdbg_readop.local:
-
-zdbg_readop.stack:
-
-zdbg_readop.variable:
-
 zdbg_readop.prefixes: .db "GLSV",0
 zdbg_readop.offsets:  .db $10,$1,$0,$0
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; DEBUGGING GLOBALS ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1010,3 +1008,5 @@ zdbg_stepn:  .db 0 ; number to step before breaking?
 zdbg_watch:  .db 0 ; variable to watch
 
 zdbg_alert_watch.str: RESB(16)
+
+#endif

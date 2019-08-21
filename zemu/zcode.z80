@@ -7,7 +7,7 @@
 ;; INPUTS:
 ;;  zframe_pc set
 ;; OUTPUTS: (none)
-;; ERROR: yes.
+;; ERROR: yes. set CF and nonzero %a indicates error.
 ;; DESTROYS: (all)
 zcode_decode:
    ; fetch first byte
@@ -26,7 +26,6 @@ zcode_decode.type:
    ;--;
 
 zcode_decode.types: .db 0
-;;;; zcode_decode.OLD<op_laddr: .dl 0
 
 ;; Each of these functions (zcode_decode_{short,long,variable})
 ;; decode and execute the instruction. Never called directly.

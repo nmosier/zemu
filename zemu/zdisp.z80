@@ -223,4 +223,3 @@ _  ld (ix+ZRECT.HEIGHT),a  ; save clear-rect.height
    pop ix
    pop af
    ret
- 

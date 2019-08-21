@@ -4,24 +4,6 @@
 
 ZMEM_SIZE .equ $2000
 
-;; struct zsave {
-;;   char map_name[VARNAMELEN];
-;;   uint24_t sp;
-;;   uint24_t fp;
-;;   uint24_t pc;
-;;   uint8_t mem_data[ZMEM_SIZE];
-;; }
-
-ZSAVE_BEGIN .equ 0
-ZSAVE_MAP_NAME .equ ZSAVE_BEGIN
-ZSAVE_SPOFF .equ ZSAVE_MAP_NAME + VARNAMELEN
-ZSAVE_FPOFF .equ ZSAVE_SPOFF + 3
-ZSAVE_MEM_DATA .equ ZSAVE_FPOFF + 3
-ZSAVE_END .equ ZSAVE_MEM_DATA + ZMEM_SIZE
-
-ZSAVE_SIZE .equ ZSAVE_END - ZSAVE_BEGIN
-
-
 ;; GLOBAL VARIABLES ;;
 
 ;; NOTE: stack grows up.
@@ -35,7 +17,7 @@ zframe_nl: .db 0
 zframe_rv: .db 0
 zframe_end:
 
-ZFRAME_BASESIZE .equ zframe_end - zframe_begin
+ZFRAME_SIZE .equ zframe_end - zframe_begin
 ;;
 
 ;; zmem_init -- initialize memory for zemu. Empty call state and program stack.
@@ -66,83 +48,6 @@ zmem_init:
 
 zmem_name: .db "ZEMUM",0
 
-;; zsave_open -- open save file (and perform any call state / stack init.)
-;; INPUTS:
-;;  hl = name of save
-;; OUTPUTS:
-;;  zmem_stack_top, zmap_header, zmap_table
-;; ERROR: yes.
-;; TODO: better error handling.
-zsave_open:
-   call appvar_to_RAM
-   ret c
-   inc de
-   inc de ; skip size bytes
-   push de
-   call zmem_init
-   pop ix ; ix points to save appvar
-   ret c
-   ; restore mem (call state & stack)
-   lea hl,ix+ZSAVE_MEM_DATA
-   ld de,(zstack_begin)
-   ld bc,ZMEM_SIZE
-   ldir
-   ; restore stack pointer
-   ld hl,(ix+ZSAVE_SPOFF)
-   ld de,(zstack_begin)
-   add hl,de
-   ld (zframe_sp),hl
-   ; restore frame pointer
-   ld hl,(ix+ZSAVE_FPOFF)
-   add hl,de
-   ld (zframe_fp),hl
-   ; open zmap file
-   lea hl,ix+ZSAVE_MAP_NAME
-   call zemu_open
-   ret c
-   scf \ ccf
-   ret
-
-;; zsave_create -- create new save file from current memory state.
-;; INPUTS:
-;;  hl = new save name
-;; OUTPUTS: (none)
-;; ERROR: yes.
-;; NOTE: zmem_init must alreay have been called.
-zsave_create:
-   ld.s de,ZSAVE_SIZE+2 ; +2 for size bytes
-   push hl
-   call appvar_create
-   pop hl
-   ret c
-   inc de
-   inc de ; skip size bytes
-   push de
-   pop ix   ; ld ix,de
-   ; store name
-   ld hl,zmap_name
-   lea de,ix+ZSAVE_MAP_NAME
-   ld bc,VARNAMELEN
-   call strncpy
-   ; store stack ptr offset
-   ld hl,(zframe_sp)
-   ld de,(zframe_begin)
-   scf \ ccf
-   sbc hl,de
-   ld (ix+ZSAVE_SPOFF),hl
-   ; store frame ptr offset
-   ld hl,(zframe_fp)
-   scf \ ccf
-   sbc hl,de
-   ld (ix+ZSAVE_FPOFF),hl
-   ; store state data
-   lea de,ix+ZSAVE_MEM_DATA
-   ld hl,(zframe_begin)
-   ld bc,ZMEM_SIZE
-   ldir
-   scf \ ccf ; success
-   ret
-
 ;; zstack_enter -- enter new stack frame
 ;; INPUTS:
 ;;  a = number of local variables
@@ -154,9 +59,9 @@ zstack_enter:
    ; push new stack frame onto stack
    ld hl,zframe_begin
    ld de,(zframe_sp)
-   ld bc,ZFRAME_BASESIZE
+   ld bc,ZFRAME_SIZE
    ldir
-   ; de == (zframe_sp) + ZFRAME_BASESIZE
+   ; de == (zframe_sp) + ZFRAME_SIZE
    ; update frame pointer
    ld (zframe_fp),de
    ; update stack pointer
@@ -180,9 +85,9 @@ zstack_enter:
 zstack_leave:
    ; restore stack frame
    ld ix,(zframe_fp)
-   lea hl,ix-ZFRAME_BASESIZE
+   lea hl,ix-ZFRAME_SIZE
    ld de,zframe_begin
-   ld bc,ZFRAME_BASESIZE
+   ld bc,ZFRAME_SIZE
    ldir
    or a,a
    ret

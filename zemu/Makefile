@@ -39,6 +39,8 @@ zmap: zmap.o
 %.o: %.c
 	gcc $(CFLAGS) -o $@ $^
 
+
+
 .PHONY: clean
 clean:
 	rm -f *.8xp *.8xv zmap *.o *.lab

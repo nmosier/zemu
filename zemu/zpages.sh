@@ -64,7 +64,8 @@ STORY_DIR="${STORY_DIR:-.}"
 OUTDIR="${OUTDIR:-$STORY_DIR}"
 
 # get story file prefix
-STORY_STEM="${STORY_FILENAME%.*}"
+STORY_PAGE_PREFIX="P"
+STORY_STEM="${STORY_FILENAME%.*}${STORY_PAGE_PREFIX}"
 
 echo "story path = $STORY_PATH"
 echo "story filename = $STORY_FILENAME"

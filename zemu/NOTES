@@ -19,6 +19,34 @@ zmap format:
 
 ----
 
+SAVES
+
+A save should consist of
+  (1) A zmap pointing to memory pages to use. Note the last pages will be
+      shared with the canonical zmap, since only dynamic memory is legally
+      modified.
+  (2) Contents of zmem.
+  (3) Current zframe.
+
+The original zmap is canonical -- it should not be modified and none of the
+pages it refers to should be changed.
+
+Creating a New Save:
+1. Compute required size of save AppVar.
+2. Touch AppVar with required size.
+3. Fill out ZSAVE.BASE.
+4. Copy in variable-width fields (ZMAP and ZMEM).
+5. Update ZMAP.
+
+NOTE: ZEMU should duplicate the canonical map on startup.
+
+-----
+NAMING CONVENTIONS
+
+ZMAP_CANONICAL:=$(BASE)
+ZMAP_CURRENT:=$(BASE)M
+ZPAGE:=$(BASE)P[A-Z]+
+ZSAVE:=$(BASE)S[A-Z0-9]+
 
 ----
 

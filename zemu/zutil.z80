@@ -8,7 +8,7 @@
 ; INPUTS:
 ;  hl = name string (8 chars)
 ; OUTPUTS: (none)
-; DESTROYS: a, hl, bc, de
+; DESTROYS: (all)
 appvar_to_OP1:
    ld de,OP1
    ld a,AppVarObj
@@ -28,6 +28,19 @@ appvar_to_OP1.zero:
    djnz appvar_to_OP1.zero
    ret
 
+;; appvar_find -- find AppVar
+;; INPUTS:
+;;  hl = name string
+;; OUTPUTS:
+;;  de = pointer to appvar data
+;; ERRORS: yes.
+appvar_find:
+   call appvar_to_OP1
+   call _ChkFindSym
+   ld a,ZERR_NOVAR
+   ret
+
+
 ; appvar_to_RAM -- bring appvar into RAM
 ; INPUTS:
 ;  hl = name string
@@ -36,10 +49,8 @@ appvar_to_OP1.zero:
 ; ERROR: a = error code, CF set
 ; DESTROYS: (all), OP1
 appvar_to_RAM:
-   call appvar_to_OP1
-   call _ChkFindSym
-   ld a,ZERR_NOVAR
-   ret c ; appvar not found
+   call appvar_find
+   ret c ; AppVar not found
    call _ChkInRAM
    jr z,appvar_to_RAM.done
    ex de,hl
@@ -60,13 +71,13 @@ appvar_to_RAM.done:
 ;; appvar_touch -- create appvar (if doens't already exist) and move it into RAM. 
 ;; INPUTS:
 ;;  hl = name string
-;;  de.s = size of appvar
+;;  bc.s = size of appvar
 ;; OUTPUTS:
 ;;  de = pointer to appvar data
 ;; ERROR: yes.
-;; TODO: fix this -- shouldn't be using short instruction.
+;; TODO: should make sure existing appvar is of correct size, adding memory if necessary.
 appvar_touch:
-   push de
+   push bc
    call appvar_to_RAM
    pop hl   ; appvar size now in hl.s
    ret nc ; found appvar and is in RAM
@@ -74,13 +85,14 @@ appvar_touch:
    push hl
    call _MemChk
    pop de
+   or a,a
    sbc hl,de
    ld a,ZERR_NOMEM
    ret c
    ; create var
    ex de,hl
    call _CreateAppVar
-   scf \ ccf ; success
+   or a,a   ; NC
    ret
 
 ;; appvar_create -- create appvar (deleting existing one of same name).
@@ -118,13 +130,36 @@ appvar_create.deleted:
 ;; DESTROYS: (all)
 ;; NOTE: n must be positive. Also, string cannot be empty.
 strncpy:
-   xor a
+   xor a,a
 strncpy.loop:
+   cp a,(hl)
    ldi
    ret po
-   cp (hl)
    jr nz,strncpy.loop
    ret
+
+
+;; strcpy -- copy strings
+;; INPUTS:
+;;  hl = src
+;;  de = dst
+;; OUTPUTS:
+;;  hl, de point NUL-bytes of respective strings
+;; DESTROYS: a, hl, de
+strcpy:
+   jr strcpy.entry
+strcpy.loop:
+   inc hl
+   inc de
+strcpy.entry:
+   ld a,(hl)
+   ld (de),a
+   or a,a
+   jr nz,strcpy.loop
+   ret
+      
+
+
 
 
 ;; mul_hl_de -- multiply hl by de (signed), placing the result in hl

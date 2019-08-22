@@ -22,6 +22,8 @@ zerrmsg_intr:       .db "interrupt",0
 zerrmsg_zchar:      .db "not a ZSCII character",0
 zerrmsg_txtbuf:     .db "text buffer too small",0
 zerrmsg_prsbuf:     .db "parse buffer too small",0
+zerrmsg_toolong:    .db "name is too long",0
+zerrmsg_badname:    .db "name contains invalid character",0
 
 zerrtab:
    .dl zerrmsg_success
@@ -44,6 +46,8 @@ zerrtab:
    .dl zerrmsg_zchar
    .dl zerrmsg_txtbuf
    .dl zerrmsg_prsbuf
+   .dl zerrmsg_toolong
+   .dl zerrmsg_badname
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

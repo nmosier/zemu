@@ -25,5 +25,7 @@ ZERR_INTR        .equ 16
 ZERR_ZCHAR       .equ 17
 ZERR_TXTBUF      .equ 18
 ZERR_PRSBUF      .equ 19
+ZERR_TOOLONG     .equ 20
+ZERR_BADNAME     .equ 21
 
 #endif

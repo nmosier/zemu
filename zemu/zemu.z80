@@ -93,9 +93,6 @@ win_dbg2: RES_ZWIN(0) ; not buffered
 
 zemu_open_str: .db "zemu_open",0
 zmem_init_str: .db "zmem_init",0
-zsave_create_str: .db "zsave_create",0
-zaddr_to_paddr_str: .db "zaddr_to_paddr",0
-zcode_decode_str: .db "zcode_decode",0
 
 ; zemu_open -- open zemu story file
 ; INPUTS:
@@ -111,11 +108,15 @@ zemu_open:
    call strncpy
    pop hl
 zemu_open.find_zmap:
+#if 0
    call appvar_to_RAM
    ld a,ZERR_NOVAR
    ret c
    ; store zmap pointers
    ex de,hl
+#else
+   call zstate_init
+#endif
    ld (zmap_appvar),hl      ; store zmap ptr
    inc hl
    inc hl
@@ -184,12 +185,10 @@ zemu_exit.done:
 zmap_appvar: .dl 0
 zmap_header: .dl 0
 zmap_table:  .dl 0
-zmap_name: ; .byte VARNAMELEN
-           .dw 0,0,0,0
+zmap_name: RESB(VARNAMELEN)
 
 ;; TESTING ;;
 zork_zmap: .db "ZORK",0
-zork_save: .db "SAVE1",0
 
 #include "zerr.z80"
 #include "zutil.z80"
@@ -212,3 +211,4 @@ zork_save: .db "SAVE1",0
 #include "zin.z80"
 #include "zdict.z80"
 #include "zcpu.z80"
+#include "zsave.z80"

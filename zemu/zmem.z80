@@ -30,7 +30,7 @@ ZFRAME_SIZE .equ zframe_end - zframe_begin
 zmem_init:
    ; get appvar in RAM
    ld hl,zmem_name
-   ld de,ZMEM_SIZE+2 ; +2 for size bytes
+   ld bc,ZMEM_SIZE+2 ; +2 for size bytes
    call appvar_touch
    ret c
    ex de,hl

@@ -1,0 +1,81 @@
+;; zsave.z80 -- routines for saving & restoring game
+
+#include "zemu.inc"
+#include "zsave.inc"
+#include "zutil.inc"
+
+;; zstate_init -- initialize game state
+;; INPUTS:
+;;  hl = name of game (i.e. canonical zmap AppVar)
+;; OUTPUTS:
+;;  hl = pointer to current zmap AppVar (including size bytes)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zstate_init:
+   ;; move canonical zmap into RAM (of same name as game)
+   push hl
+    push hl
+     call appvar_to_RAM
+    pop hl
+    jr c,zstate_init.err ; ERROR
+    ;; fetch size of canonical map -> bc
+    ex de,hl
+    ld bc,0
+    ld c,(hl)
+    inc hl
+    ld b,(hl)
+    dec hl
+    ex de,hl
+    ;; format name of current zmap
+    push de   ; save canonical map address
+     ld de,zstate_init.buf
+     call strcpy
+     ex de,hl
+     ld (hl),ZNAME_CURMAP
+     inc hl
+     ld (hl),0
+     ;; touch variable
+     push bc  ; save size
+      ld hl,zstate_init.buf
+      call appvar_touch
+     pop bc   ; restore size
+    pop hl   ; restore canonical map address
+    jr c,zstate_init.err ; ERROR
+    ;; copy canonical zmap into current zmap
+    push de
+     ldir
+    pop hl
+   ;; re-archive canonical zmap
+   pop hl
+   call appvar_to_OP1
+   call _Arc_Unarc
+   ;; re-fetch current zmap
+   ld hl,zstate_init.buf
+   call appvar_find
+   ret c ; ERROR
+   ex de,hl ; address expected in hl
+zstate_init.done:
+   or a,a
+   ret
+
+zstate_init.err:
+   pop hl
+   ret
+
+zstate_init.buf: RESB(VARNAMLEN)
+
+
+;; zstate_save -- save game
+;; INPUTS: (none)
+;; OUTPUTS: ???
+;; ERRORS: yes.
+;; DESTROYS: ???
+zsave_save:
+   ;; TODO
+
+;; zstate_restore -- restore game
+;; INPUTS: ???
+;; OUTPUTS: ???
+;; ERRORS: yes.
+;; DESTROYS: ???
+zsave_restore:

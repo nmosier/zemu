@@ -29,4 +29,9 @@ ZPACK .equ 2 ; scaling factor
 
 WIN_DBGIN_BUFSIZE .equ 32
 
+
+;; NAMING CONVENTION ;;
+ZNAME_CURMAP .equ 'M'
+
+
 #endif

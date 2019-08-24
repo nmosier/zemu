@@ -14,7 +14,11 @@ Features
     [ ] Add fields to zmap to point to saves.
 [ ] Write README.md
 [ ] Dynamically resized zmem.
-[ ] Routine for touching AppVar with specified size.
+[ ] Copy-on-write zpages.
+    * Need to do this RIGHT. Only copy on read.
+    [ ] Split up zaddr_to_paddr into two functions:
+        1. get page info
+        2. get offset
 
 Optimizations
 [ ] Use fewer global variables; use stack instead.

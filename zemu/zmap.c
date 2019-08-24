@@ -9,10 +9,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include "zhdr.inc"
 
 #define ZPAGE_SIZE_ENV "ZPAGE_SIZE"
 #define VARNAMELEN 8
 #define EZ80_WORDSIZE 3
+
+#define ZMAP_ENT_FLAGS_COPY 1
 
 struct zmap_header {
    uint16_t zmh_pagemask;
@@ -27,6 +31,9 @@ struct zmap_tabent {
    unsigned int zme_ptr: 24;
 };
 
+uint8_t read_be8(void *ptr);
+uint8_t read_be16(void *ptr);
+
 void zmap_header_write(FILE *outf, const struct zmap_header *hdr);
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt);
 
@@ -40,7 +47,10 @@ int main(int argc, char *argv[]) {
    unsigned long zpage_size = 0;
    unsigned zpage_bits = 0;
    FILE *outf; /* output binary */
+   const char *storyname = NULL; /* story name */
+   int storyfd = -1; /* story file descriptor */
    struct stat storystat; /* story file */
+   uint8_t *storym = NULL; /* story memory map */
    struct zmap_tabent *tab = NULL;
    
    /* set defaults */
@@ -125,18 +135,28 @@ int main(int argc, char *argv[]) {
 
    /* parse arguments */
    int argi = optind;
-
-   /* get story file info (1st arg.) */
-   if (stat(argv[argi++], &storystat) < 0) {
-      perror("stat");
+   storyname = argv[argi++];
+   
+   /* open story file & get info */
+   if ((storyfd = open(storyname, O_RDONLY)) < 0) {
+      perror("open");
       goto cleanup;
-   }   
-
+   }
+   if (fstat(storyfd, &storystat) < 0) {
+      perror("fstat");
+      goto cleanup;
+   }
+   if ((storym = mmap(NULL, ZHDR_MAXSIZE, PROT_READ, MAP_PRIVATE, storyfd, 0)) == MAP_FAILED) {
+      perror("mmap");
+      goto cleanup;
+   }
+   
    /* construct header */
    struct zmap_header hdr;
    hdr.zmh_pagemask = zpage_size - 1;
    hdr.zmh_pagebits = zpage_bits;
-   hdr.zmh_storysize = storystat.st_size;
+   hdr.zmh_storysize = storystat.st_size; /* NOTE: don't get this from the story header
+                                           * because some versions don't include it. */
    hdr.zmh_npages = (storystat.st_size + zpage_size - 1) / zpage_size;
 
    /* construct table */
@@ -182,8 +202,9 @@ int main(int argc, char *argv[]) {
       strncpy(tab[i].zme_varname, stem, stem_len);
       memset(tab[i].zme_varname + stem_len, 0, VARNAMELEN - stem_len);
 
-      /* NOTE: we can leave the zme_flags and zme_ptr fields as containing 
-       * garbage. */
+      /* initialize flags */
+      tab[i].zme_flags = 0; // ZMAP_ENT_FLAGS_COPY;
+      
       ++argi;
    }
 
@@ -248,3 +269,13 @@ void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {
       }
    }
 }
+
+uint8_t read_be8(void *ptr) {
+   return ((uint8_t *) ptr)[0];
+}
+
+uint16_t read_be16(void *ptr) {
+   uint8_t *ptr8 = (uint8_t *) ptr;
+   return (ptr8[0] << 8) + ptr8[1];
+}
+

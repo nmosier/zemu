@@ -16,6 +16,7 @@ zmap format:
     * flags:
       * whether currently in RAM
       * perhaps some LRU info?
+      * read-only?
 
 ----
 
@@ -39,6 +40,9 @@ Creating a New Save:
 5. Update ZMAP.
 
 NOTE: ZEMU should duplicate the canonical map on startup.
+
+But, ZEMU only needs one ``current zmap'' ever (in contrast, it needs one ``canonical zmap''
+per story file).
 
 -----
 NAMING CONVENTIONS

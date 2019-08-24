@@ -3,17 +3,21 @@
 #ifndef __ZHDR_INC
 #define __ZHDR_INC
 
-ZHDR_VERSION .equ $00
-ZHDR_FLAGS1  .equ $01
-ZHDR_HIGHMEM .equ $04
-ZHDR_INITPC  .equ $06
-ZHDR_DICT    .equ $08
-ZHDR_OBJTAB  .equ $0A
-ZHDR_GLOBALS .equ $0C
-ZHDR_STATIC  .equ $0E
-ZHDR_FLAGS2  .equ $10
+;; NOTE: the values are in decimal so that they can be shared with C programs.
 
-ZHDR_ABBR    .equ $18
+ZHDR_VERSION .equ 0
+ZHDR_FLAGS1  .equ 1
+ZHDR_HIGHMEM .equ 4
+ZHDR_INITPC  .equ 6
+ZHDR_DICT    .equ 8
+ZHDR_OBJTAB  .equ 10
+ZHDR_GLOBALS .equ 12
+ZHDR_STATIC  .equ 14
+ZHDR_FLAGS2  .equ 16
+
+ZHDR_ABBR    .equ 24
 ;; TODO
+
+ZHDR_MAXSIZE .equ 56    ;; maximum header size (actual size depends on version)
 
 #endif

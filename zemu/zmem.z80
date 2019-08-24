@@ -46,7 +46,7 @@ zmem_init:
    ret
    
 
-zmem_name: .db "ZEMUM",0
+zmem_name: .db "ZEMUMEM",0
 
 ;; zstack_enter -- enter new stack frame
 ;; INPUTS:

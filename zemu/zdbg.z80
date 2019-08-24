@@ -1009,4 +1009,9 @@ zdbg_watch:  .db 0 ; variable to watch
 
 zdbg_alert_watch.str: RESB(16)
 
+;;;;;;;;;;;;;;;;;;;;;;;
+;;; DEPENDENCIES ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;
+#include "zhex.z80"
+
 #endif

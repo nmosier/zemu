@@ -4,13 +4,21 @@
 #include "zsave.inc"
 #include "zutil.inc"
 
+#if 1
+zstate_init:
+   ;; copy canonical zmap into temporary zmap
+   ld de,zmap_name_current
+   jp appvar_copy
+#else
+
 ;; zstate_init -- initialize game state
 ;; INPUTS:
-;;  hl = name of game (i.e. canonical zmap AppVar)
+;;  hl = name of story file's canonical zmap
 ;; OUTPUTS:
-;;  hl = pointer to current zmap AppVar (including size bytes)
+;;  hl = pointer to current zmap (including size bytes)
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; TODO: USE APPVAR_COPY.
 zstate_init:
    ;; move canonical zmap into RAM (of same name as game)
    push hl
@@ -42,9 +50,7 @@ zstate_init:
     pop hl   ; restore canonical map address
     jr c,zstate_init.err ; ERROR
     ;; copy canonical zmap into current zmap
-    push de
-     ldir
-    pop hl
+    ldir
    ;; re-archive canonical zmap
    pop hl
    call appvar_to_OP1
@@ -62,8 +68,9 @@ zstate_init.err:
    pop hl
    ret
 
-zstate_init.buf: RESB(VARNAMLEN)
+#endif
 
+zstate_init.buf: RESB(VARNAMELEN)
 
 ;; zstate_save -- save game
 ;; INPUTS: (none)

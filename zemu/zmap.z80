@@ -10,11 +10,13 @@
 ;; ERRORS: yes.
 ;; NOTE: performs no validation of page number.
 zmap_fetchpage:
-   ld e,a
-   ld d,ZMAP_TABENTLEN
+   ld de,ZMAP_TABENTLEN
+   ld d,a
    mlt de   ; de = table offset
    ld ix,(zmap_table)
    add ix,de ; pointer to table entry
+   bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
+   jp nz,zmap_copypage_ent
    bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
    jr nz,zmap_fetchpage.inram ; already in RAM
    ; bring page into RAM
@@ -30,7 +32,70 @@ zmap_fetchpage:
    ld (ix+ZMAP_ENT_PTR),de
 zmap_fetchpage.inram:
    ld hl,(ix+ZMAP_ENT_PTR)
-   scf \ ccf
+   or a,a
    ret
 
-;; TODO: add 2 to entry b/c of size bytes.
+
+;; zmap_copypage -- copy page (used when write to page is read-only)
+;; zmap_copypage_ent -- copy page, given pointer to entry
+;; INPUTS:
+;;  a = page number (zmap_copypage)
+;;  ix = pointer to page entry in zmap (zmap_copypage_ent)
+;; OUTPUTS:
+;;  hl = pointer to zpage in RAM (skips over size bytes)
+;;  current zmap updated
+;; DESTROYS: ???
+;; ERRORS: yes.
+zmap_copypage:
+   ;; get pointer to entry
+   ld ix,(zmap_table)
+   ld de,ZMAP_TABENTLEN
+   ld d,a
+   mlt de
+   add ix,de   ; pointer to table entry
+zmap_copypage_ent:
+   ;; get src and dst var names
+   lea hl,ix+ZMAP_ENT_VARNAME
+   ld de,zmap_copypage.buf
+   ld bc,VARNAMELEN
+   call strncpy
+   ;; rename page
+   ex de,hl
+   ld hl,zmap_copypage.buf
+   call zmap_renamepage
+   ex de,hl
+   ;; copy appvar
+   push ix
+   call appvar_copy
+   pop ix
+   ret c
+   ;; update zmap entry
+   res ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
+   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+   ld (ix+ZMAP_ENT_PTR),hl
+   ex de,hl
+   lea hl,ix+ZMAP_ENT_VARNAME
+   call zmap_renamepage
+   ex de,hl ; hl <- ptr
+   or a,a
+   ret
+
+zmap_copypage.buf: RESB(VARNAMELEN)
+
+;; zmap_renamepage -- rename page after being copied
+;; INPUTS:
+;;  hl = previous name
+;; OUTPUTS:
+;;  name modified in-place
+;; DESTROYS: a, bc
+;; ERRORS: no.
+zmap_renamepage:
+   xor a,a
+   ld bc,VARNAMELEN
+   cpir
+   jr nz,_
+   dec hl
+_  dec hl
+   dec hl
+   ld (hl),'W'
+   ret

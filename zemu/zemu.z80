@@ -96,27 +96,17 @@ zmem_init_str: .db "zmem_init",0
 
 ; zemu_open -- open zemu story file
 ; INPUTS:
-;  - hl = pointer to name of zmap appvar
+;  - hl = name of story file's canonical zmap
 ; OUTPUTS:
 ;  zemu_appvar, zemu_header, zemu_table set
 ; DESTROYS: (all)
 zemu_open:
-   ; save name
-   push hl
-   ld de,zmap_name
+   ld de,zmap_name_canonical
    ld bc,VARNAMELEN
    call strncpy
-   pop hl
+   ld hl,zmap_name_canonical
 zemu_open.find_zmap:
-#if 0
-   call appvar_to_RAM
-   ld a,ZERR_NOVAR
-   ret c
-   ; store zmap pointers
-   ex de,hl
-#else
    call zstate_init
-#endif
    ld (zmap_appvar),hl      ; store zmap ptr
    inc hl
    inc hl
@@ -160,6 +150,7 @@ zemu_cleanup:
    ; check if zmap was found
    ld hl,(zmap_appvar)
    ld de,0
+   or a,a
    sbc hl,de ; (hl == 0)
    jr z,zemu_cleanup.table_loop.end ; skip table cleanup if zmap not loaded
    ld ix,(zmap_header)
@@ -185,10 +176,20 @@ zemu_exit.done:
 zmap_appvar: .dl 0
 zmap_header: .dl 0
 zmap_table:  .dl 0
-zmap_name: RESB(VARNAMELEN)
+zmap_name_canonical: RESB(VARNAMELEN)
+zmap_name_current:   .db "ZEMUMAP",0
 
 ;; TESTING ;;
 zork_zmap: .db "ZORK",0
+
+;;;;;;;;;;;;;
+;; GLOBALS ;;
+;;;;;;;;;;;;;
+
+;; story_name -- name of current story (max of STORY_NAME_MAXLEN) bytes
+story_name: RESB(STORY_NAME_MAXLEN)
+
+
 
 #include "zerr.z80"
 #include "zutil.z80"
@@ -207,8 +208,8 @@ zork_zmap: .db "ZORK",0
 #include "zdisp.z80"
 #include "zdbg.z80"
 #include "zwin.z80"
-#include "zhex.z80"
 #include "zin.z80"
 #include "zdict.z80"
 #include "zcpu.z80"
 #include "zsave.z80"
+#include "zapp.z80"

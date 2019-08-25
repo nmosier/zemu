@@ -4,74 +4,138 @@
 #include "zhdr.inc"
 #include "zutil.inc"
 
-;; zaddr_to_paddr -- convert logical address to physical CPU address.
+
+;; zaddr_valid -- check whether address is valid
 ;; INPUTS:
-;;  hl = logical address
-;;  zmap_header, zmap_table set
-;; OUTPUTS:
-;;  hl = physical address
-;; ERROR: yes.
-;; DESTROYS: (all)
-zaddr_to_paddr:
-   ld ix,(zmap_header)
-zaddr_to_paddr.check_size:
-   push hl
+;;  hl = Z-address
+;;  a = access mask
+;;  ix = pointer to zmap header
+;; OUTPUTS: (none)
+;; ERRORS: yes (ZERR_BADADDR).
+;; DESTROYS: de
+zaddr_valid:
+   bit ZADDR_WRITE,a
+   jr nz,zaddr_valid.write
+zaddr_valid.read:
    ld de,(ix+ZMAP_HDR_STORYSIZE)
+zaddr_valid.cmp:
    call cp_hl_de
-   pop hl
-   ld a,ZERR_BADADDR
    ccf
-   ret c ; if logaddr >= storysize, then bad addr
-zaddr_to_paddr.page_num:
-   ld de,0
-   ld e,(ix+ZMAP_HDR_PAGEMASK)
-   ld d,(ix+ZMAP_HDR_PAGEMASK+1)
-   ; and hl,~de => page number * page size
-   push hl
-   push de
-   ld a,d
-   cpl
-   and h
-   ld d,a
-   ld a,e
-   cpl
-   and l
-   ld e,a
-   ; NOTE: we don't need to invert the highest bit of de
-   ; because it will always be 0 (since page sizes are less
-   ; than 0xffff).
-   ld b,(ix+ZMAP_HDR_PAGEBITS)
-   ld (zaddr_to_paddr.long),hl ; need to get upper byte
-   ld hl,zaddr_to_paddr.long+2
-zaddr_to_paddr.page_num_shift:
-   ; (zaddr_to_paddr.long+2):d:e >>= 1
-   srl (hl)
-   rr d
-   rr e
-   djnz zaddr_to_paddr.page_num_shift
-   ld a,e
-zaddr_to_paddr.page_ent:
-   call zmap_fetchpage
-   pop de ; page mask
-   pop bc ; offset
-   ret c
-zaddr_to_paddr.get_offset:
-   ;; NOTE: since the zpage size is less than 2^16,
-   ;; the offset will be contained in the lower 16 bits
-   ;; of register de.
-   ; de <- bc & de
-   ld a,b
-   and d
-   ld d,a
-   ld a,c
-   and e
-   ld e,a
-   add hl,de ; hl = physical address
-   scf \ ccf
+   ret nc
+   ld a,ZERR_BADADDR
    ret
 
-zaddr_to_paddr.long: .dl 0
+zaddr_valid.write:
+   ld de,(ix+ZMAP_HDR_STATIC)
+   jr zaddr_valid.cmp
 
+;; zaddr_page -- get page number of Z-address
+;; INPUTS:
+;;  hl = Z-address
+;;  ix = pointer to zmap header
+;; OUTPUTS:
+;;  a = page number
+;; ERRORS: yes.
+;; DESTROYS: a, bc
+zaddr_pageno:
+   ;; get mask of page number (only high byte)
+   ld a,(ix+ZMAP_HDR_PAGEMASK)
+   cpl
+   and a,h
+   ld c,a
+   ;; get upper byte of address -> a
+   call upperbyte
+   ;; rotate byte
+   ld b,(ix+ZMAP_HDR_PAGEBITS)
+   inc b
+   or a,a   ; NC for loop
+   jr zaddr_pageno.entry
+zaddr_pageno.shift:
+   rra
+   rr c
+zaddr_pageno.entry:
+   ;; INVARIANT: always NC
+   djnz zaddr_pageno.shift
+   ;; Once loop is completed, A should be 0.
+   ld a,c
+zaddr_pageno.done:
+   ;; NOTE: due to previous loop, always NC, so SUCCESS.
+   ret
+
+;; zaddr_offset -- get offset of address within page
+;; INPUTS:
+;;  hl = Z-address
+;;  ix = pointer to zmap header
+;; OUTPUTS:
+;;  de = offset
+;; DESTROYS: a
+;; ERRORS: no, but always NC.
+zaddr_offset:
+   ld de,0
+   ld e,l   ; pages are always multiples of lower bit
+   ld a,(ix+ZMAP_HDR_PAGEMASK)
+   and a,h
+   ld d,a
+   ret
+
+;; zaddr_pageent -- get address of page entry
+;; INPUTS:
+;;  a = page number
+;; OUTPUTS:
+;;  ix = pointer to page entry
+;; DESTROYS: de
+;; ERRORS: no (but always NC)
+zaddr_pageent:
+   ld de,ZMAP_TABENTLEN
+   ld d,a
+   mlt de   ; de = table offset
+   ld ix,(zmap_table)
+   add ix,de ; pointer to table entry
+   ret
+
+;; zaddr_accesspage -- get pointer to access page with given permissions
+;; INPUTS:
+;;  a = page number
+;;  b = access mode (ZADDR_READ, ZADDR_WRITE)
+;; OUTPUTS:
+;;  hl = pointer to page
+;; ERRORS: yes.
+;; DESTROYS: ???
+zaddr_accesspage:
+   call zaddr_pageent
+   bit ZADDR_WRITE,b
+   jr nz,zaddr_accesspage.write
+
+zaddr_accesspage.write:
+   ;; check if address in dynamic memory
+   bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
+   call nz,zmap_copypage
+   
+
+;; zaddr_to_paddr -- get physical byte address of Z-machine byte address
+;; INPUTS:
+;;  hl = Z-address
+;;  a = access mode
+;; OUTPUTS:
+;;  hl = physical address
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; NOTE: Only access the single byte pointed to by the physical address.
+zaddr_to_paddr:
+   ld ix,(zmap_header)
+   call zaddr_valid           ; check if Z-address is valid, given access mode
+   push hl                    ; preserve Z-address
+   ld d,a                     ; access mode
+   call nc,zaddr_pageno       ; get page number -> a
+   ld b,d                     ; access mode
+   call nc,zmap_fetchpage     ; get page physical address -> hl
+   ld ix,(zmap_header)        ; refresh header pointer
+   ex (sp),hl                 ; restore Z-address & preserve physical page address
+   call nc,zaddr_offset       ; get page offset -> de
+   pop hl                     ; restore physical page address
+   ret c                      ; ERROR
+   add hl,de                  ; compute physical byte address
+   ret                        ; SUCCESS (always NC)
 
 ;; zaddr_fetch -- fetch byte at logical address
 ;; INPUTS:
@@ -84,6 +148,7 @@ zaddr_to_paddr.long: .dl 0
 zaddr_fetch:
    push de
    push hl
+   ld a,MASK(ZADDR_READ)
    call zaddr_to_paddr
    ex de,hl
    pop hl
@@ -188,6 +253,7 @@ zaddr_store:
    push de
    push hl
    push af
+   ld a,MASK(ZADDR_WRITE)
    call zaddr_to_paddr
    pop bc ; restore byte to store (in b)
    ex de,hl

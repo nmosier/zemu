@@ -18,6 +18,5 @@ ZHDR_FLAGS2  .equ 16
 ZHDR_ABBR    .equ 24
 ;; TODO
 
-ZHDR_MAXSIZE .equ 56    ;; maximum header size (actual size depends on version)
 
 #endif

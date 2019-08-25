@@ -1219,6 +1219,21 @@ sys_getkey:
    scf
    ret
 
+;; upperbyte -- get upper byte of long
+;; INPUTS:
+;;  hl = long value
+;; OUTPUTS:
+;;  a = upper byte
+;; ERRORS: no.
+;; DESTROYS: (none)
+upperbyte:
+   ld (upperbyte.long),hl
+   ld a,(upperbyte.long+2)
+   ret
+upperbyte.long: .dl 0
+
+
+
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;
 ;;;;;;;;;;;;;;;;;

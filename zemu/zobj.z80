@@ -111,7 +111,6 @@ zobj_attrtest:
 zobj_attrclear:
    call zobj_attr
    ret c
-#if 1
    cpl
    push af
    call zaddr_fetch
@@ -120,17 +119,6 @@ zobj_attrclear:
    and a,b
    dec hl
    jp zaddr_store
-#else
-   push af
-   call zaddr_to_paddr
-   pop bc
-   ret c
-   ld a,b
-   cpl
-   and a,(hl)
-   ld (hl),a
-   ret
-#endif
 
 ;; zobj_attrset -- set attribute of object
 ;; INPUTS:
@@ -142,7 +130,6 @@ zobj_attrclear:
 zobj_attrset:
    call zobj_attr
    ret c
-#if 1
    push af
    call zaddr_fetch
    pop bc
@@ -150,17 +137,6 @@ zobj_attrset:
    or a,b
    dec hl
    jp zaddr_store
-#else
-   ld b,a
-   push bc
-   call zaddr_to_paddr
-   pop bc
-   ret c
-   ld a,(hl)
-   or a,b
-   ld (hl),a
-   ret
-#endif
 
 ;; zobj_valid -- check whether object number is valid
 ;; INPUTS:

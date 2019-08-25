@@ -123,18 +123,14 @@ zemu_open.table_init.loop:
    push ix
    push bc
    lea hl,ix+ZMAP_ENT_VARNAME
-   call appvar_to_OP1
-   call _ChkFindSym
+   call appvar_find
    pop bc
    pop ix
-   ld a,ZERR_NOVAR
-   ret c  ; return if no page found
-   ld (ix+ZMAP_ENT_FLAGS),0
+   jr c,zemu_open.err
    call _ChkInRAM
-   jr nz,zemu_open.table_init.loop_end
-   ; set RAM flag
+   jr nz,_
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   ; save pointer
+_  ; save pointer
    inc de
    inc de
    ld (ix+ZMAP_ENT_PTR),de
@@ -142,8 +138,13 @@ zemu_open.table_init.loop_end:
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
    djnz zemu_open.table_init.loop
-   scf \ ccf ; success
+   or a,a      ; SUCCESS
    ret
+
+zemu_open.err:
+   ld a,ZERR_NOVAR
+   ret
+   
    
 ;; zemu_cleanup -- cleanup in preparation for exit
 zemu_cleanup:

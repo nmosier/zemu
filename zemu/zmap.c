@@ -10,19 +10,25 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "zhdr.inc"
+#include <sys/mman.h>
 
+#define ZHDR_MAXSIZE 56
 #define ZPAGE_SIZE_ENV "ZPAGE_SIZE"
 #define VARNAMELEN 8
 #define EZ80_WORDSIZE 3
 
 #define ZMAP_ENT_FLAGS_COPY 1
 
+#define ZHDR_STATIC 0xe
+
+#define MASK(bit) (1 << bit)
+
 struct zmap_header {
-   uint16_t zmh_pagemask;
+   uint8_t zmh_pagemask; // high byte page mask
    uint8_t zmh_pagebits;
    unsigned int zmh_storysize: 24;
    uint8_t zmh_npages;
+   uint16_t zmh_staticaddr; // start address of static Z-memory
 };
 
 struct zmap_tabent {
@@ -32,7 +38,7 @@ struct zmap_tabent {
 };
 
 uint8_t read_be8(void *ptr);
-uint8_t read_be16(void *ptr);
+uint16_t read_be16(void *ptr);
 
 void zmap_header_write(FILE *outf, const struct zmap_header *hdr);
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt);
@@ -45,7 +51,6 @@ int main(int argc, char *argv[]) {
    
    /* parameters */
    unsigned long zpage_size = 0;
-   unsigned zpage_bits = 0;
    FILE *outf; /* output binary */
    const char *storyname = NULL; /* story name */
    int storyfd = -1; /* story file descriptor */
@@ -115,20 +120,22 @@ int main(int argc, char *argv[]) {
    if (!optgood) {
       goto cleanup;
    }
+
+   /* validate page size */
    if (zpage_size == 0) {
       fprintf(stderr, "%s: invalid zpage size (must be set with `-n' option or "\
               "through environment variable %s)\n", argv[0], ZPAGE_SIZE_ENV);
       goto cleanup;
    } else {
       /* verify that zpage_size is power of 2 */
-      int zpage_size_shifted;
-      for (zpage_size_shifted = zpage_size;
-           (zpage_size_shifted & 0x1) == 0;
-           zpage_size_shifted >>= 1) {
-         ++zpage_bits;
-      }
-      if (zpage_size_shifted != 1) {
+      if ((zpage_size & (zpage_size - 1)) != 0) {
          fprintf(stderr, "%s: zpage size must be a power of 2\n", argv[0]);
+         goto cleanup;
+      }
+
+      /* verify that zpage_size is greater than or equal to 256 */
+      if ((zpage_size & 0xff) != 0) {
+         fprintf(stderr, "%s: zpage size must be greater than or equal to 256\n", argv[0]);
          goto cleanup;
       }
    }
@@ -153,12 +160,15 @@ int main(int argc, char *argv[]) {
    
    /* construct header */
    struct zmap_header hdr;
-   hdr.zmh_pagemask = zpage_size - 1;
-   hdr.zmh_pagebits = zpage_bits;
+   hdr.zmh_pagemask = (zpage_size >> 8) - 1;
+   hdr.zmh_pagebits = 0;
+   for (uint32_t mask = 1; (mask & (zpage_size - 1)); mask <<= 1, ++hdr.zmh_pagebits) {}
+   hdr.zmh_pagebits -= 8;
    hdr.zmh_storysize = storystat.st_size; /* NOTE: don't get this from the story header
                                            * because some versions don't include it. */
    hdr.zmh_npages = (storystat.st_size + zpage_size - 1) / zpage_size;
-
+   hdr.zmh_staticaddr = read_be16(storym + ZHDR_STATIC);
+   
    /* construct table */
 
    /* check proper number of pages are given */
@@ -203,21 +213,22 @@ int main(int argc, char *argv[]) {
       memset(tab[i].zme_varname + stem_len, 0, VARNAMELEN - stem_len);
 
       /* initialize flags */
-      tab[i].zme_flags = 0; // ZMAP_ENT_FLAGS_COPY;
+      tab[i].zme_flags = (i * zpage_size < hdr.zmh_staticaddr) ? MASK(ZMAP_ENT_FLAGS_COPY) : 0;
       
       ++argi;
    }
 
    /* print verbose configuration information */
    if (verbose) {
-      printf("zpage size (B): %lu\n", (unsigned long) zpage_size);
-      printf("zpage mask: %2lx\n", (unsigned long) hdr.zmh_pagemask);
-      printf("zpage bits: %lu\n", (unsigned long) hdr.zmh_pagebits);
-      printf("story size (B): %lu\n", (unsigned long) storystat.st_size);
-      printf("number of zpages: %lu\n", (unsigned long) hdr.zmh_npages);
-      printf("zpage appvars:\n");
+      fprintf(stderr, "zpage size (B): %lu\n", (unsigned long) zpage_size);
+      fprintf(stderr, "zpage mask: %2lx\n", (unsigned long) hdr.zmh_pagemask);
+      fprintf(stderr, "zpage bits: %lu\n", (unsigned long) hdr.zmh_pagebits);
+      fprintf(stderr, "story size (B): %lu\n", (unsigned long) storystat.st_size);
+      fprintf(stderr, "number of zpages: %lu\n", (unsigned long) hdr.zmh_npages);
+      fprintf(stderr, "static memory: 0x%x\n", hdr.zmh_staticaddr);
+      fprintf(stderr, "zpage appvars:\n");
       for (int i = 0; i < hdr.zmh_npages; ++i) {
-         printf("\t%.*s\n", VARNAMELEN, tab[i].zme_varname);
+         fprintf(stderr, "\t%.*s\n", VARNAMELEN, tab[i].zme_varname);
       }
    }
 
@@ -244,10 +255,8 @@ int main(int argc, char *argv[]) {
 
 void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
    /* write page mask */
-   for (int i = 0; i < 2; ++i) {
-      fputc(BYTE(hdr->zmh_pagemask, i), outf);
-   }
-
+   fputc(hdr->zmh_pagemask, outf);
+   
    /* write page bits */
    fputc(hdr->zmh_pagebits, outf);
    
@@ -258,6 +267,11 @@ void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
 
    /* write npages */
    fputc(hdr->zmh_npages, outf);
+
+   /* write static address */
+   for (int i = 0; i < 2; ++i) {
+      fputc(BYTE(hdr->zmh_staticaddr, i), outf);
+   }
 }
 
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {

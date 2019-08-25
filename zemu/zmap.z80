@@ -1,40 +1,35 @@
 ;; zmap.z80 -- zmap routines
 ;; Nicholas Mosier 2019
 
-;; zmap_fetchpage -- fetch pointer to zpage in RAM. Brings into RAM if necessary.
+#include "zaddr.inc"
+
+;; zmap_fetchpage -- fetch pointer to zpage.
 ;; INPUTS:
 ;;  a = page number
+;;  b = access mode (ZADDR_READ, ZADDR_WRITE)
 ;; OUTPUT:
 ;;  hl = pointer to zpage in RAM (skips over size bytes)
-;; DESTROYS: 
+;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: performs no validation of page number.
 zmap_fetchpage:
-   ld de,ZMAP_TABENTLEN
-   ld d,a
-   mlt de   ; de = table offset
-   ld ix,(zmap_table)
-   add ix,de ; pointer to table entry
+   call zaddr_pageent
+zmap_fetchpage_ent:
+#if 1
+   bit ZADDR_WRITE,b
+   jr z,_
+   bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
+   call nz,zmap_copypage_ent
+_  ld hl,(ix+ZMAP_ENT_PTR)
+   or a,a
+   ret
+#else
    bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
    jp nz,zmap_copypage_ent
-   bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   jr nz,zmap_fetchpage.inram ; already in RAM
-   ; bring page into RAM
-   lea hl,ix+ZMAP_ENT_VARNAME
-   push ix
-   call appvar_to_RAM
-   pop ix
-   ret c ; error
-   inc de
-   inc de ; skip size bytes
-   ; update table entry
-   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   ld (ix+ZMAP_ENT_PTR),de
-zmap_fetchpage.inram:
    ld hl,(ix+ZMAP_ENT_PTR)
    or a,a
    ret
-
+#endif
 
 ;; zmap_copypage -- copy page (used when write to page is read-only)
 ;; zmap_copypage_ent -- copy page, given pointer to entry
@@ -58,9 +53,10 @@ zmap_copypage_ent:
    lea hl,ix+ZMAP_ENT_VARNAME
    ld de,zmap_copypage.buf
    ld bc,VARNAMELEN
+   push hl
    call strncpy
+   pop de
    ;; rename page
-   ex de,hl
    ld hl,zmap_copypage.buf
    call zmap_renamepage
    ex de,hl
@@ -69,6 +65,8 @@ zmap_copypage_ent:
    call appvar_copy
    pop ix
    ret c
+   inc hl   ; skip size bytes
+   inc hl 
    ;; update zmap entry
    res ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
@@ -79,7 +77,6 @@ zmap_copypage_ent:
    ex de,hl ; hl <- ptr
    or a,a
    ret
-
 zmap_copypage.buf: RESB(VARNAMELEN)
 
 ;; zmap_renamepage -- rename page after being copied
@@ -90,6 +87,7 @@ zmap_copypage.buf: RESB(VARNAMELEN)
 ;; DESTROYS: a, bc
 ;; ERRORS: no.
 zmap_renamepage:
+   push hl
    xor a,a
    ld bc,VARNAMELEN
    cpir
@@ -97,5 +95,7 @@ zmap_renamepage:
    dec hl
 _  dec hl
    dec hl
+   dec hl
    ld (hl),'W'
+   pop hl
    ret

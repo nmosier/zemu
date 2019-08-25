@@ -24,6 +24,7 @@ zerrmsg_txtbuf:     .db "text buffer too small",0
 zerrmsg_prsbuf:     .db "parse buffer too small",0
 zerrmsg_toolong:    .db "name is too long",0
 zerrmsg_badname:    .db "name contains invalid character",0
+zerrmsg_rdonly:     .db "write attempt to read-only memory",0
 
 zerrtab:
    .dl zerrmsg_success
@@ -48,6 +49,7 @@ zerrtab:
    .dl zerrmsg_prsbuf
    .dl zerrmsg_toolong
    .dl zerrmsg_badname
+   .dl zerrmsg_rdonly
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

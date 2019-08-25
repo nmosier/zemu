@@ -1,0 +1,268 @@
+;; zapp.z80 -- AppVar routines
+
+#include "zerr.inc"
+
+; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
+; INPUTS:
+;  hl = name string (8 chars)
+; OUTPUTS: (none)
+; DESTROYS: (all)
+appvar_to_OP1:
+   ld de,OP1
+   ld a,AppVarObj
+   ld (de),a
+   inc de
+   xor a
+   ld bc,VARNAMELEN
+appvar_to_OP1.loop:
+   ldi
+   ret po
+   cp (hl)
+   jr nz,appvar_to_OP1.loop
+   ld b,c ; remainder bytes to zero out
+appvar_to_OP1.zero:
+   ld (de),a
+   inc de
+   djnz appvar_to_OP1.zero
+   ret
+
+;; appvar_find -- find AppVar
+;; INPUTS:
+;;  hl = name string
+;; OUTPUTS:
+;;  de = pointer to appvar data
+;; ERRORS: yes.
+;; NOTE: Doesn't change storage location (archive vs. RAM).
+appvar_find:
+   call appvar_to_OP1
+   call _ChkFindSym
+   ld a,ZERR_NOVAR
+   ret c
+   call _ChkInRAM
+   jr z,_   ; in RAM, so don't skip SYMTABENT
+   ex de,hl
+   call syment_size
+   add hl,de   ; skip entry
+   ex de,hl
+_  or a,a
+   ret
+
+
+
+; appvar_to_RAM -- bring appvar into RAM
+; INPUTS:
+;  hl = name string
+; OUTPUTS:
+;  de = pointer to appvar data in RAM
+; ERROR: a = error code, CF set
+; DESTROYS: (all), OP1
+appvar_to_RAM:
+   call appvar_find
+   ret c ; AppVar not found
+   call _ChkInRAM
+   jr z,appvar_to_RAM.done
+   ex de,hl
+   ld de,0 ; ld deu,0
+   ld e,(hl)
+   inc hl
+   ld d,(hl)
+   call _MemChk
+   scf \ ccf
+   sbc hl,de
+   ld a,ZERR_NOMEM
+   ret c
+   call _Arc_Unarc
+appvar_to_RAM.done:
+   call _ChkFindSym
+   ret ; NOTE: CF will always be reset
+
+;; appvar_touch -- create appvar (if doens't already exist) and move it into RAM. 
+;; INPUTS:
+;;  hl = name string
+;;  bc.s = size of appvar
+;; OUTPUTS:
+;;  de = pointer to appvar data
+;; ERROR: yes.
+;; TODO: don't use MemChk (use EnoughMem instead).
+appvar_touch:
+   push bc
+   call appvar_to_RAM
+   pop hl   ; appvar size now in hl.s
+   ret nc ; found appvar and is in RAM
+   ; check if enough RAM
+   push hl
+   call _MemChk
+   pop de
+   or a,a
+   sbc hl,de
+   ld a,ZERR_NOMEM
+   ret c
+   ; create var
+   ex de,hl
+   call _CreateAppVar
+   or a,a   ; NC
+   ret
+
+;; appvar_create -- create appvar (deleting existing one of same name).
+;; INPUTS:
+;;  hl = name string
+;;  de.s = size of appvar
+;; OUTPUTS:
+;;  de = pointer to appvar data
+;; DESTROYS: (all)
+;; ERROR: yes.
+appvar_create:
+   push.s de
+   call appvar_to_OP1
+   call _ChkFindSym
+   jr c,appvar_create.deleted
+   call _DelVarArc
+appvar_create.deleted:
+   call _MemChk
+   pop.s de
+   sbc.s hl,de
+   ld a,ZERR_NOMEM
+   ret c ; not enough mem
+   ex.s de,hl ; hl = size
+   call _CreateAppVar
+   ; de = ptr to appvar
+   ret
+
+;; appvar_copy -- copy contents of one appvar into another
+;; INPUTS:
+;;  hl = name of src appvar
+;;  de = name of dst appvar
+;; OUTPUTS:
+;;  hl = dst appvar data ptr
+;; ERRORS: yes (memory)
+;; DESTROYS: (all)
+appvar_copy:
+   push de        ; preserve dst name
+   call appvar_find
+   ex de,hl ; hl <- address (regardless of whether in RAM/archive)
+   ;; fetch src size
+   ld bc,0
+   ld c,(hl)
+   inc hl
+   ld b,(hl)
+   dec hl
+   ex (sp),hl  ; preserve src ptr and restore dst name
+   push bc     ; preserve size
+   call nc,appvar_touch_trunc
+   ex de,hl    ; de <- dst ptr
+   pop bc      ; restore size
+   pop hl      ; restore src ptr
+   ret c       ; ERROR
+   push de
+   ldir        ; perform copy
+   pop hl
+   ret         ; SUCCESS
+
+;; appvar_trunc -- resize appvar
+;; INPUTS:
+;;  hl = pointer to appvar data
+;;  bc = new size
+;; OUTPUTS:
+;;  hl = pointer to appvar data
+;; ERRORS: yes.
+;; DESTROYS: (all)
+appvar_trunc:
+   ;; initialize stack record
+   push ix
+   ld ix,-3
+   add ix,sp
+   push hl     ; appvar data  ix-0
+   push bc     ; new size     ix-3
+   ;; fetch current size of appvar
+   ld de,0
+   ld e,(hl)
+   inc hl
+   ld d,(hl)
+   push de     ; cur size     ix-6
+   ;; calculate extra memory required
+   ex de,hl
+   or a,a
+   sbc hl,bc
+   jr z,appvar_trunc.done
+   push ix                 ; preserve ix from destruction by OS calls
+   jr c,appvar_trunc.del   ; if new < current, then need to delete memory
+appvar_trunc.insert:
+   ;; check if enough mem
+   call _EnoughMem    ; de <- extra mem
+   jr c,appvar_trunc.err
+   ;; compute end of appvar
+   ld hl,(ix-0)
+   ld bc,(ix-6)
+   add hl,bc
+   ex de,hl
+   ;; NOTE: hl = extra mem; de = end of appvar
+   call _InsertMem
+   jr appvar_trunc.update
+
+appvar_trunc.del:
+   ;; calculate memory to delete
+   ex de,hl
+   ld hl,0
+   or a,a
+   sbc hl,de
+   ;; calculate deletion address (mid-appvar)
+   ld hl,(ix-0)
+   ld bc,(ix-3)
+   add hl,bc
+   ;; delete memory
+   call _DelMem
+appvar_trunc.update:
+   pop ix
+   ;; update size field
+   ld hl,(ix-0)
+   ld bc,(ix-3)
+   ld (hl),c
+   inc hl
+   ld (hl),b
+   or a,a         ; SUCCESS
+appvar_trunc.done:
+   ;; leave
+   ld sp,ix
+   pop hl      ; appvar data ptr
+   pop ix
+   ret
+
+appvar_trunc.err:
+   ld a,ZERR_NOMEM
+   jr appvar_trunc.done
+
+
+;; appvar_touch_trunc -- create appvar if it doesn't exist, bring into RAM, and resize
+o;; INPUTS:
+;;  hl = name of appvar
+;;  bc = size
+;; OUTPUTS:
+;;  hl = pointer to appvar data
+;; DESTROYS: (all)
+;; ERRORS: yes.
+appvar_touch_trunc:
+   push bc
+   call appvar_touch
+   pop bc
+   ex de,hl
+   jp nc,appvar_trunc
+   ret
+
+
+;; syment_size -- compute size of symbol table entry
+;; INPUTS:
+;;  hl = pointer to symbol table entry
+;; OUTPUTS:
+;;  de = size
+;; DESTROYS: all but hl
+;; ERRORS: no.
+syment_size:
+   ld bc,SYMENT.NL
+   ld de,0
+   ld a,SYMENT.VARNAME
+   add hl,bc
+   add a,(hl)
+   sbc hl,bc   ; always NC
+   ld e,a
+   ret
+

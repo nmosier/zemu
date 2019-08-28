@@ -1,5 +1,6 @@
 ;; zapp.z80 -- AppVar routines
 
+#include "zapp.inc"
 #include "zerr.inc"
 
 ; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
@@ -233,7 +234,7 @@ appvar_trunc.err:
 
 
 ;; appvar_touch_trunc -- create appvar if it doesn't exist, bring into RAM, and resize
-o;; INPUTS:
+;; INPUTS:
 ;;  hl = name of appvar
 ;;  bc = size
 ;; OUTPUTS:

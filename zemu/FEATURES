@@ -1,0 +1,3 @@
+ZDBG -- debugger
+ZDBG_LOG -- logging (requires custom CEmu build)
+ZCURSOR -- display cursor

@@ -1,5 +1,8 @@
 # ZEMU
 ### A Z-machine emulator for the TI-84+ CE.
+## Table of Contents
+1. Introduction
+1. Compilation
 ## Introduction
 ### What is the Z-machine? 
 The [Z-machine][1] is a virtual machine developed by Infocom for their text-based adventure games.
@@ -10,7 +13,7 @@ An interpreter program is required to play any of their games (generally distrib
 While many interpreters have been written for the major OSes,
 ZEMU is the first interpreter for any TI-83/84 calculator.
 
-### Bottom Line
+### So What?
 You can _finally_ play Zork on your TI-84+ CE.
 
 [1]: https://en.wikipedia.org/wiki/Z-machine

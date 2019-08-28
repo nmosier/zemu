@@ -786,14 +786,16 @@ zexec.nop:
    ret
 
 zexec.save:
-   ld a,ZERR_BADINSTR
-   scf
-   ret
+   ;; TODO -- shouldn't always succeed, e.g. if not enough RAM
+   ld a,$ff                    ; preemptively declare the SAVE a success!
+   call zexec_cjmp
+   ld hl,zexec.save.name
+   jp zsave_save
+zexec.save.name: .db "SAVE",0
 
 zexec.restore:
-   ld a,ZERR_BADINSTR
-   scf
-   ret
+   ld hl,zexec.save.name
+   jp zsave_restore
 
 zexec.restart:
    ld a,ZERR_BADINSTR

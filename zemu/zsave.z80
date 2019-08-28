@@ -4,23 +4,232 @@
 #include "zsave.inc"
 #include "zutil.inc"
 
-zstate_init:
-   ;; copy canonical zmap into temporary zmap
-   ld de,zmap_name_current
-   jp appvar_copy
-zstate_init.buf: RESB(VARNAMELEN)
-
-;; zstate_save -- save game
+;; zsave_size -- compute number of bytes required to save current game state
 ;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = size
+;; DESTROYS: bc, de
+;; ERRORS: no.
+zsave_size:
+   ;; get size of current zmap
+   ld hl,(zmap_appvar)
+   ld bc,0
+   ld c,(hl)
+   inc hl
+   ld b,(hl)
+   ;; get size of current zmem
+   ld hl,(zframe_sp)
+   ld de,(zstack_begin)
+   or a,a
+   sbc hl,de
+   ;; zmap + zmem
+   add hl,bc
+   ;; add fixed-sized fields
+   ld de,ZFRAME_SIZE+3*WORD_SIZE ; words to store length & size bytes
+   add hl,de
+   ret
+
+;; zsave_savemap -- save a map
+;; INPUTS:
+;;  ix = zmap pointer
+;;  hl = name prefix (recommended: ${SAVENAME}P)
 ;; OUTPUTS: ???
-;; ERRORS: yes.
 ;; DESTROYS: ???
+;; ERRORS: yes.
+zsave_savemap:
+   ;; frame setup
+   xor a,a        ; page ID <- 0
+   ld b,(ix+ZMAP_HDR_NPAGES)
+   ;; Iterate thru table. For each page entry, if flag `SAVE' is set,
+   ;; copy the page and rename it using the given name prefix
+   ;; move copied page to flash
+   ;; change flags: flags <- COPY
+   lea ix,ix+ZMAP_HDR_END    ; table ptr -> ix
+zsave_savemap.loop:
+   ;; INVARIANTS:
+   ;;  hl = name prefix
+   ;;  b = pages remaining
+   ;;  c = page ID
+   bit ZMAP_ENT_FLAGS_SAVE,(ix+ZMAP_ENT_FLAGS)
+   jr z,_
+   
+   ;; copy page
+   push hl
+   push bc
+   ld a,c
+   call zmap_copypage_ent
+   pop bc
+   pop hl
+   jr c,zsave_savemap.err
+
+   ;; update name of page & put into OP1
+   push hl
+   push bc
+   ld a,c
+   lea de,ix+ZMAP_ENT_VARNAME
+   call zmap_namepage
+   call appvar_to_OP1
+
+   ;; archive copied page
+   push ix
+   push iy
+   ld iy,flags
+   call _Arc_Unarc
+   pop iy
+   pop ix
+   
+   pop bc
+   pop hl
+
+   ;; update flags
+   ld (ix+ZMAP_ENT_FLAGS),MASK(ZMAP_ENT_FLAGS_COPY)
+   
+_  lea ix,ix+ZMAP_TABENTLEN
+   inc c
+   djnz zsave_savemap.loop
+
+zsave_savemap.leave:
+   or a,a   ; SUCCESS
+   ret
+
+zsave_savemap.err:
+   ;; TODO -- this should delete any variables that were created
+   ret
+
+;; zsave_save -- save game
+;; INPUTS:
+;;  hl = name of save
+;; OUTPUTS:
+;;  a = whether save was successful
+;; ERRORS: yes.
+;; DESTROYS: (all)
 zsave_save:
-   ;; TODO
+   ;; create empty appvar of required size
+   push hl           ; preserve name
+   push hl
+   call zsave_size   ; size -> hl
+   LD_BC_HL
+   pop hl            ; name -> hl
+   call appvar_touch_trunc
+   ;; skip size bytes
+   inc hl
+   inc hl
+   ex de,hl          ; save data ptr -> de
+   ;; copy in frame
+   LD_IX_DE
+   ld hl,zframe_begin
+   ld bc,ZFRAME_SIZE
+   ldir
+   ;; find offsets of frame pointers (fp and sp)
+   or a,a
+   ld bc,(zstack_begin)
+   ld hl,(zframe_fp)
+   sbc hl,bc
+   ld (ix+zframe_fp-zframe_begin),hl
+   ld hl,(zframe_sp)
+   sbc hl,bc      ; NOTE: NC
+   ld (ix+zframe_sp-zframe_begin),hl
+   ;; copy in map appvar
+   push de    ; save for update
+   ld hl,(zmap_appvar)
+   ld bc,0
+   ld c,(hl)
+   inc hl
+   ld b,(hl)
+   dec hl
+   ldir
+   pop ix
+   lea ix,ix+2    ; skip size bytes
+   ;; update map
+   pop hl   ; name
+   push de
+   call zsave_savemap
+   pop de
+   ret c    ; ERROR
+   ;; copy in mem
+   ld hl,(zframe_sp)
+   ld bc,(zstack_begin)
+   or a,a
+   sbc hl,bc
+   LD_BC_HL
+   ld a,l
+   ld (de),a
+   inc de
+   ld a,h
+   ld (de),a
+   inc de
+   ld hl,(zstack_begin)
+   ldir
+zsave_save.done:
+   xor a,a
+   dec a       ; ld a,$ff && NC -- SUCCESS
+   ret
 
 ;; zstate_restore -- restore game
-;; INPUTS: ???
-;; OUTPUTS: ???
+;; INPUTS:
+;;  hl = name of save
+;; OUTPUTS: (none)
 ;; ERRORS: yes.
-;; DESTROYS: ???
+;; DESTROYS: (all)
 zsave_restore:
+   call appvar_find
+   ret c    ; ERROR
+   ex de,hl
+   ;; skip size bytes
+   inc hl
+   inc hl
+   ;; copy saved frame into current frame
+   ld de,zframe_begin
+   ld bc,ZFRAME_SIZE
+   ldir
+   ;; convert frame offsets to addresses
+   ex de,hl
+   or a,a
+   ld bc,(zstack_begin)
+   ld hl,(zframe_fp)
+   add hl,bc
+   ld (zframe_fp),hl
+   ld hl,(zframe_sp)
+   add hl,bc
+   ld (zframe_sp),hl
+   ex de,hl
+   ;; get size of map
+   call ldw_bc_from_hl  ; bc.s <- (hl)   
+   ;; create/resize working zmap and bring into RAM
+   push hl
+   push bc
+   ld hl,zmap_name_current       ; working zmap name
+   call appvar_touch_trunc
+   ex de,hl                      ; set destination for copy
+   pop bc
+   pop hl
+   ret c          ; ERROR
+   ;; load saved zmap into working zmap
+   push de
+   ldir
+   ex (sp),hl     ; preserve save ptr and restore working zmap pointer
+   call zmap_setptr
+   pop hl         ; restore save ptr
+   ;; get size of zmem
+   CLEAR_UPPER_BC
+   ld c,(hl)
+   inc hl
+   ld b,(hl)
+   inc hl
+   ex de,hl
+   ld hl,ZMEM_SIZE
+   call cp_hl_bc
+   ex de,hl   
+   jr c,zsave_restore.stackoverflow    ; exceeds allocated memory for stack
+   ;; restore memory
+   ld de,(zstack_begin)
+   ldir
+zsave_restore.done:
+   xor a,a
+   dec a       ; ld a,$ff && NC -- SUCCESS
+   ret
+
+zsave_restore.stackoverflow:
+   ld a,ZERR_STACKOVER
+   ret
+   

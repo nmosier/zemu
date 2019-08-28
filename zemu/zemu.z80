@@ -106,14 +106,7 @@ zemu_open:
    call strncpy
    ld hl,zmap_name_canonical
 zemu_open.find_zmap:
-   call zstate_init
-   ld (zmap_appvar),hl      ; store zmap ptr
-   inc hl
-   inc hl
-   ld (zmap_header),hl
-   ld de,ZMAP_HDRSIZE
-   add hl,de         ; pointer to table
-   ld (zmap_table),hl
+   call zmap_load
 zemu_open.table_init:
    ld ix,(zmap_header)
    ld b,(ix+ZMAP_HDR_NPAGES)
@@ -174,11 +167,6 @@ zemu_exit.done:
    scf \ ccf ; success
    ret
 
-zmap_appvar: .dl 0
-zmap_header: .dl 0
-zmap_table:  .dl 0
-zmap_name_canonical: RESB(VARNAMELEN)
-zmap_name_current:   .db "ZEMUMAP",0
 
 ;; TESTING ;;
 zork_zmap: .db "ZORK",0

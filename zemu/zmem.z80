@@ -17,7 +17,6 @@ zframe_nl: .db 0
 zframe_rv: .db 0
 zframe_end:
 
-ZFRAME_SIZE .equ zframe_end - zframe_begin
 ;;
 
 ;; zmem_init -- initialize memory for zemu. Empty call state and program stack.

@@ -26,6 +26,7 @@ ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + 1
 
 ZMAP_ENT_FLAGS_INRAM .equ 0
 ZMAP_ENT_FLAGS_COPY .equ 1   ; whether page should be copied
+ZMAP_ENT_FLAGS_SAVE .equ 2   ; whether page should be saved
 
 ZPACK .equ 2 ; scaling factor
 
@@ -38,13 +39,7 @@ ZNAME_CURMAP .equ 'M'
 STORY_NAME_MAXLEN .equ 4
 
 
-;; SYMBOL TABLE EQUATES ;;
-SYMENT.T       .equ 0   ; W
-SYMENT.T2      .equ 2   ; W
-SYMENT.VER     .equ 4   ; W
-SYMENT.ADDR    .equ 6   ; L
-SYMENT.NL      .equ 9   ; B
-SYMENT.VARNAME .equ 10  ; char[]
 
+#define ZFRAME_SIZE zframe_end-zframe_begin
 
 #endif

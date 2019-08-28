@@ -1,10 +1,7 @@
->
  * appvars must be less than 256^2 bytes
  * zork is 92K
  * need to be able to experiment with different page sizes -- this should be
    easily configurable at compile time.
-
-Should make it so zemu need not be recompiled for different block sizes.
 
 
 zmap format:
@@ -51,6 +48,16 @@ ZMAP_CANONICAL:=$(BASE)
 ZMAP_CURRENT:=$(BASE)M
 ZPAGE:=$(BASE)P[A-Z]+
 ZSAVE:=$(BASE)S[A-Z0-9]+
+-----
+
+PAGE MANAGEMENT
+
+Flags:
+COPY -- whether to copy page on write.
+INRAM -- whether page is in RAM
+SAVE -- whether flag should be copied on game save.
+
+
 
 ----
 

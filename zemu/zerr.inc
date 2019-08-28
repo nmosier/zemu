@@ -28,5 +28,6 @@ ZERR_PRSBUF      .equ 19
 ZERR_TOOLONG     .equ 20
 ZERR_BADNAME     .equ 21
 ZERR_RDONLY      .equ 22
+ZERR_STACKOVER   .equ 23
 
 #endif

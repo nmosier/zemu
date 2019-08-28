@@ -11,16 +11,22 @@
 ;;  hl = src
 ;;  de = dst
 ;;  bc = n
-;; OUTPUTS: (none)
+;; OUTPUTS:
+;;  de points to one past last written non-NUL character
+;;  bc contains number of remaining chars (not including NUL)
 ;; DESTROYS: (all)
 ;; NOTE: n must be positive. Also, string cannot be empty.
 strncpy:
    xor a,a
+   jr strncpy.entry
 strncpy.loop:
+   ret po
+strncpy.entry:
    cp a,(hl)
    ldi
-   ret po
    jr nz,strncpy.loop
+   dec de
+   inc bc
    ret
 
 
@@ -306,57 +312,6 @@ cp_hl_bc:
    pop af
    ret
 
-
-;; cp_hl_de_sgn -- signed flags(hl - de)
-;; TODO -- there must be a more elegant way to do this.
-cp_hl_de_sgn:
-   push ix
-   ld ix,cp_hl_de_sgn.tab
-cp_hl_de_sgn.lhs:
-   call sgnl ; sign of lhs
-   jr nc,cp_hl_de_sgn.rhs
-   lea ix,ix+(2*3)
-cp_hl_de_sgn.rhs:
-   ex de,hl
-   call sgnl
-   ex de,hl
-   jr nc,cp_hl_de_sgn.op
-   lea ix,ix+(1*3)
-cp_hl_de_sgn.op:
-   jp (ix)
-
-cp_hl_de_sgn.tab:
-   .dl cp_hl_de_sgn.pp
-   .dl cp_hl_de_sgn.pn
-   .dl cp_hl_de_sgn.np
-   .dl cp_hl_de_sgn.nn
-
-cp_hl_de_sgn.pp:
-   jp cp_hl_de
-   
-cp_hl_de_sgn.pn:
-   push de
-   ld de,0
-   inc hl
-   call cp_hl_de
-   dec hl
-   pop de
-   ret
-
-cp_hl_de_sgn.np:
-   push hl
-   ld hl,0
-   inc de
-   call cp_hl_de
-   dec de
-   pop hl
-   ret
-
-cp_hl_de_sgn.nn: ; flags(-1 - -2) == flags(1) == flags(2 - 1) 
-   call negl
-   ex de,hl
-   call negl
-   jp cp_hl_de
 
 
 ;; absl -- absolute value of long
@@ -1232,7 +1187,21 @@ upperbyte:
    ret
 upperbyte.long: .dl 0
 
-
+;; ldw_bc_from_hl -- load word at (hl) into bc
+;; INPUTS:
+;;  hl = pointer to word
+;; OUTPUTS:
+;;  hl = pointer to word
+;;  bc = word value (sign-extended if in ADL mode)
+;; DESTROYS: ???
+;; ERRORS: no.
+ldw_bc_from_hl:
+  CLEAR_UPPER_BC
+  ld c,(hl)
+  inc hl
+  ld b,(hl)
+  dec hl
+  ret
 
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;

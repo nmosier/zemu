@@ -15,50 +15,40 @@
 zmap_fetchpage:
    call zaddr_pageent
 zmap_fetchpage_ent:
-#if 1
    bit ZADDR_WRITE,b
    jr z,_
    bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
-   call nz,zmap_copypage_ent
+   jr z,_
+   ;; copy page and update flags
+   ld hl,zemu_pagepfx
+   call zmap_copypage_ent
+   ret c
+   set ZMAP_ENT_FLAGS_SAVE,(ix+ZMAP_ENT_FLAGS)
 _  ld hl,(ix+ZMAP_ENT_PTR)
    or a,a
    ret
-#else
-   bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
-   jp nz,zmap_copypage_ent
-   ld hl,(ix+ZMAP_ENT_PTR)
-   or a,a
-   ret
-#endif
 
 ;; zmap_copypage -- copy page (used when write to page is read-only)
 ;; zmap_copypage_ent -- copy page, given pointer to entry
 ;; INPUTS:
-;;  a = page number (zmap_copypage)
+;;  a = page number
+;;  hl = name prefix
 ;;  ix = pointer to page entry in zmap (zmap_copypage_ent)
 ;; OUTPUTS:
 ;;  hl = pointer to zpage in RAM (skips over size bytes)
 ;;  current zmap updated
-;; DESTROYS: ???
+;; DESTROYS: (all) but ix
 ;; ERRORS: yes.
+;; TODO: parameterize page naming.
 zmap_copypage:
    ;; get pointer to entry
-   ld ix,(zmap_table)
-   ld de,ZMAP_TABENTLEN
-   ld d,a
-   mlt de
-   add ix,de   ; pointer to table entry
+   call zaddr_pageent
 zmap_copypage_ent:
    ;; get src and dst var names
-   lea hl,ix+ZMAP_ENT_VARNAME
+   ;; name page
    ld de,zmap_copypage.buf
-   ld bc,VARNAMELEN
-   push hl
-   call strncpy
-   pop de
-   ;; rename page
-   ld hl,zmap_copypage.buf
-   call zmap_renamepage
+   call zmap_namepage
+   lea de,ix+ZMAP_ENT_VARNAME
    ex de,hl
    ;; copy appvar
    push ix
@@ -71,31 +61,97 @@ zmap_copypage_ent:
    res ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
    ld (ix+ZMAP_ENT_PTR),hl
-   ex de,hl
-   lea hl,ix+ZMAP_ENT_VARNAME
-   call zmap_renamepage
-   ex de,hl ; hl <- ptr
+   push hl
+   ld hl,zmap_copypage.buf   
+   lea de,ix+ZMAP_ENT_VARNAME
+   ld bc,VARNAMELEN
+   call strncpy
+   pop hl
    or a,a
    ret
 zmap_copypage.buf: RESB(VARNAMELEN)
 
-;; zmap_renamepage -- rename page after being copied
+zemu_pagepfx: .db "ZEMUP",0
+
+;; zmap_namepage -- rename page after being copied
 ;; INPUTS:
-;;  hl = previous name
+;;  hl = prefix
+;;  a = page ID
+;;  de = buffer (at least 8 chars)
 ;; OUTPUTS:
-;;  name modified in-place
-;; DESTROYS: a, bc
+;;  hl = buffer
+;; DESTROYS: a, bc, de
 ;; ERRORS: no.
-zmap_renamepage:
-   push hl
-   xor a,a
-   ld bc,VARNAMELEN
-   cpir
-   jr nz,_
-   dec hl
-_  dec hl
-   dec hl
-   dec hl
-   ld (hl),'W'
-   pop hl
+zmap_namepage:
+   push de     ; buffer
+   push af     ; ID
+   ld bc,VARNAMELEN-2
+   call strncpy
+   pop af      ; ID
+   ex de,hl
+   ld b,a
+   and a,$f0
+   rrca
+   rrca
+   rrca
+   rrca
+   call xtoc
+   ld (hl),a
+   inc hl
+   ld a,b
+   and a,$0f
+   call xtoc
+   ld (hl),a
+   inc hl
+   ex de,hl
+   ld hl,0
+   call cp_hl_bc
+   ex de,hl
+   jr z,_
+   ld (hl),0
+_  pop hl
    ret
+
+;; zmap_load -- load saved zmap into working zmap
+;; INPUTS:
+;;  hl = name of saved zmap (zmap_load)
+;;  de = pointer to working zmap (zmap_load_ptr)
+;; OUTPUTS:
+;;  touches & resizes working zmap and copies contents of saved zmap into it
+;; DESTROYS: (all, including ix)
+;; ERRORS: yes.
+zmap_load:
+   ;; copy canonical zmap into temporary zmap
+   ld de,zmap_name_current
+   call appvar_copy
+   ret c    ; ERROR
+   call zmap_setptr
+   or a,a   ; SUCCESS
+   ret
+
+;; zmap_setptr -- update global zmap variables to point to zmap at given address
+;; INPUTS:
+;;  hl = pointer to zmap appvar
+;; OUTPUTS: (none)
+;; ERRORS: no (but always NC)
+;; DESTROYS: hl, de
+zmap_setptr:
+   ;; set global zmap pointers
+   ld (zmap_appvar),hl
+   inc hl
+   inc hl
+   ld (zmap_header),hl
+   ld de,ZMAP_HDRSIZE
+   add hl,de
+   ld (zmap_table),hl
+   ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; ZMAP GLOBALS ;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+zmap_appvar: .dl 0
+zmap_header: .dl 0
+zmap_table:  .dl 0
+zmap_name_canonical: RESB(VARNAMELEN)
+zmap_name_current:   .db "ZEMUMAP",0

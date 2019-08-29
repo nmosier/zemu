@@ -12,21 +12,32 @@
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: performs no validation of page number.
+;; TODO: this should check if INRAM flag of page for writes.
 zmap_fetchpage:
    call zaddr_pageent
 zmap_fetchpage_ent:
    bit ZADDR_WRITE,b
-   jr z,_
+   jr z,zmap_fetchpage.check_update    ; don't need to copy or move appvar for reads
    bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
-   jr z,_
+   jr z,zmap_fetchpage.check_RAM
    ;; copy page and update flags
    ld hl,zemu_pagepfx
    call zmap_copypage_ent
    ret c
    set ZMAP_ENT_FLAGS_SAVE,(ix+ZMAP_ENT_FLAGS)
-_  ld hl,(ix+ZMAP_ENT_PTR)
+   jr zmap_fetchpage.addr        ; don't need to check for update
+zmap_fetchpage.check_RAM:
+   bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+   call z,zmap_page_to_RAM
+   jr zmap_fetchpage.addr
+zmap_fetchpage.check_update:
+   bit ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
+   call nz,zmap_update_ent
+zmap_fetchpage.addr:
+   ld hl,(ix+ZMAP_ENT_PTR)
    or a,a
    ret
+
 
 ;; zmap_copypage -- copy page (used when write to page is read-only)
 ;; zmap_copypage_ent -- copy page, given pointer to entry
@@ -58,9 +69,20 @@ zmap_copypage_ent:
    inc hl   ; skip size bytes
    inc hl 
    ;; update zmap entry
+   ld (ix+ZMAP_ENT_PTR),hl
+#if 1
+   ld a,MASK(ZMAP_ENT_FLAGS_INRAM)
+   ld (ix+ZMAP_ENT_FLAGS),a
+#elif 0
+   ld a,(ix+ZMAP_ENT_FLAGS)
+   and a,~(MASK(ZMAP_ENT_FLAGS_COPY)|MASK(ZMAP_ENT_FLAGS_UPDATE))
+   or a,MASK(ZMAP_ENT_FLAGS_INRAM)
+   ld (ix+ZMAP_ENT_FLAGS),a
+#else
    res ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   ld (ix+ZMAP_ENT_PTR),hl
+   res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
+#endif
    push hl
    ld hl,zmap_copypage.buf   
    lea de,ix+ZMAP_ENT_VARNAME
@@ -115,7 +137,6 @@ _  pop hl
 ;; zmap_load -- load saved zmap into working zmap
 ;; INPUTS:
 ;;  hl = name of saved zmap (zmap_load)
-;;  de = pointer to working zmap (zmap_load_ptr)
 ;; OUTPUTS:
 ;;  touches & resizes working zmap and copies contents of saved zmap into it
 ;; DESTROYS: (all, including ix)
@@ -126,6 +147,8 @@ zmap_load:
    call appvar_copy
    ret c    ; ERROR
    call zmap_setptr
+   ld ix,(zmap_header)
+   call zmap_markupdate
    or a,a   ; SUCCESS
    ret
 
@@ -146,6 +169,70 @@ zmap_setptr:
    ld (zmap_table),hl
    ret
 
+;; zmap_markupdate -- set all pages in given zmap as needing update
+;; INPUTS:
+;;  ix = zmap pointer
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: b, ix
+zmap_markupdate:
+   ld b,(ix+ZMAP_HDR_NPAGES)
+   lea ix,ix+ZMAP_HDRSIZE
+zmap_markupdate.loop:
+   set ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
+   lea ix,ix+ZMAP_TABENTLEN
+   djnz zmap_markupdate.loop
+zmap_markupdate.done:
+   ret
+
+;; zmap_update_ent -- update pointer in given page entry
+;; INPUTS:
+;;  ix = pointer to page entry in zmap
+;; OUTPUTS:
+;;  hl = pointer to page entry
+;; ERRORS: yes.
+;; DESTROYS: all but ix
+zmap_update_ent:
+   lea hl,ix+ZMAP_ENT_VARNAME
+   push ix
+   call appvar_find
+   pop ix
+   ret c
+   ex de,hl
+   inc hl
+   inc hl
+   ld (ix+ZMAP_ENT_PTR),hl
+   res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
+   ;; update INRAM flag
+   and a,MASK(ZMAP_ENT_FLAGS_INRAM)
+   or a,(ix+ZMAP_ENT_FLAGS)
+   ld (ix+ZMAP_ENT_FLAGS),a
+zmap_update_ent.done:
+   or a,a
+   ret
+
+;; zmap_page_to_RAM -- move page into RAM
+;; INPUTS:
+;;  ix = page entry
+;; OUTPUTS:
+;;  hl = page pointer
+;;  page pointer updated in entry as well
+;;  entry flags also updated
+;; ERRORS: yes.
+;; DESTROYS: all but ix
+zmap_page_to_RAM:
+   push ix
+   lea hl,ix+ZMAP_ENT_VARNAME
+   call appvar_to_RAM
+   pop ix
+   ex de,hl
+   ret c
+   ld (ix+ZMAP_ENT_PTR),hl
+   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
+   res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
+   or a,a
+   ret
+   
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; ZMAP GLOBALS ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;

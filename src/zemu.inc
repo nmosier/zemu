@@ -27,6 +27,7 @@ ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + 1
 ZMAP_ENT_FLAGS_INRAM .equ 0
 ZMAP_ENT_FLAGS_COPY .equ 1   ; whether page should be copied
 ZMAP_ENT_FLAGS_SAVE .equ 2   ; whether page should be saved
+ZMAP_ENT_FLAGS_UPDATE .equ 3 ; whether pointer needs to be updated
 
 ZPACK .equ 2 ; scaling factor
 

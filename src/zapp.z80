@@ -32,6 +32,7 @@ appvar_to_OP1.zero:
 ;;  hl = name string
 ;; OUTPUTS:
 ;;  de = pointer to appvar data
+;;  a = whether in RAM ($00 = no, $ff = yes)
 ;; ERRORS: yes.
 ;; NOTE: Doesn't change storage location (archive vs. RAM).
 appvar_find:
@@ -40,11 +41,13 @@ appvar_find:
    ld a,ZERR_NOVAR
    ret c
    call _ChkInRAM
+   ld a,$ff
    jr z,_   ; in RAM, so don't skip SYMTABENT
    ex de,hl
    call syment_size
    add hl,de   ; skip entry
    ex de,hl
+   xor a,a     ; not in RAM
 _  or a,a
    ret
 

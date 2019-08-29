@@ -107,6 +107,7 @@ zemu_open:
    ld hl,zmap_name_canonical
 zemu_open.find_zmap:
    call zmap_load
+#if 0
 zemu_open.table_init:
    ld ix,(zmap_header)
    ld b,(ix+ZMAP_HDR_NPAGES)
@@ -131,9 +132,9 @@ zemu_open.table_init.loop_end:
    lea ix,ix+ZMAP_TABENTLEN
    ; loop condition
    djnz zemu_open.table_init.loop
+#endif
    or a,a      ; SUCCESS
    ret
-
 zemu_open.err:
    ld a,ZERR_NOVAR
    ret

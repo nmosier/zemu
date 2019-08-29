@@ -19,14 +19,19 @@ zcpu_run:
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  sets PC (zframe_pc)
-;; DESTROYS: ???
-;; ERRORS: ???
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; NOTE: Also called during RESTART.
 zcpu_init:
    ld hl,ZHDR_INITPC
    call zaddr_fetchwu
    ret c
    ex de,hl
    ld (zframe_pc),hl
+   ld hl,0
+   ld (zframe_fp),hl
+   ld hl,(zstack_begin)
+   ld (zframe_sp),hl
    or a,a
    ret
 

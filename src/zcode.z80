@@ -328,7 +328,7 @@ zcode_LUT.0OP:
    .dl zexec.nop           ; $4
    .dl zexec.save          ; $5
    .dl zexec.restore       ; $6
-   .dl zcode_err.notavail  ; $7
+   .dl zexec.restart       ; $7
    .dl zexec.ret_popped    ; $8
    .dl zexec.pop           ; $9
    .dl zexec.quit          ; $A

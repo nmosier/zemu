@@ -798,9 +798,8 @@ zexec.restore:
    jp zsave_restore
 
 zexec.restart:
-   ld a,ZERR_BADINSTR
-   scf
-   ret
+   ld hl,zmap_name_canonical
+   jp zsave_restart
 
 zexec.ret_popped:
    ld a,ZVAR_STACK

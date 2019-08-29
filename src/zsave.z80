@@ -38,8 +38,8 @@ zsave_size:
 ;; ERRORS: yes.
 zsave_savemap:
    ;; frame setup
-   xor a,a        ; page ID <- 0
-   ld b,(ix+ZMAP_HDR_NPAGES)
+   ld b,(ix+ZMAP_HDR_NPAGES)  ; pages remaining
+   ld c,0                     ; page ID
    ;; Iterate thru table. For each page entry, if flag `SAVE' is set,
    ;; copy the page and rename it using the given name prefix
    ;; move copied page to flash
@@ -232,4 +232,16 @@ zsave_restore.done:
 zsave_restore.stackoverflow:
    ld a,ZERR_STACKOVER
    ret
-   
+
+;; zsave_restart -- restart game
+;; INPUTS:
+;;  hl = name of canonical zmap
+;; OUTPUTS: ???
+;; DESTROYS: ???
+;; ERRORS: ???
+zsave_restart:
+   call zmap_load      ; load canonical map into working map
+   call nc,zcpu_init   ; re-init CPU
+   ret
+   ;; TODO -- should actually preserve two bits; see spec.
+   ;; TODO -- should delete all pages that are marked as 'SAVE' in the current map.

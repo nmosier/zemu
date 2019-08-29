@@ -1,9 +1,9 @@
 # ZEMU
 ### A Z-machine emulator for the TI-84+ CE.
 ## Table of Contents
-1. Introduction
+1. Background
 1. Compilation
-## Introduction
+## Background
 ### What is the Z-machine? 
 The [Z-machine][1] is a virtual machine developed by Infocom for their text-based adventure games.
 One of their most-well known (and first) games is [Zork][2].

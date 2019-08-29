@@ -49,7 +49,17 @@ zexec_cmp.tst.clr:
    ret
 
 ;; obj(de) is parent of obj(hl) ?
+;; TODO: Should this return false if either is 0?
 zexec_cmp.in:
+   ;; check if either parameter is 0; if so, return FALSE
+   xor a,a     ; ld a,0
+   call cp_hl_0
+   ret z
+   ex de,hl
+   call cp_hl_0
+   ex de,hl
+   ret z
+   ;; both objects are valid, so continue
    call zobj_downcast
    push de
    call nc,zobj_parent

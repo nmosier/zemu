@@ -264,8 +264,9 @@ zexec_binop.propsize:
 zexec_binop.nextprop:
    ;; hl = object
    ;; de = property
+   ;; TODO -- downcast properly.
    ld c,e
-   ld a,c
+   ld a,l
    call zobj_nextprop
    ret c
    call btols

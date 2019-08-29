@@ -6,8 +6,8 @@
 1. Installation
 
 ## Quick Start
-To get started on your interest, go to the section that describes what you want:
-- I just want to play Zork I.
+To get started, jump to the section that describes your interest:
+- [I just want to play Zork I.](#playing-zork)
 - I want to play any (version 3) Infocom/Inform text-based adventure game.
 - I want a Z-machine debugger.
 
@@ -29,4 +29,4 @@ You can _finally_ play Zork on your TI-84+ CE.
 
 
 ## Installation
-### Compiling ZEMU
+### Playing Zork

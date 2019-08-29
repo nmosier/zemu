@@ -1,8 +1,16 @@
 # ZEMU
 ### A Z-machine emulator for the TI-84+ CE.
 ## Table of Contents
-1. Background
-1. Compilation
+1. [Quick Start](#quick-start)
+1. [Background](#background)
+1. Installation
+
+## Quick Start
+To get started on your interest, go to the section that describes what you want:
+- I just want to play Zork I.
+- I want to play any (version 3) Infocom/Inform text-based adventure game.
+- I want a Z-machine debugger.
+
 ## Background
 ### What is the Z-machine? 
 The [Z-machine][1] is a virtual machine developed by Infocom for their text-based adventure games.
@@ -18,3 +26,7 @@ You can _finally_ play Zork on your TI-84+ CE.
 
 [1]: https://en.wikipedia.org/wiki/Z-machine
 [2]: https://en.wikipedia.org/wiki/Zork
+
+
+## Installation
+### Compiling ZEMU

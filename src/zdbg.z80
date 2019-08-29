@@ -526,9 +526,11 @@ zdbg_run:
    
 zdbg_run.frame:
    ; 0. Check if exit frame has been reached.
+#if 0
    call zdbg_stkcmp
    ld hl,(zframe_pc)
    jp z,zdbg_exit
+#endif
 
 zdbg_run.break:
    ; 1. Check if should break.
@@ -582,8 +584,9 @@ zdbg_run.log_pc:
    push hl
    call zcode_decode
    pop hl
-   jp c,zdbg_exit
-   jr zdbg_run
+   ;; check if interrupt
+   jr nc,zdbg_run
+   jp zdbg_exit
 
 ;; zdbg_brkcmp -- check if should break -- stored in ZF
 zdbg_brkcmp:

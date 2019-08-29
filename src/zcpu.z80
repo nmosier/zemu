@@ -28,10 +28,10 @@ zcpu_init:
    ret c
    ex de,hl
    ld (zframe_pc),hl
-   ld hl,0
-   ld (zframe_fp),hl
    ld hl,(zstack_begin)
+   ld (zframe_fp),hl
    ld (zframe_sp),hl
-   or a,a
+   xor a,a
+   ld (zframe_nl),a  ; nl <- 0
    ret
 

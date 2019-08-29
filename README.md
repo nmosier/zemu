@@ -3,7 +3,7 @@
 ## Table of Contents
 1. [Quick Start](#quick-start)
 1. [Background](#background)
-1. Installation
+1. [Installation](#installation)
 
 ## Quick Start
 To get started, jump to the section that describes your interest:
@@ -29,4 +29,10 @@ You can _finally_ play Zork on your TI-84+ CE.
 
 
 ## Installation
-### Playing Zork
+
+## Playing Zork
+1. Copy `bin/zemu.8xp` to your TI-84+ CE. (This is ZEMU.)
+1. Copy everything in `vars/zork/` to your TI-84+ CE. (This is Zork's game data & some metadata.)
+
+
+

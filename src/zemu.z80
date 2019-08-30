@@ -23,12 +23,22 @@ start:
    ; no scrolling for now
    res appAutoScroll,(iy+appFlags)  ; TODO: is this necessary?
 
-   xor a,a
-   ld (curRow),a
-   ld (curCol),a
-   
+#if ZSELECT_GAME
+   ld hl,-VARNAMELEN
+   add hl,sp
+   ld sp,hl
+   call zemu_selectgame
+   call nc,zemu_open ; open story file
+   rla                ; preserve error state in bit 0 of a
+   ld hl,VARNAMELEN
+   add hl,sp
+   ld sp,hl
+   rra
+#else
    ld hl,zork_zmap
-   call zemu_open ; open story file
+   call zemu_open
+#endif
+   ret c
    ld hl,zemu_open_str
    jp c,zemu_perror
    call zmem_init ; initialize memory
@@ -47,7 +57,7 @@ start:
 
 zemu_str: .db "zemu",0
 
-;; intialize windows
+;; initialize windows
 init_windows:
    ld ix,win_main
    call zwin_clear
@@ -106,35 +116,7 @@ zemu_open:
    call strncpy
    ld hl,zmap_name_canonical
 zemu_open.find_zmap:
-   call zmap_load
-#if 0
-zemu_open.table_init:
-   ld ix,(zmap_header)
-   ld b,(ix+ZMAP_HDR_NPAGES)
-   ld ix,(zmap_table)
-zemu_open.table_init.loop:
-   ; move varname into OP1
-   push ix
-   push bc
-   lea hl,ix+ZMAP_ENT_VARNAME
-   call appvar_find
-   pop bc
-   pop ix
-   jr c,zemu_open.err
-   call _ChkInRAM
-   jr nz,_
-   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-_  ; save pointer
-   inc de
-   inc de
-   ld (ix+ZMAP_ENT_PTR),de
-zemu_open.table_init.loop_end:      
-   lea ix,ix+ZMAP_TABENTLEN
-   ; loop condition
-   djnz zemu_open.table_init.loop
-#endif
-   or a,a      ; SUCCESS
-   ret
+   jp zmap_load
 zemu_open.err:
    ld a,ZERR_NOVAR
    ret
@@ -169,6 +151,35 @@ zemu_exit.done:
    ret
 
 
+
+;; zemu_selectgame -- choose game to play
+;; INPUTS:
+;;  hl = name buffer
+;;  bc = size of buffer 
+;; OUTPUTS:
+;;  name of game put in buffer
+;; ERRORS: yes.
+;; DESTROYS: all but hl
+#if ZSELECT_GAME
+zemu_selectgame:
+   ld ix,win_main
+   ;; display prompt
+   push hl
+   ld hl,zemu_prompt_game
+   call zwin_puts_bare
+   pop hl
+   call zwin_getsn
+   ret c       ; ERROR
+   ;; strip trailing newline
+   push hl
+   ld a,ASCII_NEWLINE
+   call strchr
+   ld (hl),0
+   pop hl
+   or a,a      ; SUCCESS
+   ret
+#endif
+
 ;; TESTING ;;
 zork_zmap: .db "ZORK",0
 
@@ -178,7 +189,7 @@ zork_zmap: .db "ZORK",0
 
 ;; story_name -- name of current story (max of STORY_NAME_MAXLEN) bytes
 story_name: RESB(STORY_NAME_MAXLEN)
-
+zemu_prompt_game: .db "Story name: ",0
 
 
 #include "zerr.z80"

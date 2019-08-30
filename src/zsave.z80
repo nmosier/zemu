@@ -173,7 +173,7 @@ zsave_save.done:
 ;; DESTROYS: (all)
 zsave_restore:
    call appvar_find
-   ret c    ; ERROR
+   jr c,zsave_restore.false   ; not found, so false
    ex de,hl
    ;; skip size bytes
    inc hl
@@ -208,7 +208,11 @@ zsave_restore:
    push de
    ldir
    ex (sp),hl     ; preserve save ptr and restore working zmap pointer
+   LD_IX_HL
    call zmap_setptr
+   inc ix
+   inc ix
+   call zmap_markupdate
    pop hl         ; restore save ptr
    ;; get size of zmem
    CLEAR_UPPER_BC
@@ -224,13 +228,17 @@ zsave_restore:
    ;; restore memory
    ld de,(zstack_begin)
    ldir
-zsave_restore.done:
+zsave_restore.true:
    xor a,a
    dec a       ; ld a,$ff && NC -- SUCCESS
    ret
 
 zsave_restore.stackoverflow:
    ld a,ZERR_STACKOVER
+   ret
+
+zsave_restore.false:
+   xor a,a
    ret
 
 ;; zsave_restart -- restart game

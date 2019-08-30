@@ -70,19 +70,8 @@ zmap_copypage_ent:
    inc hl 
    ;; update zmap entry
    ld (ix+ZMAP_ENT_PTR),hl
-#if 1
    ld a,MASK(ZMAP_ENT_FLAGS_INRAM)
    ld (ix+ZMAP_ENT_FLAGS),a
-#elif 0
-   ld a,(ix+ZMAP_ENT_FLAGS)
-   and a,~(MASK(ZMAP_ENT_FLAGS_COPY)|MASK(ZMAP_ENT_FLAGS_UPDATE))
-   or a,MASK(ZMAP_ENT_FLAGS_INRAM)
-   ld (ix+ZMAP_ENT_FLAGS),a
-#else
-   res ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
-   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
-#endif
    push hl
    ld hl,zmap_copypage.buf   
    lea de,ix+ZMAP_ENT_VARNAME

@@ -806,7 +806,11 @@ zexec.save.name: .db "SAVE",0
 
 zexec.restore:
    ld hl,zexec.save.name
-   jp zsave_restore
+   call zsave_restore
+   ret c
+   or a,a
+   ret nz      ; save was successful, so don't ever take branch
+   jp zexec_cjmp
 
 zexec.restart:
    ld hl,zmap_name_canonical

@@ -55,6 +55,7 @@ VARNAMELEN .equ 8
 #define LD_HL_BC push bc \\ pop hl
 #define LD_DE_BC push bc \\ pop de
 #define LD_IX_DE push de \\ pop ix
+#define LD_IX_HL push hl \\ pop ix
 
 #define EX_BC_HL push bc \\ ex (sp),hl \\ pop bc
 

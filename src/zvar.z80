@@ -21,6 +21,8 @@ zvar_localaddr:
    add hl,hl ; a * ZWORD_SIZE
    ld de,(zframe_fp)
    add hl,de
+   ld de,(zstack_begin)
+   add hl,de
    or a,a ; NC, success
    ret
 zvar_localaddr.error:
@@ -92,11 +94,15 @@ zvar_fetch.stack:
    ret c
    ; get value
    ex de,hl
-   ld de,0 ; zero-padding
+   ld bc,(zstack_begin)
+   add hl,bc
+   CLEAR_UPPER_DE
    dec hl
    ld e,(hl)
    dec hl
    ld d,(hl)
+   or a,a
+   sbc hl,bc
    ; update stack ptr
    ld (zframe_sp),hl
    ex de,hl
@@ -149,12 +155,16 @@ zvar_store:
 
 zvar_store.stack:
    ld hl,(zframe_sp)
+   ld bc,(zstack_begin)
+   add hl,bc
    ld (hl),d
    inc hl
    ld (hl),e
    inc hl
+   or a,a
+   sbc hl,bc
    ld (zframe_sp),hl
-   scf \ ccf
+   or a,a
    ret
 
 zvar_store.local:

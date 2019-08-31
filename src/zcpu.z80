@@ -28,7 +28,7 @@ zcpu_init:
    ret c
    ex de,hl
    ld (zframe_pc),hl
-   ld hl,(zstack_begin)
+   ld hl,0
    ld (zframe_fp),hl
    ld (zframe_sp),hl
    xor a,a

@@ -69,6 +69,9 @@ VARNAMELEN .equ 8
 #define CLEAR_UPPER_IX ld ix,0
 #define CLEAR_UPPER_IY ld iy,0
 
+;; 8-bit to 16-/24-bit CASTING ;;
+#define UCAST_A_TO_DE   ld de,0 \\ ld e,a
+#define UCAST_A_TO_BC   ld bc,0 \\ ld c,a
 
 ;; FRAME SETTING ;;
 #macro FRAME_SIZE(bytes, words, longs)

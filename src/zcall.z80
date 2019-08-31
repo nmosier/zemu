@@ -108,7 +108,7 @@ zcall_ext.loop:
    dec c
    jr nz,zcall_ext.loop
 zcall_ext.run:
-   ; execute function, run until $ffffff
+   ; execute function, run until ZADDR_NULL
    push ix
    ld ix,zdbg_flags
    call nc,zdbg_run

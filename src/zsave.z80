@@ -19,9 +19,6 @@ zsave_size:
    ld b,(hl)
    ;; get size of current zmem
    ld hl,(zframe_sp)
-   ld de,(zstack_begin)
-   or a,a
-   sbc hl,de
    ;; zmap + zmem
    add hl,bc
    ;; add fixed-sized fields
@@ -116,19 +113,10 @@ zsave_save:
    inc hl
    ex de,hl          ; save data ptr -> de
    ;; copy in frame
-   LD_IX_DE
    ld hl,zframe_begin
    ld bc,ZFRAME_SIZE
    ldir
    ;; find offsets of frame pointers (fp and sp)
-   or a,a
-   ld bc,(zstack_begin)
-   ld hl,(zframe_fp)
-   sbc hl,bc
-   ld (ix+zframe_fp-zframe_begin),hl
-   ld hl,(zframe_sp)
-   sbc hl,bc      ; NOTE: NC
-   ld (ix+zframe_sp-zframe_begin),hl
    ;; copy in map appvar
    push de    ; save for update
    ld hl,(zmap_appvar)
@@ -147,15 +135,11 @@ zsave_save:
    pop de
    ret c    ; ERROR
    ;; copy in mem
-   ld hl,(zframe_sp)
-   ld bc,(zstack_begin)
-   or a,a
-   sbc hl,bc
-   LD_BC_HL
-   ld a,l
+   ld bc,(zframe_sp)    ; NOTE: sp as an offset is also size of zmem.
+   ld a,c
    ld (de),a
    inc de
-   ld a,h
+   ld a,b
    ld (de),a
    inc de
    ld hl,(zstack_begin)
@@ -182,17 +166,6 @@ zsave_restore:
    ld de,zframe_begin
    ld bc,ZFRAME_SIZE
    ldir
-   ;; convert frame offsets to addresses
-   ex de,hl
-   or a,a
-   ld bc,(zstack_begin)
-   ld hl,(zframe_fp)
-   add hl,bc
-   ld (zframe_fp),hl
-   ld hl,(zframe_sp)
-   add hl,bc
-   ld (zframe_sp),hl
-   ex de,hl
    ;; get size of map
    call ldw_bc_from_hl  ; bc.s <- (hl)   
    ;; create/resize working zmap and bring into RAM

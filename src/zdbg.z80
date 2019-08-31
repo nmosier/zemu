@@ -761,13 +761,24 @@ zdbg_disp_locals:
 ;; DESTROYS: (all)
 ;; ERRORS:   no
 zdbg_disp_stack:
-   call zframe_sp_base
-   ld de,(zframe_sp)
+   ld bc,(zstack_begin)
+   ;; calculate top address of stack
+   ld hl,(zframe_sp)
+   add hl,bc
+   ex de,hl
+   ;; calculate base address of stack (skipping over locals)
+   ld hl,(zframe_fp)
+   add hl,bc
+   ld a,(zframe_nl)
+   rlca           ; a *= ZWORD_SIZE
+   UCAST_A_TO_BC
+   add hl,bc
+   ;; calculate number of stack elements (in Z-words)
    ex de,hl
    or a,a
    sbc hl,de
    srl h
-   rr l
+   rr l        ; hl /= ZWORD_SIZE
    ex de,hl
    jp zdbg_disp_stack_bare
    
@@ -780,7 +791,7 @@ zdbg_disp_stack:
 ;; DESTROYS:
 ;; ERRORS:
 zdbg_disp_stack_bare:
-   ; setup
+   ;; setup
    push ix
    push iy
    ld iy,0
@@ -791,7 +802,7 @@ zdbg_disp_stack_bare:
    ld (iy-6),de ; number of elements
    ld bc,0
    ld (iy-9),bc ; index
-   ; clear display
+   ;; clear display
    ld ix,win_dbg1
    call zwin_clear
    jr zdbg_disp_stack.entry
@@ -862,11 +873,12 @@ zdbg_disp_backtrace.loop:
    call zwin_newline
    pop ix
    ld de,(ix+zframe_fp-zframe_end)
-   ld ix,0
-   add ix,de
+   ld hl,(zstack_begin)
+   add hl,de
+   LD_IX_HL
 zdbg_disp_backtrace.entry:
    ld hl,(ix+zframe_pc-zframe_end)
-   ld de,$ffffff
+   ld de,ZADDR_NULL
    call cp_hl_de
    jr nz,zdbg_disp_backtrace.loop
 zdbg_disp_backtrace.done:

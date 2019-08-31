@@ -39,7 +39,8 @@ ZNAME_CURMAP .equ 'M'
 
 STORY_NAME_MAXLEN .equ 4
 
-
+;; MISC ;;
+ZADDR_NULL .equ $ffffff
 
 #define ZFRAME_SIZE zframe_end-zframe_begin
 

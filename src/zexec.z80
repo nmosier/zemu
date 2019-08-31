@@ -887,6 +887,8 @@ zexec.call:
    ret c
 zexec.call.done:
    ld ix,(zframe_fp)
+   ld de,(zstack_begin)
+   add ix,de
    ld de,(zframe_pc) ; end of CALL instruction
    ld (ix+zframe_pc-zframe_end),de ; save return address
    ld (zframe_pc),hl ; save new PC

@@ -36,11 +36,12 @@ zmem_init:
    inc hl ; skip size bytes
    inc hl
    ld (zstack_begin),hl
+   ld hl,0
    ld (zframe_fp),hl
    ld (zframe_sp),hl
    xor a,a
    ld (zframe_nl),a
-   ld hl,$ffffff
+   ld hl,ZADDR_NULL
    ld (zframe_pc),hl
    ret
    
@@ -56,17 +57,22 @@ zmem_name: .db "ZEMUMEM",0
 zstack_enter:
    push bc ; save variable number
    ; push new stack frame onto stack
-   ld hl,zframe_begin
+   ld hl,(zstack_begin)
+   push hl
    ld de,(zframe_sp)
+   add hl,de
+   ex de,hl
+   ld hl,zframe_begin
    ld bc,ZFRAME_SIZE
    ldir
-   ; de == (zframe_sp) + ZFRAME_SIZE
-   ; update frame pointer
-   ld (zframe_fp),de
-   ; update stack pointer
-   ld hl,$000002
-   ld h,a
-   mlt hl
+   pop bc
+   ex de,hl
+   or a,a
+   sbc hl,bc
+   ld (zframe_fp),hl
+   ld de,2
+   ld d,a
+   mlt de
    add hl,de
    ld (zframe_sp),hl
    ; update number of locals (NL)
@@ -84,27 +90,11 @@ zstack_enter:
 zstack_leave:
    ; restore stack frame
    ld ix,(zframe_fp)
+   ld de,(zstack_begin)
+   add ix,de
    lea hl,ix-ZFRAME_SIZE
    ld de,zframe_begin
    ld bc,ZFRAME_SIZE
    ldir
    or a,a
-   ret
-
-
-;; zframe_sp_base -- get base of stack pointer
-;; INPUTS: (none)
-;; OUTPUTS:
-;;  hl = pointer to s.p. base
-;; ERRORS: no.
-;; DESTROYS: (none)
-zframe_sp_base:
-   push de
-   ld hl,0
-   ld a,(zframe_nl)
-   ld l,a
-   add hl,hl
-   ld de,(zframe_fp)
-   add hl,de
-   pop de
    ret

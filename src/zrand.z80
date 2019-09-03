@@ -5,6 +5,15 @@
 zrand_reg: .dl 0
 
 
+;; zrand_init -- initialize random number generator
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: bc
+;; ERRORS: no.
+zrand_init:
+  call zrand_newseed
+  jp zrand_seed
+
 ;; zrand_seed -- seed random value generator
 ;; INPUTS:
 ;;  hl = seed (long)
@@ -19,14 +28,19 @@ zrand_seed:
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  hl = new seed value to use
-;; DESTROYS:
+;; DESTROYS: bc
 ;; ERRORS: no.
 zrand_newseed:
+#if 1
+   call _RandInit
+   ld hl,(seed1)
+#else
    ld hl,0
    ld bc,$8000
    in h,(bc)
    ld bc,$8004
    in l,(bc)
+#endif
    ret
 
 ;; zrand_gen_raw -- generate raw random value with 23-bits of entropy

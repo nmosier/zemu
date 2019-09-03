@@ -121,6 +121,12 @@ zdbg_cmd:
    jp z,zdbg_cmd.examine
    cp a,'J'
    jp z,zdbg_cmd.jump
+   cp a,'D'
+   jp z,zdbg_cmd.seed
+   cp a,'S'
+   jp z,zdbg_cmd.save
+   cp a,'R'
+   jp z,zdbg_cmd.restore
    or a,a
    ret
 
@@ -488,6 +494,41 @@ zdbg_cmd.jump:
    ld (zframe_pc),hl
    ret
 
+
+zdbg_cmd.seed:
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   jr nz,_
+   call zrand_seed
+_  or a,a
+   ret
+
+zdbg_cmd.save:
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   jr nz,_
+   ld hl,zexec.save.name
+   call zsave_save
+   ld hl,zdbg_str
+   call c,zemu_perror
+_  or a,a
+   ret
+   
+zdbg_cmd.restore:
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   jr nz,_
+   ld hl,zexec.save.name
+   call zsave_restore
+   ld hl,zdbg_str
+   call c,zemu_perror
+_  or a,a
+   ret
+
 ;; zdbg_status -- display status information
 zdbg_status:
    ; watchpoint status info
@@ -524,14 +565,6 @@ zdbg_status.fmt: .db "%x %s",0   ; PC [WATCH]
 zdbg_run:
    ld ix,zdbg_flags
    
-zdbg_run.frame:
-   ; 0. Check if exit frame has been reached.
-#if 0
-   call zdbg_stkcmp
-   ld hl,(zframe_pc)
-   jp z,zdbg_exit
-#endif
-
 zdbg_run.break:
    ; 1. Check if should break.
    bit ZDBG_FLAGS_BREAK,(ix)
@@ -584,8 +617,9 @@ zdbg_run.log_pc:
    push hl
    call zcode_decode
    pop hl
-   ;; check if interrupt
+   call c,zdbg_chkintr
    jr nc,zdbg_run
+zdbg_run.exit
    jp zdbg_exit
 
 ;; zdbg_brkcmp -- check if should break -- stored in ZF
@@ -600,6 +634,36 @@ zdbg_stkcmp:
    jp cp_hl_de
 
 
+;; zdbg_chkintr -- check for and handle interrupt on error flag
+;; INPUTS:
+;;  hl = PC of beginning of current instruction
+;;  a = error code
+;; OUTPUTS:
+;;  zframe_pc conditionally modified
+;;  CF indicates whether to exit
+;;  a = error code
+;; ERRORS: (sort of, but not really)
+;; DESTROYS: ???
+;; NOTE: Should only be called if CF is set (i.e. error occurred).
+zdbg_chkintr:
+   cp a,ZERR_INTR
+   scf
+   ret nz
+   ld a,(zdbg_flags)
+   bit ZDBG_FLAGS_STEP,a
+   jr z,zdbg_chkintr.break
+   bit ZDBG_FLAGS_MODE,a
+   jr z,zdbg_chkintr.break
+   ld a,ZERR_INTR
+   scf
+   ret
+zdbg_chkintr.break:
+   set ZDBG_FLAGS_STEP,a
+   set ZDBG_FLAGS_MODE,a   ; to step mode
+   ld (zdbg_flags),a
+   ld (zframe_pc),hl       ; reset instruction
+   or a,a
+   ret
 
 ;; zdbg_exit -- handle errors during execution
 ;; INPUTS:
@@ -1023,6 +1087,8 @@ zdbg_stepn:  .db 0 ; number to step before breaking?
 zdbg_watch:  .db 0 ; variable to watch
 
 zdbg_alert_watch.str: RESB(16)
+
+zdbg_str: .db "zdbg",0
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; DEPENDENCIES ;;;;;;

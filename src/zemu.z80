@@ -13,6 +13,7 @@
 
 start:
    call zdisp_init
+   call zrand_init
 
 #ifdef ZDBG
    call zdbg_init

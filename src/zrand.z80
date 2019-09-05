@@ -51,15 +51,16 @@ zrand_newseed:
 ;; DESTROYS: de
 zrand_gen_raw:
    ld hl,(zrand_reg)
-   ld de,(zrand_reg)
+   push hl
    add hl,hl
-   add hl,hl ; push 22nd bit into
+   add hl,hl ; push 22nd bit into CF
    bit ZRAND_XORBIT+2,l
    jr z,_
-   ccf ; addition mod 2 of bits
-_  ex de,hl
+   ccf ; addition mod 2 of 22nd and XORBIT
+_  ld hl,(zrand_reg)
    adc hl,hl ; shift right and put carry in bit 0
    ld (zrand_reg),hl
+   pop hl
    ret
 
 ;; zrand_gen -- generate random value in given range
@@ -71,10 +72,18 @@ _  ex de,hl
 ;; DESTROYS: (all)
 zrand_gen:
    ex de,hl
-   push de
    call zrand_gen_raw
+#if 0
    call absl
-   pop de
+#else
+   push de
+   ld de,LONG_MIN
+   call cp_hl_de
+   jr c,_
+   or a,a
+   sbc hl,de
+_  pop de
+#endif
    call div_hl_de
    ex de,hl
    inc hl

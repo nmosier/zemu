@@ -1009,7 +1009,7 @@ zexec.put_prop:
    ld a,e
    jp z,zaddr_store
    ; 2 bytes?
-   jp c,zaddr_storew
+   jp nc,zaddr_storew
    ; 0 bytes?
    ret
 zexec.put_prop.err:

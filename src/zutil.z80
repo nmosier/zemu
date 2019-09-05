@@ -337,12 +337,19 @@ absl:
 ;; DESTROYS: (none)
 ;; ERRORS: no.
 sgnl:
+#if 0
    push de
    ld de,LONG_MAX
    call cp_hl_de
    pop de
    ccf
    ret
+#else
+   push hl
+   add hl,hl
+   pop hl
+   ret
+#endif
 
 ;; negl -- negate long
 ;; INPUTS:

@@ -1,0 +1,75 @@
+#include "zhdr.inc"
+
+;; zhdr_defaults -- initialize story file header
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zhdr_defaults:
+   ld ix,zhdr_defaults.tab
+   jr zhdr_defaults.entry
+zhdr_defaults.loop:
+   dec a
+   rlca
+   UCAST_A_TO_BC
+   ld hl,zhdr_defaults.actions
+   add hl,bc
+   ld hl,(hl)
+   ld a,(ix+ZHDR_DEFENT.OFF)
+   UCAST_A_TO_DE
+   jp (hl)
+zhdr_defaults.entry:
+   ld a,(ix+ZHDR_DEFENT.TYPE)
+   or a,a
+   jr nz,zhdr_defaults.loop
+zhdr_defaults.done:
+   ret
+
+zhdr_defaults.setbit:
+   ld a,(ix+ZHDR_DEFENT_SETBIT.BIT)
+   ex de,hl
+   call zaddr_set
+   ret c
+   lea ix,ix+ZHDR_DEFENT_SETBIT_SIZE
+   jr zhdr_defaults.entry
+
+zhdr_defaults.resbit:
+   ld a,(ix+ZHDR_DEFENT_RESBIT.BIT)
+   ex de,hl
+   call zaddr_res
+   ret c
+   lea ix,ix+ZHDR_DEFENT_RESBIT_SIZE
+   jr zhdr_defaults.entry
+
+zhdr_defaults.byte:
+   ld a,(ix+ZHDR_DEFENT_BYTE.VAL)
+   ex de,hl
+   call zaddr_store
+   ret c
+   lea ix,ix+ZHDR_DEFENT_BYTE_SIZE
+   jr zhdr_defaults.byte
+
+zhdr_defaults.word:
+   ld hl,(ix+ZHDR_DEFENT_WORD.VAL)
+   ex de,hl
+   call zaddr_storew
+   ret c
+   lea ix,ix+ZHDR_DEFENT_WORD_SIZE
+   jr zhdr_defaults.word
+
+
+zhdr_defaults.tab:
+   D_ZHDR_DEFENT_SETBIT(ZHDR_FLAGS1, ZHDR_FLAGS1_NOSTAT)
+   D_ZHDR_DEFENT_RESBIT(ZHDR_FLAGS1, ZHDR_FLAGS1_SCRNSPLIT)
+   D_ZHDR_DEFENT_SETBIT(ZHDR_FLAGS1, ZHDR_FLAGS1_VARFONTDEF)
+   D_ZHDR_DEFENT_RESBIT(ZHDR_FLAGS2, ZHDR_FLAGS2_TRANS)
+   D_ZHDR_DEFENT_RESBIT(ZHDR_FLAGS2, ZHDR_FLAGS2_FIXEDPITCH)
+   D_ZHDR_DEFENT_WORD(ZHDR_STDREVNO, $0000)
+   D_ZHDR_DEFENT_NULL()
+
+
+zhdr_defaults.actions:
+   .dl zhdr_defaults.setbit
+   .dl zhdr_defaults.resbit
+   .dl zhdr_defaults.byte
+   .dl zhdr_defaults.word

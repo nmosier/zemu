@@ -121,7 +121,7 @@ zdbg_cmd:
    jp z,zdbg_cmd.examine
    cp a,'J'
    jp z,zdbg_cmd.jump
-   cp a,'D'
+   cp a,'E'
    jp z,zdbg_cmd.seed
    cp a,'S'
    jp z,zdbg_cmd.save
@@ -349,6 +349,9 @@ zdbg_cmd.print.obj.props.loop:
    ld (hl),','
    inc hl
    ld (hl),0
+   ld a,(zdbg_cmd.print.obj.props.propid)
+   call zobj_propid_to_size
+      
 #endif
    ; print line
    ld ix,win_dbg1
@@ -358,6 +361,11 @@ zdbg_cmd.print.obj.props.loop:
    call zwin_newline
 #endif
    pop hl
+   ld a,(zdbg_cmd.print.obj.props.propid)
+   call zobj_propid_to_size
+   ld de,0
+   ld e,a
+   add hl,de
 zdbg_cmd.print.obj.props.entry:
    call zaddr_fetch ; get propid
    or a,a ; check if terminating null byte
@@ -508,7 +516,7 @@ _  or a,a
    ret
 
 zdbg_cmd.save:
-   ld a,(de)
+   ld a,(hl)
    cp a,ASCII_NEWLINE
    jr nz,_
    ld hl,zexec.save.name
@@ -519,7 +527,7 @@ _  or a,a
    ret
    
 zdbg_cmd.restore:
-   ld a,(de)
+   ld a,(hl)
    cp a,ASCII_NEWLINE
    jr nz,_
    ld hl,zexec.save.name

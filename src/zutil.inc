@@ -1,38 +1,35 @@
 #ifndef __ZUTIL_INC
 #define __ZUTIL_INC
 
-LONG_MIN .equ $800000
-LONG_MAX .equ LONG_MIN - 1
-
-BYTE_SIZE .equ 1
-WORD_SIZE .equ 2
-LONG_SIZE .equ 3
+#include "zti.inc"
 
 ZFALSE .equ $000000
 ZTRUE .equ  $000001
 
 VARNAMELEN .equ 8
 
+
 #macro RESB(n)
 #if n > 0
-    .db 0
+    DB 0
     RESB(n-1)
 #endif
 #endmacro
 
 #macro RESW(n)
 #if n > 0
-    .dw 0
+    DW 0
     RESW(n-1)
 #endif
 #endmacro
 
 #macro RESL(n)
 #if n > 0
-    .dl 0
+    DL 0
     RESL(n-1)
 #endif    
 #endmacro
+
 
 #macro MASK(n)
     1 << n
@@ -44,10 +41,6 @@ VARNAMELEN .equ 8
 
 #macro HIGH(i)
     LOW((i >> 8))
-#endmacro
-
-#macro UPPER(i)
-   HIGH((i >> 8))
 #endmacro
 
 #define LD_BC_HL push hl \\ pop bc
@@ -75,7 +68,6 @@ VARNAMELEN .equ 8
 #define UCAST_A_TO_BC   ld bc,0 \\ ld c,a
 
 ;; ADDRESS SIZE SCALING ;;
-;; #define MLTA_A_TO_HL    UCAST_A_TO_HL \\ sla l \\ rl h \\ add a,l \\ ld l,a \\ jr c,_ \\ 
 #macro MLTA_A_TO_HL()
    UCAST_A_TO_HL
    sla l
@@ -97,10 +89,6 @@ _
    inc b
 _
 #endmacro
-
-
-
-
 
 #endif
 

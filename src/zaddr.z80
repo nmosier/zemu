@@ -122,6 +122,7 @@ zaddr_accesspage.write:
 ;; DESTROYS: (all)
 ;; NOTE: Only access the single byte pointed to by the physical address.
 zaddr_to_paddr:
+   push ix
    ld ix,(zmap_header)
    call zaddr_valid           ; check if Z-address is valid, given access mode
    push hl                    ; preserve Z-address
@@ -133,6 +134,7 @@ zaddr_to_paddr:
    ex (sp),hl                 ; restore Z-address & preserve physical page address
    call nc,zaddr_offset       ; get page offset -> de
    pop hl                     ; restore physical page address
+   pop ix
    ret c                      ; ERROR
    add hl,de                  ; compute physical byte address
    ret                        ; SUCCESS (always NC)
@@ -167,7 +169,7 @@ zaddr_fetch.cleanup:
 ;; ERRORS: no.
 ;; DESTROYS: (all)
 zaddr_fetch_c:
-   push ix
+   ; push ix
    push iy
    ld iy,0
    add iy,sp
@@ -181,7 +183,7 @@ _  ld hl,0
    ld l,a
    ld sp,iy
    pop iy
-   pop ix
+   ; pop ix
    ret
 
 
@@ -320,4 +322,50 @@ zaddr_fetchn.loop:
    djnz zaddr_fetchn.loop
 zaddr_fetchn.done:
    pop de
+   ret
+
+
+;; zaddr_set -- set bit
+;; zaddr_res -- reset bit
+;; zaddr_bit -- test bit
+;; INPUTS:
+;;  hl = address
+;;  a = bit number
+;; OUTPUTS:
+;;  ZF set properly (zaddr_bit)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zaddr_set:
+   call maskb
+   push af
+   ld a,(1 << ZADDR_READ) | (1 << ZADDR_WRITE)
+   call zaddr_to_paddr
+   pop bc
+   ret c
+   ld a,b
+   or a,(hl)
+   ld (hl),a
+   ret
+
+zaddr_res:
+   call maskb
+   push af
+   ld a,(1 << ZADDR_READ) | (1 << ZADDR_WRITE)
+   call zaddr_to_paddr
+   pop bc
+   ret c
+   ld a,b
+   cpl
+   and a,(hl)
+   ld (hl),a
+   ret
+
+zaddr_bit:
+   call maskb
+   push af
+   ld a,MASK(ZADDR_READ)
+   call zaddr_to_paddr
+   pop bc
+   ret c
+   and a,(hl)
    ret

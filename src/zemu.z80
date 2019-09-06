@@ -117,11 +117,9 @@ zemu_open:
    call strncpy
    ld hl,zmap_name_canonical
 zemu_open.find_zmap:
-   jp zmap_load
-zemu_open.err:
-   ld a,ZERR_NOVAR
-   ret
-   
+   call zmap_load
+   jp nc,zhdr_defaults
+   ret   
    
 ;; zemu_cleanup -- cleanup in preparation for exit
 zemu_cleanup:
@@ -215,3 +213,4 @@ zemu_prompt_game: .db "Story name: ",0
 #include "zcpu.z80"
 #include "zsave.z80"
 #include "zapp.z80"
+#include "zhdr.z80"

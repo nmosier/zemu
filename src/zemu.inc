@@ -3,6 +3,7 @@
 #ifndef __ZEMU_INC
 #define __ZEMU_INC
 
+#include "zti.inc"
 #include "zutil.inc"
 
 ZMAP_TABENTLEN .equ (VARNAMELEN + 1 + 3) ; this should be manually updated
@@ -36,8 +37,7 @@ ZNAME_CURMAP .equ 'M'
 
 STORY_NAME_MAXLEN .equ 4
 
-;; MISC ;;
-ZADDR_NULL .equ $ffffff
+ZADDR_NULL .equ ULONG_MAX
 
 #define ZFRAME_SIZE zframe_end-zframe_begin
 

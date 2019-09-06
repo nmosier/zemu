@@ -950,7 +950,7 @@ zdbg_disp_backtrace.loop:
    LD_IX_HL
 zdbg_disp_backtrace.entry:
    ld hl,(ix+zframe_pc-zframe_end)
-   ld de,ZADDR_NULL
+   ld de,ZSTACK_NULL
    call cp_hl_de
    jr nz,zdbg_disp_backtrace.loop
 zdbg_disp_backtrace.done:

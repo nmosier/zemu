@@ -473,14 +473,16 @@ ltowu:
 ;; OUTPUTS:
 ;;  a = 2^n / 1 << n
 ;; ERRORS:
-;; DESTROYS: hl,de
+;; DESTROYS: de
 maskb:
 exp2b:
+   push hl
    ld hl,exp2b.tab
    ld de,0
    ld e,a
    add hl,de
    ld a,(hl)
+   pop hl
    ret
 
 exp2b.tab:

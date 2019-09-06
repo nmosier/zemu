@@ -1,4 +1,4 @@
-#include "ti84pce.inc"
+#include "zti.inc"
 #include "zemu.inc"
 #include "zerr.inc"
 #include "zutil.inc"

@@ -1,7 +1,7 @@
 ;; zwin.z80 -- window management routines
 ;; TODO -- need to unscale rows
 
-
+#include "zti.inc"
 #include "zwin.inc"
 #include "zstr.inc"
 

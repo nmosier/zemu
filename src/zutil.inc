@@ -99,43 +99,6 @@ _
 #endmacro
 
 
-;; FRAME SETTING ;;
-#macro FRAME_SIZE(bytes, words, longs)
-   bytes * BYTE_SIZE + words * WORD_SIZE + longs * LONG_SIZE
-#endmacro
-
-
-#macro FRAME_SET(bytes, words, longs)
-   ld iy,-(bytes * BYTE_SIZE + words * WORD_SIZE + longs * LONG_SIZE)
-   add iy,sp
-   ld sp,iy
-#endmacro
-
-#macro FRAME_UNSET(bytes, words, longs)
-   ld de,bytes * BYTE_SIZE + words * WORD_SIZE + longs * LONG_SIZE
-   add iy,de
-   ld sp,iy
-#endmacro
-
-#macro FRAME_OFFSET(bytes, words, longs)
-       FRAME_SIZE(bytes, words, longs)
-#endmacro
-
-#macro FRAME_ADDR(n, bytes, words, longs)
-   #if n < bytes
-      iy + n * BYTE_SIZE
-   #elif n < bytes + words
-      iy + bytes * BYTE_SIZE + (n - bytes) * WORD_SIZE
-   #elif n < bytes + words + longs
-      iy + bytes * BYTE_SIZE + words * WORD_SIZE + (n - bytes - words) * LONG_SIZE
-   #else
-      ;; TODO -- should generate error
-   #endif
-#endmacro
-
-#macro FRAME_VAL(n, bytes, words, longs)
-   (FRAME_ADDR(n, bytes, words, longs))
-#endmacro
 
 
 

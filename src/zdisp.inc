@@ -3,7 +3,7 @@
 #ifndef __ZDISP_INC
 #define __ZDISP_INC
 
-#include "ti84pce.inc"
+#include "zti.inc"
 
 SFONT_HEIGHT .equ $0e ; TODO: adjust this.
 

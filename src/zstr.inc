@@ -3,7 +3,7 @@
 #ifndef __ZSTR_INC
 #define __ZSTR_INC
 
-#include "ti84pce.inc"
+#include "zti.inc"
 #include "zutil.inc"
 
 ZSTR_CODE_WIDTH .equ 5

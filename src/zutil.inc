@@ -70,8 +70,34 @@ VARNAMELEN .equ 8
 #define CLEAR_UPPER_IY ld iy,0
 
 ;; 8-bit to 16-/24-bit CASTING ;;
+#define UCAST_A_TO_HL   ld hl,0 \\ ld l,a
 #define UCAST_A_TO_DE   ld de,0 \\ ld e,a
 #define UCAST_A_TO_BC   ld bc,0 \\ ld c,a
+
+;; ADDRESS SIZE SCALING ;;
+;; #define MLTA_A_TO_HL    UCAST_A_TO_HL \\ sla l \\ rl h \\ add a,l \\ ld l,a \\ jr c,_ \\ 
+#macro MLTA_A_TO_HL()
+   UCAST_A_TO_HL
+   sla l
+   rl h
+   add a,l
+   ld l,a
+   jr nc,_
+   inc h
+_
+#endmacro
+
+#macro MLTA_A_TO_BC()
+   UCAST_A_TO_BC
+   sla c
+   rl b
+   add a,c
+   ld c,a
+   jr nc,_
+   inc b
+_
+#endmacro
+
 
 ;; FRAME SETTING ;;
 #macro FRAME_SIZE(bytes, words, longs)

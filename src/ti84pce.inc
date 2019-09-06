@@ -10,9 +10,6 @@
 ;- Texas Instruments (ti83plus.inc)
 .nolist
 
-#ifndef TI84PCE
-#define TI84PCE
-
 ; Included for Assembler Compatibility
 ;------------------------------------
 #define equ .equ
@@ -6989,5 +6986,5 @@ putMapUseColor		equ 4		;1 = use custom color
 graphDispFlags		equ 4Bh
 backgroundValid		equ 4		;1 = items in graph background are still valid
 ;----------------------------------------------------------------------
-#endif
+
 .list

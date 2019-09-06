@@ -3,7 +3,7 @@
 #ifndef __ZWIN_INC
 #define __ZWIN_INC
 
-
+#include "zti.inc"
 #include "zutil.inc"
 #include "zdisp.inc"
 
@@ -19,41 +19,40 @@
 ;  L bufptr
 ;  [buflen] B buf
 
-ZWIN.CURCOL .equ 0      ; L 3
-ZWIN.CURROW .equ 3      ; B 1
-ZWIN.RECT   .equ 4
-ZWIN.ORGCOL .equ 4      ; L 3
-ZWIN.ORGROW .equ 7      ; B 1
-ZWIN.WIDTH  .equ 8      ; L 3
-ZWIN.HEIGHT .equ 11     ; B 1
-ZWIN.FLAGS  .equ 12     ; B 1
-ZWIN.BUFLEN .equ 13     ; L 3
-ZWIN.BUFPTR .equ 16     ; L 3
-ZWIN.BUFANC .equ 19     ; L 3 -- anchor for paging
-ZWIN.BUF    .equ 22
+ZWIN.CURCOL .equ 0                           ; PENCOL_SIZE
+ZWIN.CURROW .equ ZWIN.CURCOL + PENCOL_SIZE   ; PENROW_SIZE
+ZWIN.RECT   .equ ZWIN.CURROW + PENROW_SIZE   ;
+ZWIN.ORGCOL .equ ZWIN.RECT                   ; PENCOL_SIZE
+ZWIN.ORGROW .equ ZWIN.ORGCOL + PENCOL_SIZE   ; PENROW_SIZE
+ZWIN.WIDTH  .equ ZWIN.ORGROW + PENROW_SIZE   ; PENCOL_SIZE
+ZWIN.HEIGHT .equ ZWIN.WIDTH + PENCOL_SIZE    ; PENROW_SIZE
+ZWIN.FLAGS  .equ ZWIN.HEIGHT + PENROW_SIZE   ; BYTE_SIZE
+ZWIN.BUFLEN .equ ZWIN.FLAGS + BYTE_SIZE      ; LONG_SIZE
+ZWIN.BUFPTR .equ ZWIN.BUFLEN + LONG_SIZE     ; LONG_SIZE
+ZWIN.BUFANC .equ ZWIN.BUFPTR + LONG_SIZE     ; LONG_SIZE
+ZWIN.BUF    .equ ZWIN.BUFANC + LONG_SIZE     ;
 
 
 ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
 ZWIN.FLAGS.PAGD .equ 1 ; whether paged (must be buffered)
 
-ZWIN_NOBUF_SIZE .equ 13 ; without buffering
-ZWIN_BUF_BASE_SIZE .equ 22 ; all fixed-sized fields, with buffering
-
+ZWIN_NOBUF_SIZE .equ ZWIN.BUFLEN ; without buffering
+ZWIN_BUF_BASE_SIZE .equ ZWIN.BUF ; all fixed-sized fields, with buffering
 
 ZWIN_CLEARCOLOR .equ $ff
 
 #macro D_ZWIN(orgcol, orgrow, width, height, flags, buflen)
-  .dl orgcol ; curcol
-  .db orgrow ; currow
-  .dl orgcol ; orgcol
-  .db orgrow ; orgrow
-  .dl width  ; width
-  .db height ; height
-  .db flags  ; flags
+  DL orgcol ; curcol
+  DB orgrow ; currow
+  DL orgcol ; orgcol
+  DB orgrow ; orgrow
+  DL width  ; width
+  DB height ; height
+  DB flags  ; flags
 #if buflen > 0
-  .dl buflen ; buflen
-  .dl _      ; bufptr
-  .dl 0      ; bufanc
+  DL buflen ; buflen
+  DL _      ; bufptr
+  DL 0      ; bufanc
 _ RESB(buflen) ; buf
 #endif
 #endmacro

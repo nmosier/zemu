@@ -19,6 +19,8 @@ LONG_SIZE .equ 3
 
 LONG_MIN .equ $800000
 LONG_MAX .equ LONG_MIN - 1
+ULONG_MAX .equ $ffffff
+
 
 PENCOL_SIZE .equ LONG_SIZE
 
@@ -36,6 +38,7 @@ LONG_SIZE .equ WORD_SIZE
 
 LONG_MIN .equ $8000
 LONG_MAX .equ LONG_MIN - 1
+ULONG_MAX .equ $ffff
 
 PENCOL_SIZE .equ BYTE_SIZE
 

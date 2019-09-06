@@ -1,6 +1,7 @@
 ;; zcpu.z80 -- run Z-machine
 
 #include "zhdr.inc"
+#include "zmem.inc"
 
 ;; zcpu_run -- run Z-machine in user mode
 ;; INPUTS: (none)
@@ -28,7 +29,7 @@ zcpu_init:
    ret c
    ex de,hl
    ld (zframe_pc),hl
-   ld hl,0
+   ld hl,ZSTACK_NULL
    ld (zframe_fp),hl
    ld (zframe_sp),hl
    xor a,a

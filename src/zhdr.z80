@@ -10,8 +10,7 @@ zhdr_defaults:
    jr zhdr_defaults.entry
 zhdr_defaults.loop:
    dec a
-   rlca
-   UCAST_A_TO_BC
+   MLTA_A_TO_BC()
    ld hl,zhdr_defaults.actions
    add hl,bc
    ld hl,(hl)
@@ -47,7 +46,7 @@ zhdr_defaults.byte:
    call zaddr_store
    ret c
    lea ix,ix+ZHDR_DEFENT_BYTE_SIZE
-   jr zhdr_defaults.byte
+   jr zhdr_defaults.entry
 
 zhdr_defaults.word:
    ld hl,(ix+ZHDR_DEFENT_WORD.VAL)
@@ -55,7 +54,7 @@ zhdr_defaults.word:
    call zaddr_storew
    ret c
    lea ix,ix+ZHDR_DEFENT_WORD_SIZE
-   jr zhdr_defaults.word
+   jr zhdr_defaults.entry
 
 
 zhdr_defaults.tab:

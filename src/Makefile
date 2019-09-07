@@ -1,6 +1,8 @@
+Z80_DIR=z80
+INC_DIR=inc
 CFLAGS=-g -c -Wall -pedantic
-ZSOURCES=$(wildcard z*.z80 z*.inc)
-ZMAIN=zemu.z80
+ZSOURCES=$(wildcard $(Z80_DIR)/z*.z80 $(INC_DIR)z*.inc)
+ZMAIN=$(Z80_DIR)/zemu.z80
 ZTARGET=$(ZMAIN:.z80=.8xp)
 ZTARGET_LOG=$(ZMAIN:.z80=log.8xp)
 ZTARGET_DBG=$(ZMAIN:.z80=dbg.8xp)
@@ -21,16 +23,16 @@ DDBG=-DZDBG
 DLOG=$(DDBG) -DZDBG_LOG
 
 .PHONY: all
-all: $(ZTARGET) $(ZTARGET_DBG) $(ZTARGET_LOG) zmap
+all: $(ZTARGET) $(ZTARGET_DBG) $(ZTARGET_LOG)
 
 $(ZTARGET): $(ZSOURCES)
-	spasm -E -L $(FEATURES) $(DPLATFORM) $(ZMAIN) $@
+	spasm -E -L $(FEATURES) $(DPLATFORM) -I $(INC_DIR) -I $(Z80_DIR) $(ZMAIN) $@
 
 $(ZTARGET_DBG): $(ZSOURCES)
-	spasm -E -L $(FEATURES) $(DDBG) $(DPLATFORM) $(ZMAIN) $@
+	spasm -E -L $(FEATURES) $(DDBG) $(DPLATFORM) -I $(INC_DIR) -I $(Z80_DIR) $(ZMAIN) $@
 
 $(ZTARGET_LOG): $(ZSOURCES)
-	spasm -E -L $(FEATURES) $(DLOG) $(DPLATFORM) $(ZMAIN) $@
+	spasm -E -L $(FEATURES) $(DLOG) $(DPLATFORM) -I $(INC_DIR) -I $(Z80_DIR) $(ZMAIN) $@
 
 .PHONY: log
 log: $(ZTARGET_LOG)

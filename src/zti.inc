@@ -58,6 +58,9 @@ PENCOL_SIZE .equ LONG_SIZE
 #endif
 #endmacro
 
+;; SYSCALLS ;;
+#define SYSCALL(addr) call addr
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 #endif
 
@@ -124,6 +127,9 @@ PENCOL_SIZE .equ BYTE_SIZE
    pop hl
 #endif
 #endmacro
+
+;; SYSTEM CALLS ;;
+#define SYSCALL(addr) bcall(addr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 #endif

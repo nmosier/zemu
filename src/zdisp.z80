@@ -7,35 +7,27 @@
 ;; INPUTS:
 ;;  a = character
 ;; OUTPUTS:
-;;  c = width of character
+;;  bc = width of character
 ;; DESTROYS: (none)
 ;; ERRORS: no.
 sfont_width:
    push hl
    push de
-   ld hl,SFONT_TAB_ADDR
-   MLT_A(SFONT_TAB_ENTLEN, R_DE)
-   add hl,de
-   ld c,(hl)
+   MLT_A(SFONT_TAB_ENTLEN, R_HL)
+   SYSCALL(_SFont_Len)
+#if TI84PCE
+   push af
+   ld a,b
+   UCAST_A_TO_BC
+   pop af
+#elif TI83PLUS
+   ld c,b
+   ld b,0
+#endif
    pop de
    pop hl
    ret
-
-
-;; sys_clrcurrow -- clear cursor row
-;; INPUTS:
-;;  a = cursor row (0 - 10?)
-;; OUTPUTS: (none)
-;; DESTROYS: a, b, de
-;; ERRORS: no.
-sys_clrcurrow:
-   rlca
-   rlca
-   rlca ; a *= 8
-   add a,$80
-   jp _ClearRow
-
-
+   
 
 ;; zdisp_rowaddr -- address of row in VRAM
 ;; INPUTS:
@@ -102,8 +94,6 @@ zdisp_fillrect:
 ;; ERRORS: no.
 ;; DESTROYS: a
 zdisp_init:
-;   ld a,$2D
-;   ld (mpLcdRange+lcdCtrl),a
    ret
 
 

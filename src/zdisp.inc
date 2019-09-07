@@ -7,8 +7,14 @@
 
 SFONT_HEIGHT .equ $0e ; TODO: adjust this?
 
+;; TODO -- find corresponding values for TI-83 Plus
+#ifdef TI84PCE
 SFONT_TAB_ADDR .equ $092694
 SFONT_TAB_ENTLEN .equ $19
+#endif
+#ifdef TI83PLUS
+SFONT_TAB_ENTLEN .equ $08
+#endif
 
 #ifdef TI84PCE
 DISP_WIDTH .equ lcdWidth

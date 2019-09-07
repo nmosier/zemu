@@ -43,29 +43,6 @@ VARNAMELEN .equ 8
     LOW((i >> 8))
 #endmacro
 
-#define LD_BC_HL push hl \\ pop bc
-#define LD_BC_DE push de \\ pop bc
-#define LD_HL_BC push bc \\ pop hl
-#define LD_DE_BC push bc \\ pop de
-#define LD_IX_DE push de \\ pop ix
-#define LD_IX_HL push hl \\ pop ix
-
-#define EX_BC_HL push bc \\ ex (sp),hl \\ pop bc
-
-#define EX_BC_DE EX_BC_HL \\ ex de,hl \\ EX_BC_HL
-
-;; COMPATABILE UPPER-BYTE INITIALIZATION ;;
-
-#define CLEAR_UPPER_HL ld hl,0
-#define CLEAR_UPPER_DE ld de,0
-#define CLEAR_UPPER_BC ld bc,0
-#define CLEAR_UPPER_IX ld ix,0
-#define CLEAR_UPPER_IY ld iy,0
-
-;; 8-bit to 16-/24-bit CASTING ;;
-#define UCAST_A_TO_HL   ld hl,0 \\ ld l,a
-#define UCAST_A_TO_DE   ld de,0 \\ ld e,a
-#define UCAST_A_TO_BC   ld bc,0 \\ ld c,a
 
 ;; ADDRESS SIZE SCALING ;;
 #macro MLTA_A_TO_HL()
@@ -89,6 +66,47 @@ _
    inc b
 _
 #endmacro
+
+R_HL .equ 0
+R_DE .equ 1
+R_BC .equ 2
+R_IX .equ 3
+R_IY .equ 4
+
+#macro LD_REG_IMM(reg, imm)
+#if reg == R_HL
+   ld hl,imm
+#elif reg == R_DE
+   ld de,imm
+#elif reg == R_BC
+   ld bc,imm
+#elif reg == R_IX
+   ld ix,imm
+#elif reg == R_IY
+   ld iy,imm
+#endif
+#endmacro
+
+#macro ADD_HL_REG(reg)
+#if reg == R_HL
+   add hl,hl
+#elif reg == R_DE
+   add hl,de
+#elif reg == R_BC
+   add hl,bc
+#endif
+#endmacro
+
+#macro ADD_IX_REG(reg)
+#if reg == R_DE
+   add ix,de
+#elif reg == R_BC
+   add ix,bc
+#elif reg == R_IX
+   add ix,ix
+#endif
+#endmacro
+
 
 #endif
 

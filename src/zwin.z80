@@ -16,8 +16,14 @@ zwin_select:
    push hl
    ld a,(ix+ZWIN.CURROW)
    ld (penRow),a
-   ld hl,(ix+ZWIN.CURCOL)
+   LD_HL_FROM_IX(ZWIN.CURCOL)
+#ifdef TI84PCE
    ld (penCol),hl
+#else
+#ifdef TI83PLUS
+   ld (penCol),l
+#endif
+#endif
    pop hl
    pop af
    ret
@@ -44,7 +50,7 @@ zwin_clear:
 ;; ERRORS: no.
 zwin_fill:
    push ix
-   lea ix,ix+ZWIN.RECT
+   LEA_IX_IX(ZWIN.RECT, R_DE)
    call zdisp_fillrect
    pop ix
    ret

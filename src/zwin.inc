@@ -42,12 +42,12 @@ ZWIN_BUF_BASE_SIZE .equ ZWIN.BUF ; all fixed-sized fields, with buffering
 ZWIN_CLEARCOLOR .equ $ff
 
 #macro D_ZWIN(orgcol, orgrow, width, height, flags, buflen)
-  DL orgcol ; curcol
-  DB orgrow ; currow
-  DL orgcol ; orgcol
-  DB orgrow ; orgrow
-  DL width  ; width
-  DB height ; height
+  DCOL orgcol ; curcol
+  DROW orgrow ; currow
+  DCOL orgcol ; orgcol
+  DROW orgrow ; orgrow
+  DCOL width  ; width
+  DROW height ; height
   DB flags  ; flags
 #if buflen > 0
   DL buflen ; buflen

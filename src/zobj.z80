@@ -28,9 +28,7 @@ zobj_objaddr:
    or a,a
    jr z,zobj_objaddr.err
    dec a ; because the 1st object is the 0th entry
-   ld de,ZOBJSIZE ; de <- 0:a:ZOBJSIZE
-   ld d,a
-   mlt de
+   MLT_A(ZOBJSIZE, R_DE)
    push bc
    push de
    call zobj_tabaddr

@@ -70,9 +70,7 @@ zstack_enter:
    or a,a
    sbc hl,bc
    ld (zframe_fp),hl
-   ld de,2
-   ld d,a
-   mlt de
+   MLT_A(ZWORD_SIZE, R_DE)
    add hl,de
    ld (zframe_sp),hl
    ; update number of locals (NL)

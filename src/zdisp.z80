@@ -1,6 +1,7 @@
 ;; zdisp.z80 -- display routines
 
 #include "zdisp.inc"
+#include "zti.inc"
 
 ;; sfont_width -- get width of small font character
 ;; INPUTS:
@@ -13,9 +14,7 @@ sfont_width:
    push hl
    push de
    ld hl,SFONT_TAB_ADDR
-   ld de,SFONT_TAB_ENTLEN
-   ld d,a
-   mlt de
+   MLT_A(SFONT_TAB_ENTLEN, R_DE)
    add hl,de
    ld c,(hl)
    pop de
@@ -43,13 +42,10 @@ sys_clrcurrow:
 ;;  a = row number
 ;; OUTPUTS:
 ;;  hl = row address
-;; DESTROYS: de
+;; DESTROYS: a, de
 ;; ERRORS: no.
 zdisp_rowaddr:
-   ld hl,0
-   ld l,lcdWidth/2  ; otherwise wouldn't fit in 8 bits
-   ld h,a
-   mlt hl
+   MLT_A(lcdWidth/2, R_HL)
    add hl,hl
    add hl,hl
    ld de,vRam
@@ -63,7 +59,7 @@ zdisp_rowaddr:
 ;;  hl = column number
 ;; OUTPUTS:
 ;;  hl = pixel address
-;; DESTROYS: de
+;; DESTROYS: a, de
 ;; ERRORS: no.
 zdisp_pixaddr:
    push hl

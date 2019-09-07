@@ -50,9 +50,13 @@ zcode_decode_short.opnum:
    ; 4.3.1 opcode number given in bottom 4 bits.
    ld a,b
    and a,$0f ; opcode num
+#if 1
+   MLT_A(LONG_SIZE, R_DE)
+#else
    ld de,3
    ld d,a
    mlt de
+#endif
    add ix,de
 zcode_decode_short.exec:
    ld ix,(ix)
@@ -89,9 +93,7 @@ zcode_decode_long.opnum:
    ld a,b ; restore opcode
    and a,$1f
    ld ix,zcode_LUT.2OP ; always 2OP
-   ld de,3
-   ld d,a
-   mlt de
+   MLT_A(LONG_SIZE, R_DE)
    add ix,de
    ld ix,(ix)
 zcode_decode_long.exec:
@@ -118,9 +120,7 @@ zcode_decode_variable.opnum:
    ld ix,zcode_LUT.2OP
 _
    and a,$1f
-   ld de,3
-   ld d,a
-   mlt de
+   MLT_A(LONG_SIZE, R_DE)
    add ix,de
 zcode_decode_variable.exec:
    ld ix,(ix)

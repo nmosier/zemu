@@ -6,6 +6,9 @@
 #include "zti.inc"
 #include "zutil.inc"
 
+ZWORD_BYTE .equ 1
+ZWORD_SIZE .equ 2
+
 ZMAP_TABENTLEN .equ (VARNAMELEN + 1 + 3) ; this should be manually updated
 
 ZMAP_HDR_BEGIN      .equ 0

@@ -41,13 +41,12 @@ zvar_globaladdr:
    sub a,ZVAR_GLOBALMIN
    push af
    ld hl,ZHDR_GLOBALS
-   call zaddr_fetchwu ; result is returned in %de, dumbass. You wrote this, remember...
+   call zaddr_fetchwu
    ex de,hl
    pop de
    ret c
-   ld bc,2
-   ld b,d
-   mlt bc
+   ld a,d
+   MLT_A(ZWORD_SIZE, R_BC)
    add hl,bc
    or a,a ; NC
    ret

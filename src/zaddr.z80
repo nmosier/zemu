@@ -86,9 +86,7 @@ zaddr_offset:
 ;; DESTROYS: de
 ;; ERRORS: no (but always NC)
 zaddr_pageent:
-   ld de,ZMAP_TABENTLEN
-   ld d,a
-   mlt de   ; de = table offset
+   MLT_A(ZMAP_TABENTLEN, R_DE)
    ld ix,(zmap_table)
    add ix,de ; pointer to table entry
    ret

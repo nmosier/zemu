@@ -99,9 +99,7 @@ zemu_perror_sep: .db ": ",0
 ;;  CF is set
 ;; DESTROYS: de, ix
 zemu_strerror:
-   ld d,a
-   ld e,3
-   mlt de
+   MLT_A(LONG_SIZE, R_DE)
    ld ix,zerrtab
    add ix,de
    ld hl,(ix+0)

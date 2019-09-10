@@ -576,9 +576,9 @@ zstr_encode.mark:
    
 zstr_encode.empty:
    ex de,hl
-   ld (hl),HIGH(ZSTR_EMPTYSTR)
+   ld (hl),HIGH_IMM(ZSTR_EMPTYSTR)
    inc hl
-   ld (hl),LOW(ZSTR_EMPTYSTR)
+   ld (hl),LOW_IMM(ZSTR_EMPTYSTR)
    inc hl
    dec c   ; empty Z-string takes up 1 word
    xor a,a ; NC, Z
@@ -620,9 +620,9 @@ zstr_encode_pad:
    inc hl
    ;; pad out
 zstr_encode_pad.loop:
-   ld (hl),HIGH(ZSTR_PADWORD)
+   ld (hl),HIGH_IMM(ZSTR_PADWORD)
    inc hl
-   ld (hl),LOW(ZSTR_PADWORD)
+   ld (hl),LOW_IMM(ZSTR_PADWORD)
    inc hl
    djnz zstr_encode_pad.loop
 zstr_encode_pad.terminate:

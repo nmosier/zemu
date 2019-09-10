@@ -5,28 +5,14 @@
 
 #include "zti.inc"
 
+#if TI84PCE
+#include "ti84pce/zdisp.inc"
+#endif
+#if TI83PLUS
+#include "ti83plus/zdisp.inc"
+#endif
+
 SFONT_HEIGHT .equ $0e ; TODO: adjust this?
-
-;; TODO -- find corresponding values for TI-83 Plus
-#ifdef TI84PCE
-SFONT_TAB_ADDR .equ $092694
-SFONT_TAB_ENTLEN .equ $19
-#endif
-#ifdef TI83PLUS
-SFONT_TAB_ENTLEN .equ $08
-#endif
-
-#ifdef TI84PCE
-DISP_WIDTH .equ lcdWidth
-DISP_HEIGHT .equ lcdHeight
-#endif
-#ifdef TI83PLUS
-DISP_WIDTH .equ 128
-DISP_HEIGHT .equ 96
-#endif
-
-;; TODO -- this is TI84PCE-dependent
-PIXEL_SIZE .equ 2
 
 ;; struct zrect
 ;; L orgcol
@@ -39,13 +25,6 @@ ZRECT.WIDTH  .equ ZRECT.ORGROW + BYTE_SIZE
 ZRECT.HEIGHT .equ ZRECT.WIDTH + LONG_SIZE
 
 ZRECT_SIZE .equ ZRECT.HEIGHT + BYTE_SIZE
-
-#ifdef TI84PCE
-#define DCOL DL
-#endif
-#ifdef TI83PLUS
-#define DCOL DB
-#endif
 
 #define DROW DB
 

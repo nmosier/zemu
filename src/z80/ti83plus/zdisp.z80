@@ -1,0 +1,25 @@
+#include "zdisp.inc"
+
+;; zdisp_clearrect -- clear rectangle
+;; INPUTS:
+;;  ix = zrect pointer
+;; OUTPUTS:
+;;  ix = zrect pointer
+;; DESTROYS: (all)
+;; ERRORS: no.
+zdisp_clearrect:
+   ld a,(ix+ZRECT.ORGROW)
+   ld h,a
+   add a,(ix+ZRECT.HEIGHT)
+   dec a
+   ld d,a
+   ld a,(ix+ZRECT.ORGCOL)
+   ld l,a
+   add a,(ix+ZRECT.WIDTH)
+   dec a
+   ld e,a
+   push ix
+   call _ClearRect
+   pop ix
+   ret
+

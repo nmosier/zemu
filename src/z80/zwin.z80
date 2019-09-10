@@ -51,7 +51,7 @@ zwin_clear:
 zwin_fill:
    push ix
    LEA_IX_IX(ZWIN.RECT, R_DE)
-   call zdisp_fillrect
+   call zdisp_clearrect
    pop ix
    ret
 
@@ -233,7 +233,7 @@ zwin_unputcursor:
    ld (ix+ZRECT.WIDTH),bc
    ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
    ld hl,$ffff          ; white
-   call zdisp_fillrect
+   call zdisp_clearrect
    ld ix,ZRECT_SIZE
    add ix,sp
    ld sp,ix

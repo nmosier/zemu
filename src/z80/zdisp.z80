@@ -3,6 +3,21 @@
 #include "zdisp.inc"
 #include "zti.inc"
 
+#if TI84PCE
+#include "ti84pce/zdisp.z80"
+#endif
+#if TI83PLUS
+#include "ti83plus/zdisp.z80"
+#endif
+
+;; zdisp_init -- do basic initialization of LCD
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: a
+zdisp_init:
+   ret
+
 ;; sfont_width -- get width of small font character
 ;; INPUTS:
 ;;  a = character
@@ -27,7 +42,7 @@ sfont_width:
    pop de
    pop hl
    ret
-   
+
 
 ;; zdisp_rowaddr -- address of row in VRAM
 ;; INPUTS:
@@ -37,10 +52,8 @@ sfont_width:
 ;; DESTROYS: a, de
 ;; ERRORS: no.
 zdisp_rowaddr:
-   MLT_A(lcdWidth/2, R_HL)
-   add hl,hl
-   add hl,hl
-   ld de,vRam
+   MLT_A_DISP_WIDTH(R_HL)
+   ld de,DISP_VRAM
    add hl,de
    ret
 
@@ -54,47 +67,16 @@ zdisp_rowaddr:
 ;; DESTROYS: a, de
 ;; ERRORS: no.
 zdisp_pixaddr:
+#if TI84PCE
+   add hl,hl ; x2 because there are 2 bytes per pixel
+#endif
    push hl
    call zdisp_rowaddr
    pop de
    add hl,de
-   add hl,de ; x2 because there are 2 bytes per pixel
    ret
 
-;; zdisp_fillrect -- fill rectangle
-;; INPUTS:
-;;  hl = fill value
-;;  ix = pointer to zrect
-;; OUTPUTS:
-;;  ix = pointer to zrect
-;; DESTROYS: (all)
-;; ERRORS: no.
-zdisp_fillrect:
-   ld (fillRectColor),hl
-   ld hl,(ix+ZRECT.ORGCOL)
-   ld de,(ix+ZRECT.WIDTH)
-   add hl,de
-   ex de,hl
-   dec de
-   ld hl,(ix+ZRECT.ORGCOL)
-   ; cols set
-   ld a,(ix+ZRECT.ORGROW)
-   ld b,a
-   add a,(ix+ZRECT.HEIGHT)
-   dec a
-   ld c,a
-   push ix
-   call _FillRect
-   pop ix
-   ret
 
-;; zdisp_init -- do basic initialization of LCD
-;; INPUTS: (none)
-;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: a
-zdisp_init:
-   ret
 
 
 ;; zdisp_scrollrect_up -- shift rectangle upwards in VRAM
@@ -106,106 +88,4 @@ zdisp_init:
 zdisp_scrollrect_up:
    call zdisp_scrollrect_up.copy
    call zdisp_scrollrect_up.clear
-   ret
-
-;; zdisp_scrollrect_up.copy -- scroll up by copying contents of VRAM
-;; INPUTS:
-;;  ix = rectangle
-;;  a = upward shift
-;; OUTPUTS:
-;;  ix = rectangle
-;;  a = upward shift
-;; ERRORS: no.
-;; DESTROYS: ???
-zdisp_scrollrect_up.copy:
-   push af
-   ld b,(ix+ZRECT.HEIGHT)
-   ld c,a
-   sub a,b
-   jr nc,zdisp_scrollrect_up.copy.done  ; nothing to copy
-   neg
-   ld b,a
-   ;; b stores number of rows to copy (b > 0)
-   push bc
-   ;; compute src and dst addresses
-   ;;  compute dst address
-   ld a,(ix+ZRECT.ORGROW)
-   ld hl,(ix+ZRECT.ORGCOL)
-   call zdisp_pixaddr
-   push hl
-   ;;  compute src address
-   add a,c  ;  add upward shift
-   ld hl,(ix+ZRECT.ORGCOL)
-   call zdisp_pixaddr
-   push hl
-   jr zdisp_scrollrect_up.copy.entry
-zdisp_scrollrect_up.copy.loop:
-   push bc
-   ld bc,(ix+ZRECT.WIDTH)
-   sla c
-   rl b
-   or a,a
-   sbc hl,bc
-   ex de,hl
-   sbc hl,bc
-   ld bc,DISP_WIDTH*PIXEL_SIZE
-   add hl,bc
-   ex de,hl
-   add hl,bc
-   push de
-   push hl
-zdisp_scrollrect_up.copy.entry:
-   pop hl   ; src
-   pop de   ; dst
-   ld bc,(ix+ZRECT.WIDTH)
-   sla c
-   rl b
-   ldir
-   pop bc
-   djnz zdisp_scrollrect_up.copy.loop
-zdisp_scrollrect_up.copy.done:
-   pop af
-   ret
-
-
-;; zdisp_scrollrect_up.clear -- clear rectangle after scrolling up
-;; INPUTS:
-;;  ix = rectangle
-;;  a = upward shift (in pixels)
-;; OUTPUTS:
-;;  ix = rectangle
-;;  a = upward shift
-;; ERRORS: no.
-;; DESTROYS: (all)
-zdisp_scrollrect_up.clear:
-   ;; clear lower rectangle that will be exposed by scroll
-   ;; initialize clear-rect
-   push af
-   push ix
-   lea hl,ix
-   ld ix,-ZRECT_SIZE
-   add ix,sp
-   ld sp,ix
-   lea de,ix
-   ld bc,ZRECT_SIZE
-   ldir
-   ld b,a
-   ld c,(ix+ZRECT.HEIGHT)
-   ;; clear-rect.height <- min(upward-shift, rect-height)
-   cp a,c   ; flags(shift - rect.height)
-   jr c,_
-   ld a,c
-_  ld (ix+ZRECT.HEIGHT),a  ; save clear-rect.height
-   ;; clear-rect.orgrow <- rect.orgrow + rect.height - clear-rect.height
-   neg
-   add a,c
-   add a,(ix+ZRECT.ORGROW)
-   ld (ix+ZRECT.ORGROW),a  ; save clear-rect.orgrow
-   ;; NOTE: orgcol and width stay the same.
-   ld hl,$ffff     ; white
-   call zdisp_fillrect
-   lea hl,ix+ZRECT_SIZE
-   ld sp,hl
-   pop ix
-   pop af
    ret

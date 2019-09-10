@@ -8,6 +8,32 @@ ZTRUE .equ  $000001
 
 VARNAMELEN .equ 8
 
+;; Register Equates ;;
+;; 24-/16-bit Registers
+R_HL .equ 0
+R_DE .equ 1
+R_BC .equ 2
+R_IX .equ 3
+R_IY .equ 4
+
+;; 8-bit Registers
+R_LOW_OFF .equ 10
+R_L   .equ R_LOW_OFF + R_HL
+R_E   .equ R_LOW_OFF + R_DE
+R_C   .equ R_LOW_OFF + R_BC
+R_IXL .equ R_LOW_OFF + R_IX
+R_IYL .equ R_LOW_OFF + R_IY
+
+R_HIGH_OFF .equ 20
+R_H   .equ R_HIGH_OFF + R_HL
+R_D   .equ R_HIGH_OFF + R_DE
+R_B   .equ R_HIGH_OFF + R_BC
+R_IXH .equ R_HIGH_OFF + R_IX
+R_IYH .equ R_HIGH_OFF + R_IY
+
+;; Conversion
+#define R_LOW(reg) reg+R_LOW_OFF
+#define R_HIGH(reg) reg+R_HIGH_OFF
 
 #macro RESB(n)
 #if n > 0
@@ -35,12 +61,12 @@ VARNAMELEN .equ 8
     1 << n
 #endmacro
 
-#macro LOW(i)
+#macro LOW_IMM(i)
     i & $ff
 #endmacro
 
-#macro HIGH(i)
-    LOW((i >> 8))
+#macro HIGH_IMM(i)
+    LOW_IMM((i >> 8))
 #endmacro
 
 
@@ -66,12 +92,6 @@ _
    inc b
 _
 #endmacro
-
-R_HL .equ 0
-R_DE .equ 1
-R_BC .equ 2
-R_IX .equ 3
-R_IY .equ 4
 
 #macro LD_REG_IMM(reg, imm)
 #if reg == R_HL
@@ -107,6 +127,54 @@ R_IY .equ 4
 #endif
 #endmacro
 
+
+#macro LD_REG8_FROM_IX(off, reg8)
+#if reg8 == R_H
+   ld h,(ix+off)
+#elif reg8 == R_L
+   ld l,(ix+off)
+#elif reg8 == R_D
+   ld d,(ix+off)
+#elif reg8 == R_E
+   ld e,(ix+off)
+#elif reg8 == R_B
+   ld b,(ix+off)
+#elif reg8 == R_C
+   ld c,(ix+off)
+#elif reg8 == R_IXH
+   ld ixh,(ix+off)
+#elif reg8 == R_IXL
+   ld ixl,(ix+off)
+#elif reg8 == R_IYH
+   ld iyh,(ix+off)
+#elif reg8 == R_IYL
+   ld ixl,(ix+off)
+#endif
+#endmacro
+
+#macro LD_REG8_IMM(imm, reg8)
+#if reg8 == R_H
+   ld h,imm
+#elif reg8 == R_L
+   ld l,imm
+#elif reg8 == R_D
+   ld d,imm
+#elif reg8 == R_E
+   ld e,imm
+#elif reg8 == R_B
+   ld b,imm
+#elif reg8 == R_C
+   ld c,imm
+#elif reg8 == R_IXH
+   ld ixh,imm
+#elif reg8 == R_IXL
+   ld ixl,imm
+#elif reg8 == R_IYH
+   ld iyh,imm
+#elif reg8 == R_IYL
+   ld ixl,imm
+#endif
+#endmacro
 
 #endif
 

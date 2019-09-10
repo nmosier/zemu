@@ -1,0 +1,127 @@
+#include "zdisp.inc"
+
+;; zdisp_scrollrect_up.copy -- scroll up by copying contents of VRAM
+;; INPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; OUTPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; ERRORS: no.
+;; DESTROYS: ???
+zdisp_scrollrect_up.copy:
+   push af
+   ld b,(ix+ZRECT.HEIGHT)
+   ld c,a
+   sub a,b
+   jr nc,zdisp_scrollrect_up.copy.done  ; nothing to copy
+   neg
+   ld b,a
+   ;; b stores number of rows to copy (b > 0)
+   push bc
+   ;; compute src and dst addresses
+   ;;  compute dst address
+   ld a,(ix+ZRECT.ORGROW)
+   ld hl,(ix+ZRECT.ORGCOL)
+   call zdisp_pixaddr
+   push hl
+   ;;  compute src address
+   add a,c  ;  add upward shift
+   ld hl,(ix+ZRECT.ORGCOL)
+   call zdisp_pixaddr
+   push hl
+   jr zdisp_scrollrect_up.copy.entry
+zdisp_scrollrect_up.copy.loop:
+   push bc
+   ld bc,(ix+ZRECT.WIDTH)
+   sla c
+   rl b
+   or a,a
+   sbc hl,bc
+   ex de,hl
+   sbc hl,bc
+   ld bc,DISP_WIDTH*PIXEL_SIZE
+   add hl,bc
+   ex de,hl
+   add hl,bc
+   push de
+   push hl
+zdisp_scrollrect_up.copy.entry:
+   pop hl   ; src
+   pop de   ; dst
+   ld bc,(ix+ZRECT.WIDTH)
+   sla c
+   rl b
+   ldir
+   pop bc
+   djnz zdisp_scrollrect_up.copy.loop
+zdisp_scrollrect_up.copy.done:
+   pop af
+   ret
+
+
+;; zdisp_scrollrect_up.clear -- clear rectangle after scrolling up
+;; INPUTS:
+;;  ix = rectangle
+;;  a = upward shift (in pixels)
+;; OUTPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; ERRORS: no.
+;; DESTROYS: (all)
+zdisp_scrollrect_up.clear:
+   ;; clear lower rectangle that will be exposed by scroll
+   ;; initialize clear-rect
+   push af
+   push ix
+   lea hl,ix
+   ld ix,-ZRECT_SIZE
+   add ix,sp
+   ld sp,ix
+   lea de,ix
+   ld bc,ZRECT_SIZE
+   ldir
+   ld b,a
+   ld c,(ix+ZRECT.HEIGHT)
+   ;; clear-rect.height <- min(upward-shift, rect-height)
+   cp a,c   ; flags(shift - rect.height)
+   jr c,_
+   ld a,c
+_  ld (ix+ZRECT.HEIGHT),a  ; save clear-rect.height
+   ;; clear-rect.orgrow <- rect.orgrow + rect.height - clear-rect.height
+   neg
+   add a,c
+   add a,(ix+ZRECT.ORGROW)
+   ld (ix+ZRECT.ORGROW),a  ; save clear-rect.orgrow
+   ;; NOTE: orgcol and width stay the same.
+   call zdisp_clearrect
+   lea hl,ix+ZRECT_SIZE
+   ld sp,hl
+   pop ix
+   pop af
+   ret
+
+
+
+;; zdisp_clearrect -- clear rectangle
+;; INPUTS:
+;;  ix = zrect pointer
+;; OUTPUTS:
+;;  ix = zrect pointer
+;; DESTROYS: (all)
+;; ERRORS: no.
+zdisp_clearrect:
+   ld hl,(ix+ZRECT.ORGCOL)
+   ld de,(ix+ZRECT.WIDTH)
+   add hl,de
+   dec hl
+   ex de,hl
+   ld hl,(ix+ZRECT.ORGCOL)
+   ld a,(ix+ZRECT.ORGROW)
+   ld b,a
+   add a,(ix+ZRECT.HEIGHT)
+   dec a
+   ld c,a
+   push ix
+   call _ClearRect
+   pop ix

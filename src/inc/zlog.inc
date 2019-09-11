@@ -14,15 +14,12 @@ LOGNUM_OPCODE .equ $F1
    .db str,0
 #endmacro
 
-#macro LOGNUM(num)
+#macro LOGNUM(num)             
    .db LOG_PREFIX, LOGNUM_OPCODE
    .dl num   
 #endmacro
 
-
-#macro LOGLN()
-   LOGSTR($0A)
-#endmacro
+#define LOGLN() LOGSTR($0A)
 
 #endif
 

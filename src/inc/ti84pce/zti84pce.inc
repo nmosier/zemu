@@ -33,18 +33,18 @@ PENCOL_SIZE .equ LONG_SIZE
 #define LD_HL_FROM_IX(off) ld hl,(ix+off)
 
 #macro MLT_A(off, reg16)
-#if reg16 == R_HL
-   ld hl,off
-   ld h,a
-   mlt hl
-#elif reg16 == R_DE
-   ld de,off
-   ld d,a
-   mlt de
-#elif reg16 == R_BC
-   ld bc,off
-   ld b,a
-   mlt bc
+#if reg16 == R_HL       
+   ld hl,off            
+   ld h,a               
+   mlt hl               
+#elif reg16 == R_DE     
+   ld de,off            
+   ld d,a               
+   mlt de               
+#elif reg16 == R_BC     
+   ld bc,off            
+   ld b,a               
+   mlt bc               
 #endif
 #endmacro
 

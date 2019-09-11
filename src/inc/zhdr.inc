@@ -50,21 +50,13 @@ ZHDR_DEFENT_BYTE   .equ 3
 ZHDR_DEFENT_WORD   .equ 4
 
 ;; Defaults Entry Construction Macros ;;
-#macro D_ZHDR_DEFENT_NULL()
-   .db ZHDR_DEFENT_NULL
-#endmacro
+#define D_ZHDR_DEFENT_NULL() .db ZHDR_DEFENT_NULL
 
-#macro D_ZHDR_DEFENT_SETBIT(off, b)
-   .db ZHDR_DEFENT_SETBIT, off, b
-#endmacro
+#define D_ZHDR_DEFENT_SETBIT(off, b) .db ZHDR_DEFENT_SETBIT, off, b
 
-#macro D_ZHDR_DEFENT_RESBIT(off, b)
-   .db ZHDR_DEFENT_RESBIT, off, b
-#endmacro
+#define D_ZHDR_DEFENT_RESBIT(off, b) .db ZHDR_DEFENT_RESBIT, off, b
 
-#macro D_ZHDR_DEFENT_BYTE(off, val)
-   .db ZHDR_DEFENT_BYTE, off, val
-#endmacro
+#define D_ZHDR_DEFENT_BYTE(off, val) .db ZHDR_DEFENT_BYTE, off, val
 
 #macro D_ZHDR_DEFENT_WORD(off, val)
    .db ZHDR_DEFENT_WORD, off

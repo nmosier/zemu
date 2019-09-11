@@ -35,5 +35,4 @@ ZRECT_SIZE .equ ZRECT.HEIGHT + BYTE_SIZE
        DROW height
 #endmacro
 
-
 #endif

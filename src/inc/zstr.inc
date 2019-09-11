@@ -77,39 +77,29 @@ ZSTR_FLAGS_WCHAR     .equ 3  ; expecting 10-bit ASCII char?
 
 STRLEN_LONG .equ 8
 
-#macro A0(c)
-       c-'a'+ZSTR_AMIN
-#endmacro
+#define A0(c)  c-'a'+ZSTR_AMIN
 
-#macro A1(c)
-       c-'A'+ZSTR_AMIN
-#endmacro
+#define A1(c)  c-'A'+ZSTR_AMIN
 
-#macro A2(n)
-       n+ZSTR_AMIN
-#endmacro       
+#define A2(n) n+ZSTR_AMIN
 
-#macro STRW(a,b,c)
-       (a << (ZSTR_CODE_WIDTH * 2)) + (b << ZSTR_CODE_WIDTH) + c
-#endmacro
+#define STRW(a,b,c) (a << (ZSTR_CODE_WIDTH * 2)) + (b << ZSTR_CODE_WIDTH) + c
 
-#macro STRWT(a,b,c)
-       (STRW(a,b,c)) | $8000
-#endmacro       
+#define STRWT(a,b,c) (STRW(a,b,c)) | $8000
 
 #macro JCLASS(low, hi, label)
-       cp a,low
-       jr c,_
-       cp a,hi+1
-       jr c,label
-_      
+       cp a,low              
+       jr c,_                
+       cp a,hi+1             
+       jr c,label            
+_
 #endmacro
 
 #macro JCHAR(cmpval, newval, label)
-       cp a,cmpval
-       jr nz,_
-       ld a,newval
-       jr label
+       cp a,cmpval                 
+       jr nz,_                     
+       ld a,newval                 
+       jr label                    
 _
 #endmacro
 

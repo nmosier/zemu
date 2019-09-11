@@ -46,10 +46,10 @@ ZWIN_CLEARCOLOR .equ $ff
   DROW orgrow ; currow
   DCOL orgcol ; orgcol
   DROW orgrow ; orgrow
-  DCOL width  ; width
+  DCOL width  ; width 
   DROW height ; height
   DB flags  ; flags
-#if buflen > 0
+#if buflen > 0     
   DL buflen ; buflen
   DL _      ; bufptr
   DL 0      ; bufanc
@@ -57,9 +57,7 @@ _ RESB(buflen) ; buf
 #endif
 #endmacro
 
-#macro RES_ZWIN(buflen)
-  RESB(ZWIN_BUF_BASE_SIZE + buflen)
-#endmacro
+#define RES_ZWIN(buflen) RESB(ZWIN_BUF_BASE_SIZE + buflen)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; GLOBAL VARIABLES ;;;;

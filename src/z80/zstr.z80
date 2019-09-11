@@ -683,22 +683,20 @@ zstr_wchartoch:
 ;; zstr_ach2zch -- convert 
 
 #macro WCHAR_ENT_RANGE(in_first, in_last, out_first, ioflags)
-   .db ioflags
+   .db ioflags                                               
    .dl in_first
    .db out_first
    .db in_last - in_first + 1
 #endmacro
 
 #macro WCHAR_ENT_SINGLE(in_ch, out_ch, ioflags)
-   .db ioflags | 1
-   .dl in_ch
-   .db out_ch
+   .db ioflags | 1                             
+   .dl in_ch                                   
+   .db out_ch                                  
    .db 1
 #endmacro
 
-#macro WCHAR_ENT_END()
-   .db 0
-#endmacro
+#define WCHAR_ENT_END() .db 0
 
 zstr_wchartab:
    WCHAR_ENT_SINGLE(ZSCII_NUL, ASCII_NUL, WCHAR_OUTM)

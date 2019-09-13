@@ -66,13 +66,17 @@ dbg: $(ZTARGET_DBG)
 %.8xp: %.z80
 	spasm -E -L $(DPLATFORM) $^ $@
 
-zmap: zmap.o
-	gcc -o $@ $^
+$(BIN_DIR)/%: $(OBJ_DIR)/%.o
+	gcc -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	gcc $(CFLAGS) -o $@ $^
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(OBJ_DIR)
+	gcc -c $(CFLAGS) -o $@ $<
 
+$(BIN_DIR) $(OBJ_DIR):
+	mkdir $@
 
+$(BIN_DIR)/%: $(SRC_DIR)/%
+	cp $^ $@
 
 .PHONY: clean
 clean:

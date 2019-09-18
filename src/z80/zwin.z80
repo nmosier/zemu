@@ -17,12 +17,10 @@ zwin_select:
    ld a,(ix+ZWIN.CURROW)
    ld (penRow),a
    LD_HL_FROM_IX(ZWIN.CURCOL)
-#ifdef TI84PCE
+#if TI84PCE
    ld (penCol),hl
-#else
-#ifdef TI83PLUS
+#elif TI83PLUS
    ld (penCol),l
-#endif
 #endif
    pop hl
    pop af

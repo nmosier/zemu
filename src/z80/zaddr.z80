@@ -3,7 +3,7 @@
 #include "zemu.inc"
 #include "zhdr.inc"
 #include "zutil.inc"
-
+#include "zaddr.inc"
 
 ;; zaddr_valid -- check whether address is valid
 ;; INPUTS:

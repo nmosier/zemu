@@ -1,4 +1,7 @@
-.lab
-.bin
-.8x?
+*.lab
+*.bin
+*.8x?
 *~
+obj/
+tmp
+dbg

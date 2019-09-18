@@ -29,7 +29,6 @@ PENCOL_SIZE .equ LONG_SIZE
 #define LD_IX_HL push hl \\ pop ix
 
 #define LEA_IX_IX(off, reg) lea ix,ix+off
-
 #define LD_HL_FROM_IX(off) ld hl,(ix+off)
 
 #macro MLT_A(off, reg16)

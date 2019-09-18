@@ -9,11 +9,9 @@ WORD_SIZE .equ 2
 #define DB .db
 #define DW .dw
 
-#ifdef TI84PCE
+#if TI84PCE
 #include "ti84pce/zti84pce.inc"
-#endif
-
-#ifdef TI83PLUS
+#elif TI83PLUS
 #include "ti83plus/zti83plus.inc"
 #endif
 

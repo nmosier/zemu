@@ -3,3 +3,7 @@
 .8x?
 *~
 .DS_Store
+cmake_install.cmake
+CMakeFiles/
+CMakeCache.txt
+Makefile

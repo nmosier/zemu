@@ -1,4 +1,4 @@
-function(add_8xp TARGET)
+function(add_8xp TARGET MAIN_SOURCE)
   cmake_parse_arguments(TI
     ""
     ""
@@ -22,33 +22,16 @@ function(add_8xp TARGET)
     endforeach()
   endif()
 
-  if (NOT DEFINED TI_SOURCES)
-    message(FATAL_ERROR "missing SOURCES")
-  endif()
-  list(LENGTH TI_SOURCES NSOURCES)
-  if (NSOURCES EQUAL 0)
-    message(FATAL_ERROR "empty SOURCES list")
-  endif()
-  set(SOURCES)
-  foreach(TI_SOURCE ${TI_SOURCES})
-    get_filename_component(SOURCE ${TI_SOURCE} ABSOLUTE)
-    list(APPEND SOURCES ${SOURCE})
-  endforeach()
-
-  set(COMBINED ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}-all.z80)
-  add_custom_command(OUTPUT ${COMBINED}
-    COMMAND cat ${SOURCES} > ${COMBINED}
-    DEPENDS ${SOURCES}
-    )
+  get_filename_component(MAIN_SOURCE ${MAIN_SOURCE} ABSOLUTE)
 
   add_custom_command(OUTPUT ${OUTPUT}
-    COMMAND ${SPASM} -N -E ${INCLUDE_DIRS} -I ${CMAKE_CURRENT_SOURCE_DIR} ${DEFINITIONS} ${COMBINED} ${OUTPUT}
+    COMMAND ${SPASM} -N -E ${INCLUDE_DIRS} -I ${CMAKE_CURRENT_SOURCE_DIR} ${DEFINITIONS} ${MAIN_SOURCE} ${OUTPUT}
     COMMAND_EXPAND_LISTS
-    DEPENDS ${COMBINED} ${INCLUDES}
+    DEPENDS ${MAIN_SOURCE} ${SOURCES} ${INCLUDES}
     )
   
   add_custom_target(${TARGET} ALL
     DEPENDS ${OUTPUT}
     )
-
+  
 endfunction()

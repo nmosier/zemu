@@ -191,7 +191,7 @@ appvar_trunc:
    push hl     ; appvar data  ix-0L
    push bc     ; new size     ix-1L
    ;; fetch current size of appvar
-   CLEAR_UPPER_BC
+   CLEAR_UPPER_DE
    ld e,(hl)
    inc hl
    ld d,(hl)
@@ -219,15 +219,9 @@ appvar_trunc.insert:
 appvar_trunc.del:
    ;; calculate memory to delete
    ex de,hl
-#if 0 
-   ld hl,0
-   or a,a
-   sbc hl,de
-#else
    or a,a
    sbc hl,hl
    sbc hl,de
-#endif
    ;; calculate deletion address (mid-appvar)
    ld hl,(ix-0*LONG_SIZE)
    ld bc,(ix-1*LONG_SIZE)

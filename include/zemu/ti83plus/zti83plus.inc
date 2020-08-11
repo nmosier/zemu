@@ -11,11 +11,16 @@ PENCOL_SIZE .equ BYTE_SIZE
 
 #define DL DW
 
-#define CLEAR_UPPER_HL
-#define CLEAR_UPPER_DE
-#define CLEAR_UPPER_BC
-#define CLEAR_UPPER_IX
-#define CLEAR_UPPER_IY
+#macro CLEAR_UPPER_HL
+#endmacro
+#macro CLEAR_UPPER_DE
+#endmacro
+#macro CLEAR_UPPER_BC
+#endmacro
+#macro CLEAR_UPPER_IX
+#endmacro
+#macro CLEAR_UPPER_IY
+#endmacro
 
 #define UCAST_A_TO_HL   ld h,0 \\ ld l,a
 #define UCAST_A_TO_DE   ld d,0 \\ ld e,a

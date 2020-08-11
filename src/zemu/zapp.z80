@@ -8,6 +8,7 @@
 ;  hl = name string (8 chars)
 ; OUTPUTS: (none)
 ; DESTROYS: (all)
+; *** portable ***
 appvar_to_OP1:
    ld de,OP1
    ld a,AppVarObj
@@ -33,16 +34,23 @@ appvar_to_OP1.zero:
 ;; OUTPUTS:
 ;;  de = pointer to appvar data
 ;;  a = whether in RAM ($00 = no, $ff = yes)
+;;  ZF = whether in RAM (z = no, nz = yes)
 ;; ERRORS: yes.
 ;; NOTE: Doesn't change storage location (archive vs. RAM).
+;; *** portable ***
 appvar_find:
    call appvar_to_OP1
    call _ChkFindSym
    ld a,ZERR_NOVAR
    ret c
+#if TI84PCE
    call _ChkInRAM
+#elif TI83PLUS
+   ld a,b
+   or a,a
+#endif
    ld a,$ff
-   jr z,_   ; in RAM, so don't skip SYMTABENT
+   jr z,_ ; in RAM, so don't skip syment
    ex de,hl
    call syment_size
    add hl,de   ; skip entry
@@ -52,7 +60,6 @@ _  or a,a
    ret
 
 
-
 ; appvar_to_RAM -- bring appvar into RAM
 ; INPUTS:
 ;  hl = name string
@@ -60,18 +67,18 @@ _  or a,a
 ;  de = pointer to appvar data in RAM
 ; ERROR: a = error code, CF set
 ; DESTROYS: (all), OP1
+; *** portable ***
 appvar_to_RAM:
    call appvar_find
    ret c ; AppVar not found
-   call _ChkInRAM
-   jr z,appvar_to_RAM.done
+   jr nz,appvar_to_RAM.done
    ex de,hl
-   ld de,0 ; ld deu,0
+   CLEAR_UPPER_DE
    ld e,(hl)
    inc hl
    ld d,(hl)
    call _MemChk
-   scf \ ccf
+   or a,a
    sbc hl,de
    ld a,ZERR_NOMEM
    ret c
@@ -88,6 +95,7 @@ appvar_to_RAM.done:
 ;;  de = pointer to appvar data
 ;; ERROR: yes.
 ;; TODO: don't use MemChk (use EnoughMem instead).
+;; *** portable ***
 appvar_touch:
    push bc
    call appvar_to_RAM
@@ -107,6 +115,7 @@ appvar_touch:
    or a,a   ; NC
    ret
 
+#if 0
 ;; appvar_create -- create appvar (deleting existing one of same name).
 ;; INPUTS:
 ;;  hl = name string
@@ -116,21 +125,22 @@ appvar_touch:
 ;; DESTROYS: (all)
 ;; ERROR: yes.
 appvar_create:
-   push.s de
+   push de
    call appvar_to_OP1
    call _ChkFindSym
    jr c,appvar_create.deleted
    call _DelVarArc
 appvar_create.deleted:
    call _MemChk
-   pop.s de
+   pop de
    sbc.s hl,de
    ld a,ZERR_NOMEM
    ret c ; not enough mem
-   ex.s de,hl ; hl = size
+   ex de,hl ; hl = size
    call _CreateAppVar
    ; de = ptr to appvar
    ret
+#endif
 
 ;; appvar_copy -- copy contents of one appvar into another
 ;; INPUTS:
@@ -140,12 +150,13 @@ appvar_create.deleted:
 ;;  hl = dst appvar data ptr
 ;; ERRORS: yes (memory)
 ;; DESTROYS: (all)
+;; *** portable ***
 appvar_copy:
    push de        ; preserve dst name
    call appvar_find
    ex de,hl ; hl <- address (regardless of whether in RAM/archive)
    ;; fetch src size
-   ld bc,0
+   CLEAR_UPPER_BC
    ld c,(hl)
    inc hl
    ld b,(hl)
@@ -170,19 +181,20 @@ appvar_copy:
 ;;  hl = pointer to appvar data
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 appvar_trunc:
    ;; initialize stack record
    push ix
-   ld ix,-3
+   ld ix,-LONG_SIZE
    add ix,sp
-   push hl     ; appvar data  ix-0
-   push bc     ; new size     ix-3
+   push hl     ; appvar data  ix-0L
+   push bc     ; new size     ix-1L
    ;; fetch current size of appvar
-   ld de,0
+   CLEAR_UPPER_BC
    ld e,(hl)
    inc hl
    ld d,(hl)
-   push de     ; cur size     ix-6
+   push de     ; cur size     ix-2L
    ;; calculate extra memory required
    ex de,hl
    or a,a
@@ -195,8 +207,8 @@ appvar_trunc.insert:
    call _EnoughMem    ; de <- extra mem
    jr c,appvar_trunc.err
    ;; compute end of appvar
-   ld hl,(ix-0)
-   ld bc,(ix-6)
+   ld hl,(ix-LONG_SIZE*0)
+   ld bc,(ix-LONG_SIZE*2)
    add hl,bc
    ex de,hl
    ;; NOTE: hl = extra mem; de = end of appvar
@@ -206,20 +218,26 @@ appvar_trunc.insert:
 appvar_trunc.del:
    ;; calculate memory to delete
    ex de,hl
+#if 0 
    ld hl,0
    or a,a
    sbc hl,de
+#else
+   or a,a
+   sbc hl,hl
+   sbc hl,de
+#endif
    ;; calculate deletion address (mid-appvar)
-   ld hl,(ix-0)
-   ld bc,(ix-3)
+   ld hl,(ix-0*LONG_SIZE)
+   ld bc,(ix-1*LONG_SIZE)
    add hl,bc
    ;; delete memory
    call _DelMem
 appvar_trunc.update:
    pop ix
    ;; update size field
-   ld hl,(ix-0)
-   ld bc,(ix-3)
+   ld hl,(ix-0*LONG_SIZE)
+   ld bc,(ix-1*LONG_SIZE)
    ld (hl),c
    inc hl
    ld (hl),b
@@ -252,7 +270,6 @@ appvar_touch_trunc:
    jp nc,appvar_trunc
    ret
 
-
 ;; syment_size -- compute size of symbol table entry
 ;; INPUTS:
 ;;  hl = pointer to symbol table entry
@@ -260,14 +277,12 @@ appvar_touch_trunc:
 ;;  de = size
 ;; DESTROYS: all but hl
 ;; ERRORS: no.
+;; *** portable ***
 syment_size:
    ld bc,SYMENT.NL
-   ld de,0
    ld a,SYMENT.VARNAME
    add hl,bc
    add a,(hl)
    sbc hl,bc   ; always NC
-   ld e,a
+   UCAST_A_TO_DE
    ret
-
-

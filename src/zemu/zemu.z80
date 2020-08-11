@@ -8,8 +8,11 @@
 .assume ADL=1
 .org userMem-2
 
-
+#if TI84PCE
 .db tExtTok, tAsm84CeCmp
+#elif TI83PLUS
+.db tAsmCmp
+#endif
 
 start:
    call zdisp_init

@@ -21,7 +21,8 @@ zwin_select:
    ld (penCol),hl
 #else
 #ifdef TI83PLUS
-   ld (penCol),l
+   ld a,l
+   ld (penCol),a
 #endif
 #endif
    pop hl

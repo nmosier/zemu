@@ -30,18 +30,30 @@ PENCOL_SIZE .equ BYTE_SIZE
 #define LD_BC_DE ld b,d \\ ld c,e
 #define LD_HL_BC ld h,b \\ ld l,c
 #define LD_DE_BC ld d,b \\ ld e,c
-#define LD_IX_DE ld ixh,d \\ ld ixl,e
-#define LD_IX_HL ld ixh,h \\ ld ixl,l
-
 
 #macro LEA_IX_IX(off, reg) 
    LD_REG_IMM(reg, off)     
    ADD_IX_REG(reg)
 #endmacro
 
-#macro LD_HL_FROM_IX(off)
+#macro LEA_HL_IX(off)
+   push af
+   ld a,off
+   call lea_hl_ix
+   pop af
+#endmacro
+
+#macro LD_HLL_FROM_IX(off)
    ld l,(ix+off)         
-   ld h,(ix+off)
+   ld h,(ix+off+1)
+#endmacro
+#macro LD_DEL_FROM_IX(off)
+   ld e,(ix+off)
+   ld d,(ix+off+1)
+#endmacro
+#macro LD_BCL_FROM_IX(off)
+   ld c,(ix+off)
+   ld b,(ix+off+1)
 #endmacro
 
 #macro MLT_A(off, reg16) 

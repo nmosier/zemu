@@ -11,12 +11,13 @@
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+;; *** portable ***
 zwin_select:
    push af
    push hl
    ld a,(ix+ZWIN.CURROW)
    ld (penRow),a
-   LD_HL_FROM_IX(ZWIN.CURCOL)
+   LD_HLL_FROM_IX(ZWIN.CURCOL)
 #ifdef TI84PCE
    ld (penCol),hl
 #else

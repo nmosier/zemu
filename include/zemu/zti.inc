@@ -26,4 +26,9 @@ ULONG_MAX .equ (1 << LONG_BITS) - 1
 PENROW_SIZE .equ BYTE_SIZE
 
 
+#define LD_IX_DE push de \\ pop ix
+#define LD_IX_HL push hl \\ pop ix
+#define LD_HL_IX push ix \\ pop hl
+#define LD_DE_IX push ix \\ pop de
+
 #endif

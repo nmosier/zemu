@@ -25,12 +25,13 @@ PENCOL_SIZE .equ LONG_SIZE
 #define LD_BC_DE push de \\ pop bc
 #define LD_HL_BC push bc \\ pop hl
 #define LD_DE_BC push bc \\ pop de
-#define LD_IX_DE push de \\ pop ix
-#define LD_IX_HL push hl \\ pop ix
 
 #define LEA_IX_IX(off, reg) lea ix,ix+off
+#define LEA_HL_IX(off) lea hl,ix+off
 
-#define LD_HL_FROM_IX(off) ld hl,(ix+off)
+#define LD_HLL_FROM_IX(off) ld hl,(ix+off)
+#define LD_DEL_FROM_IX(off) ld de,(ix+off)
+#define LD_BCL_FROM_IX(off) ld bc,(ix+off)
 
 #macro MLT_A(off, reg16)
 #if reg16 == R_HL       

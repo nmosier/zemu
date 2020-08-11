@@ -60,47 +60,6 @@ zdisp_scrollrect_up.copy.done:
    ret
 
 
-;; zdisp_scrollrect_up.clear -- clear rectangle after scrolling up
-;; INPUTS:
-;;  ix = rectangle
-;;  a = upward shift (in pixels)
-;; OUTPUTS:
-;;  ix = rectangle
-;;  a = upward shift
-;; ERRORS: no.
-;; DESTROYS: (all)
-zdisp_scrollrect_up.clear:
-   ;; clear lower rectangle that will be exposed by scroll
-   ;; initialize clear-rect
-   push af
-   push ix
-   lea hl,ix
-   ld ix,-ZRECT_SIZE
-   add ix,sp
-   ld sp,ix
-   lea de,ix
-   ld bc,ZRECT_SIZE
-   ldir
-   ld b,a
-   ld c,(ix+ZRECT.HEIGHT)
-   ;; clear-rect.height <- min(upward-shift, rect-height)
-   cp a,c   ; flags(shift - rect.height)
-   jr c,_
-   ld a,c
-_  ld (ix+ZRECT.HEIGHT),a  ; save clear-rect.height
-   ;; clear-rect.orgrow <- rect.orgrow + rect.height - clear-rect.height
-   neg
-   add a,c
-   add a,(ix+ZRECT.ORGROW)
-   ld (ix+ZRECT.ORGROW),a  ; save clear-rect.orgrow
-   ;; NOTE: orgcol and width stay the same.
-   call zdisp_clearrect
-   lea hl,ix+ZRECT_SIZE
-   ld sp,hl
-   pop ix
-   pop af
-   ret
-
 
 
 ;; zdisp_clearrect -- clear rectangle

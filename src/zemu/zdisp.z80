@@ -89,3 +89,4 @@ zdisp_scrollrect_up:
    call zdisp_scrollrect_up.copy
    call zdisp_scrollrect_up.clear
    ret
+

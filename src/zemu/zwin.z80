@@ -898,3 +898,4 @@ zwin_nopage:
 zwin_putcursor:
    ld a,ZWIN_CURSOR
    jp zwin_putc
+

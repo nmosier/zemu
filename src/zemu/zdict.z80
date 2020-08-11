@@ -77,3 +77,4 @@ zdict_search.cmp:
    pop ix
    ld a,0
    ret
+

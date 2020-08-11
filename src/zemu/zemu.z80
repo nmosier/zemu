@@ -190,27 +190,3 @@ zork_zmap: .db "ZORK",0
 story_name: RESB(STORY_NAME_MAXLEN)
 zemu_prompt_game: .db "Story name: ",0
 
-
-#include "zerr.z80"
-#include "zutil.z80"
-#include "zmem.z80"
-#include "zaddr.z80"
-#include "zmap.z80"
-#include "zcode.z80"
-#include "zvar.z80"
-#include "zobj.z80"
-#include "zop.z80"
-#include "zbranch.z80"
-#include "zexec.z80"
-#include "zstr.z80"
-#include "zrand.z80"
-#include "zcall.z80"
-#include "zdisp.z80"
-#include "zdbg.z80"
-#include "zwin.z80"
-#include "zin.z80"
-#include "zdict.z80"
-#include "zcpu.z80"
-#include "zsave.z80"
-#include "zapp.z80"
-#include "zhdr.z80"

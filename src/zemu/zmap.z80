@@ -231,3 +231,4 @@ zmap_header: .dl 0
 zmap_table:  .dl 0
 zmap_name_canonical: RESB(VARNAMELEN)
 zmap_name_current:   .db "ZEMUMAP",0
+

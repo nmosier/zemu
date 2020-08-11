@@ -1,4 +1,5 @@
 ;; zapp.z80 -- AppVar routines
+;; *** portable ***
 
 #include "zapp.inc"
 #include "zerr.inc"
@@ -262,6 +263,7 @@ appvar_trunc.err:
 ;;  hl = pointer to appvar data
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 appvar_touch_trunc:
    push bc
    call appvar_touch

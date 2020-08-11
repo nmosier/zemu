@@ -1,4 +1,5 @@
 ;; zerr.z80
+;; *** portable ***
 
 #include "zerr.inc"
 
@@ -28,30 +29,30 @@ zerrmsg_rdonly:     .db "write attempt to read-only memory",0
 zerrmsg_stackover:  .db "stack overflow",0
 
 zerrtab:
-   .dl zerrmsg_success
-   .dl zerrmsg_novar
-   .dl zerrmsg_nomem
-   .dl zerrmsg_badaddr
-   .dl zerrmsg_notavail
-   .dl zerrmsg_nolocl
-   .dl zerrmsg_stackempty
-   .dl zerrmsg_badinstr
-   .dl zerrmsg_badvarno
-   .dl zerrmsg_divzero
-   .dl zerrmsg_badobj
-   .dl zerrmsg_badattr
-   .dl zerrmsg_noprop
-   .dl zerrmsg_badprop
-   .dl zerrmsg_badchar
-   .dl zerrmsg_argc
-   .dl zerrmsg_intr
-   .dl zerrmsg_zchar
-   .dl zerrmsg_txtbuf
-   .dl zerrmsg_prsbuf
-   .dl zerrmsg_toolong
-   .dl zerrmsg_badname
-   .dl zerrmsg_rdonly
-   .dl zerrmsg_stackover
+   DL zerrmsg_success
+   DL zerrmsg_novar
+   DL zerrmsg_nomem
+   DL zerrmsg_badaddr
+   DL zerrmsg_notavail
+   DL zerrmsg_nolocl
+   DL zerrmsg_stackempty
+   DL zerrmsg_badinstr
+   DL zerrmsg_badvarno
+   DL zerrmsg_divzero
+   DL zerrmsg_badobj
+   DL zerrmsg_badattr
+   DL zerrmsg_noprop
+   DL zerrmsg_badprop
+   DL zerrmsg_badchar
+   DL zerrmsg_argc
+   DL zerrmsg_intr
+   DL zerrmsg_zchar
+   DL zerrmsg_txtbuf
+   DL zerrmsg_prsbuf
+   DL zerrmsg_toolong
+   DL zerrmsg_badname
+   DL zerrmsg_rdonly
+   DL zerrmsg_stackover
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:
@@ -64,12 +65,11 @@ zerrtab:
 ;;  (it can't fail), but it is rather for convenience so that
 ;;  error-handling code can jump to zemu_perror without having
 ;;  to set the carry flag after calling zemu_perror.
+;; *** portable ***
 zemu_perror:
    ld ix,win_main
    push af
-   or a,a ; NC
-   ld de,0
-   sbc hl,de
+   call cp_hl_0
    jr z,zemu_perror.bare
    call zwin_puts
    ld hl,zemu_perror.sep
@@ -98,6 +98,7 @@ zemu_perror_sep: .db ": ",0
 ;;  hl = error string (null-terminated)
 ;;  CF is set
 ;; DESTROYS: de, ix
+;; *** portable ***
 zemu_strerror:
    MLT_A(LONG_SIZE, R_DE)
    ld ix,zerrtab

@@ -1,10 +1,10 @@
+;; *** portable ***, mostly
+
 #include "zti.inc"
 #include "zemu.inc"
 #include "zerr.inc"
 #include "zutil.inc"
 #include "zstr.inc"
-
-
 
 ;; strncpy -- copy at most n bytes of null-terminated string
 ;; INPUTS:
@@ -16,6 +16,7 @@
 ;;  bc contains number of remaining chars (not including NUL)
 ;; DESTROYS: (all)
 ;; NOTE: n must be positive. Also, string cannot be empty.
+;; *** portable ***
 strncpy:
    xor a,a
    jr strncpy.entry
@@ -37,6 +38,7 @@ strncpy.entry:
 ;; OUTPUTS:
 ;;  hl, de point NUL-bytes of respective strings
 ;; DESTROYS: a, hl, de
+;; *** portable ***
 strcpy:
    jr strcpy.entry
 strcpy.loop:
@@ -60,6 +62,7 @@ strcpy.entry:
 ;;  hl <- hl * de
 ;; DESTROYS: (all)
 ;; ERRORS: no.
+;; *** portable ***
 mul_hl_de:
 	ld bc,0
 	push bc ; top of stack stores accumulator
@@ -90,6 +93,7 @@ mul_hl_de.done:
 ;;  hl <- hl * a
 ;; DESTROYS: a, hl
 ;; ERRORS: no.
+;; *** portable ***
 mul_hl_a:
    push de
    ld de,0
@@ -116,6 +120,7 @@ mul_hl_a.entry:
 ;; OUTPUTS:
 ;;  hl <- hl + b
 ;; DESTROYS: a, b, hl
+;; *** portable ***
 memcpl_short:
 memcpl_short.loop:
    ld a,(hl)
@@ -131,6 +136,7 @@ memcpl_short.loop:
 ;;  b = count
 ;; OUTPUTS:
 ;; DESTROYS: a, bc, hl
+;; *** portable ***
 memneg_short:
    ld c,b
    push hl
@@ -154,6 +160,7 @@ memneg_short.loop:
 ;;  b <- 0
 ;; DESTROYS: hl, b
 ;; ERRORS: no.
+;; *** portable ***
 memset_short:
 memset_short.loop:
    ld (hl),a
@@ -169,6 +176,7 @@ memset_short.loop:
 ;; OUTPUTS:
 ;; ERRORS: no.
 ;; DESTROYS: all but %a
+;; *** portable ***
 memset:
    ex de,hl
    ld hl,1
@@ -194,10 +202,12 @@ _
 ;; OUTPUTS:
 ;; ERRORS:
 ;; DESTROYS:
+;; TODO: this is broken.
+;; *** portable ***
 memmove:
    push hl
-   ld hl,0
    or a,a
+   sbc hl,hl
    sbc hl,bc
    pop hl
    ret z ; bc == 0
@@ -213,6 +223,8 @@ memmove:
 ;; DESTROYS: (all)
 ;; ERRORS: no???
 ;; TODO: divide by zero error
+;; TODO: Use stack, not global vars.
+;; *** portable ***
 div_hl_de:
    ld bc,0
    ex de,hl
@@ -239,7 +251,7 @@ div_hl_de.loopinit:
 	ld bc,0
 	push bc ; initialize accumulator on stack
 	xor a
-	ld	b,24
+	ld	b,LONG_BITS
 div_hl_de.loop:
    ; INVARIANTS:
    ;  (sp) -- remainder
@@ -278,8 +290,8 @@ div_hl_de.done:
    ex de,hl
 	ret
 
-div_hl_de.hl: .dl 0
-div_hl_de.de: .dl 0
+div_hl_de.hl: DL 0
+div_hl_de.de: DL 0
 
 
 ;; cp_hl_de -- flags(hl - de)
@@ -289,6 +301,7 @@ div_hl_de.de: .dl 0
 ;;  all flags
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+;; *** portable ***
 cp_hl_de:
    or a,a
    sbc hl,de
@@ -304,6 +317,7 @@ cp_hl_de:
 ;;  all flags
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+;; *** portable ***
 cp_hl_bc:
    or a,a
    sbc hl,bc
@@ -322,6 +336,7 @@ cp_hl_bc:
 ;; DESTROYS: (none)
 ;; FLAGS: C if negative, NC otherwise
 ;; ERRORS: no.
+;; *** portable ***
 absl:
    call sgnl
    jp c,negl ; flag: C
@@ -336,20 +351,12 @@ absl:
 ;;  NC if nonnegative
 ;; DESTROYS: (none)
 ;; ERRORS: no.
+;; *** portable ***
 sgnl:
-#if 0
-   push de
-   ld de,LONG_MAX
-   call cp_hl_de
-   pop de
-   ccf
-   ret
-#else
    push hl
    add hl,hl
    pop hl
    ret
-#endif
 
 ;; negl -- negate long
 ;; INPUTS:
@@ -359,15 +366,15 @@ sgnl:
 ;; DESTROYS: (none)
 ;; ERRORS: no.
 ;; FLAGS: C if hl != 0
+;; *** portable ***
 negl:
    push de
    ex de,hl
-   ld hl,0
    or a,a
+   sbc hl,hl
    sbc hl,de
    pop de
    ret
-
 
 ;; wtols -- word to long, signed
 ;; INPUTS:
@@ -375,7 +382,9 @@ negl:
 ;; OUTPUTS:
 ;;  de = 24-bit long, sign-extended from hl[15:0]
 ;; DESTROYS: (none)
+;; *** portable ***
 wtols:
+#if TI84PCE
    push de
    ld de,0
    bit 7,h
@@ -388,6 +397,11 @@ wtols.done:
    ex de,hl
    pop de
    ret
+#elif TI83PLUS
+wtols:
+   push hl \ pop de
+   ret
+#endif
 
 ;; wtolu -- word to long, unsigned
 ;; INPUTS:
@@ -395,6 +409,8 @@ wtols.done:
 ;; OUTPUTS:
 ;;  de = 24-bit unsigned long from hl[15:0]
 ;; DESTROYS: (none)
+;; *** portable ***
+#if TI84PCE
 wtolu:
    push de
    ld de,0
@@ -403,6 +419,9 @@ wtolu:
    ex de,hl
    pop de
    ret
+#elif TI83PLUS
+wtolu .equ wtols
+#endif
 
 ;; btols -- byte to long, signed
 ;; INPUTS:
@@ -410,6 +429,7 @@ wtolu:
 ;; OUTPUTS:
 ;;  hl = 24-bit long, sign-extended from %a
 ;; DESTROYS: (none)
+;; *** portable ***
 btols:
    ld hl,0
    bit 7,a
@@ -427,10 +447,16 @@ btols.done:
 ;;  hl = 24-bit unsigned long from %a
 ;; DESTROYS: hl
 ;; ERRORS: no.
+;; *** portable ***
 btolu:
+#if TI84PCE
    ld hl,0
    ld l,a
    ret
+#elif TI83PLUS
+   ld h,0
+   ld l,a
+#endif
 
 ;; ltobu -- long to byte, unsigned
 ;; INPUTS:
@@ -440,10 +466,11 @@ btolu:
 ;;  C if downcast fails; NC otherwise
 ;; DESTROYS: a
 ;; ERRORS: no.
+;; *** portable ***
 ltobu:
    ld a,l
    push de
-   ld de,$000100
+   ld de,$100
    call cp_hl_de
    pop de
    ccf
@@ -458,6 +485,7 @@ ltobu:
 ;; DESTROYS: (none)
 ;; ERRORS: no.
 ltowu:
+#if TI84PCE
    push de
    ld de,0
    ld d,h
@@ -465,6 +493,9 @@ ltowu:
    ex de,hl
    pop de
    ret
+#elif TI83PLUS
+   ret
+#endif
 
 
 ;; maskb/exp2b -- get bitmask / find 2^n
@@ -474,12 +505,12 @@ ltowu:
 ;;  a = 2^n / 1 << n
 ;; ERRORS:
 ;; DESTROYS: de
+;; *** portable ***
 maskb:
 exp2b:
    push hl
    ld hl,exp2b.tab
-   ld de,0
-   ld e,a
+   UCAST_A_TO_DE
    add hl,de
    ld a,(hl)
    pop hl
@@ -504,6 +535,7 @@ exp2b.tab:
 ;;   if NC, a <- $00
 ;; DESTROYS: a
 ;; ERRORS: no.
+;; *** portable ***
 cftoa:
    ld a,$FF
    ret c
@@ -525,6 +557,8 @@ cftoa:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 ;; NOTES: de < $10000
+;; TODO: Use stack, not global mem.
+;; *** portable ***
 bsearch:
    ld (bsearch.key),bc ; save key
    ld (bsearch.size),a ; save size
@@ -590,7 +624,7 @@ bsearch.none
    ret
    
 bsearch.err:
-   ld hl,4*3
+   ld hl,4*LONG_SIZE
    add hl,sp
    ld sp,hl
    scf
@@ -600,7 +634,7 @@ bsearch.cmp:
    jp (ix)
 
 bsearch.size: .db 0
-bsearch.key: .dl 0
+bsearch.key: DL 0
 
 
 
@@ -676,6 +710,7 @@ zmemcmpz.err:
 ;;  de <- de + 6
 ;; DESTROYS: (all)
 ;; ERRORS: no.
+;; *** portable ***
 hexstr:
    ld b,3*4/2
 hexstr.loop:
@@ -690,8 +725,7 @@ hexstr.loop:
    add hl,hl
    rla
    ld ix,hexstr.lut
-   ld bc,0
-   ld c,a
+   UCAST_A_TO_BC
    add ix,bc
    ld a,(ix)
    ld (de),a
@@ -713,6 +747,7 @@ hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
 ;;  hl = value
 ;; DESTROYS:
 ;; ERRORS: no.
+;; *** portable ***
 xstrtoul:
    ex de,hl
    ld hl,0
@@ -750,6 +785,7 @@ xstrtoul.shift:
 ;; ERRORS: a == 0 if not convertible to character. And CF set properly.
 ;; DESTROYS: (none)
 ;; TODO: this is not completed.
+;; *** portable ***
 ktoch:
    JCLASS(kCapA,kCapZ,ktoch.alpha)
    JCLASS(k0,k9,ktoch.digit)
@@ -811,17 +847,17 @@ ktoch.tab.end:
 ;;  CF = whether printable
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 isprint:
    JCLASS($01,$F2,isprint.true)
 isprint.false:
    or a,a
    ret   
-
 isprint.true:
    scf
    ret
 
-
+#if 0
 strtol:
    ld b,a
    call strtol.sign
@@ -859,8 +895,8 @@ strtol.negate:
    sbc hl,de
    pop de
    ret
+#endif
 
-;; strtol -- convert string to long
 ;; strtoul -- covnert string to unsigned long
 ;; INPUTS:
 ;;  hl = pointer to string
@@ -871,6 +907,8 @@ strtol.negate:
 ;;  CF = whether conversion was successful 
 ;; DESTROYS: (all)
 ;; ERRORS: no.
+;; TODO: Don't use global mem.
+;; *** portable ***
 strtoul:
    cp a,8
    jr nz,_
@@ -1005,7 +1043,7 @@ strtoul.handle.error:
    or a,a
    ret
 
-strtoul.handler: .dl 0
+strtoul.handler: DL 0
 
 
 ;; mul_hl_10 -- multiply hl by 10
@@ -1016,6 +1054,7 @@ strtoul.handler: .dl 0
 ;;  CF if overflow
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 mul_hl_10:
    push de
    ; *10
@@ -1037,6 +1076,7 @@ mul_hl_10:
 ;;  CF = whether invalid
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 ctox:
    JCLASS('0','9',ctox.digit)
    JCLASS('a','f',ctox.lwr)
@@ -1063,6 +1103,7 @@ ctox.cap:
 ;;  a = character (0 if invalid)
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 xtoc:
    cp a,10
    jr c,xtoc.digit
@@ -1088,6 +1129,7 @@ xtoc.digit:
 ;;  flags
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 cp_hl_0:
    push de
    ld de,0
@@ -1149,6 +1191,7 @@ zmemcpyp_b.done:
 ;;  hl = pointer to first occurrence, or *hl = '\0' if not found
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 strchr:
    push bc
    ld b,a
@@ -1172,6 +1215,7 @@ strchr.done:
 ;;  a = key scan code
 ;; DESTROYS: ???
 ;; ERRORS: generates interrupt `error' when `ON' is pressed.
+;; *** portable ***
 sys_getkey:
    ld iy,flags
    call _GetKey
@@ -1190,20 +1234,28 @@ sys_getkey:
 ;;  a = upper byte
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; TODO: Shouldn't use global mem.
+;; *** portable ***
 upperbyte:
+#if TI84PCE
    ld (upperbyte.long),hl
    ld a,(upperbyte.long+2)
    ret
 upperbyte.long: .dl 0
+#elif TI83PLUS
+   ld a,0
+   ret
+#endif   
 
 ;; ldw_bc_from_hl -- load word at (hl) into bc
 ;; INPUTS:
 ;;  hl = pointer to word
 ;; OUTPUTS:
 ;;  hl = pointer to word
-;;  bc = word value (sign-extended if in ADL mode)
-;; DESTROYS: ???
+;;  bc = word value (zero-extended if in ADL mode)
+;; DESTROYS: (none)
 ;; ERRORS: no.
+;; *** portable ***
 ldw_bc_from_hl:
   CLEAR_UPPER_BC
   ld c,(hl)

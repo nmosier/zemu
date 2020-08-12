@@ -52,7 +52,7 @@ zdisp_clearrect.column:
    inc d
    jr zdisp_clearrect.column.row.entry
 zdisp_clearrect.column.row:
-   ld a,d
+   ld a,e
    and a,(hl)
    ld (hl),a
    ld bc,DISP_WIDTH/8

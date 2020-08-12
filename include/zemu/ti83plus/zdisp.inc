@@ -5,11 +5,10 @@
 
 SFONT_TAB_ENTLEN .equ $08
 
-DISP_WIDTH .equ 128
-DISP_HEIGHT .equ 96
+DISP_WIDTH .equ 96
+DISP_HEIGHT .equ 64
 
 DISP_VRAM .equ plotSScreen
-PIXEL_SIZE .equ 1 ; 1 byte per pixel in VRAM
 
 #define MLT_A_DISP_WIDTH(reg) MLT_A(DISP_WIDTH, reg)
 

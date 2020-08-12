@@ -26,8 +26,10 @@ function(add_8xp TARGET MAIN_SOURCE)
     endforeach()
   endif()
 
-  if (NOT DEFINED SPASM_FLAGS)
+  if (NOT DEFINED TI_SPASM_FLAGS)
     set(SPASM_FLAGS)
+  else()
+    set(SPASM_FLAGS ${TI_SPASM_FLAGS})
   endif()
 
   if(DEFINED TI_PLATFORM)

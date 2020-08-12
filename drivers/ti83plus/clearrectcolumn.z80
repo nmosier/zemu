@@ -1,0 +1,26 @@
+#include "zti.inc"
+#include "ti83plus/zdisp.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+start:
+   call fill_black
+   bcall(_GrBufCpy)
+   bcall(_GetKey)
+   ld h,0
+   ld l,DISP_HEIGHT
+   ld d,0
+   ld e,$00
+   call zdisp_clearrect.column
+   bcall(_GrBufCpy)
+   bcall(_GetKey)
+   ret
+
+fill_black:
+   ld hl,DISP_VRAM
+   ld bc,DISP_WIDTH*DISP_HEIGHT/8
+   ld a,$ff
+   jp memset
+   
+#include "ti83plus/zdisp.z80"

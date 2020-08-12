@@ -5,8 +5,8 @@
 .db t2ByteTok,tAsmCmp
 
 start:
-   call _GrBufCpy
-   call _GetKey
+   bcall(_GrBufCpy)
+   bcall(_GetKey)
    ld h,0
    ld l,DISP_HEIGHT
    ld d,0

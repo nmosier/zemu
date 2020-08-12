@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <stdint.h>
 
 #define ZHDR_MAXSIZE 56
 #define ZPAGE_SIZE_ENV "ZPAGE_SIZE"

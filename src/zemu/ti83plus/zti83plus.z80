@@ -1,0 +1,15 @@
+; lea_hl_ix -- load effective address from ix into hl
+; INPUTS:
+;  ix
+;  a = offset
+; OUTPUTS:
+;  hl
+; DESTROYS: (none)
+lea_hl_ix:
+   push ix \ pop hl
+   add a,l
+   ld l,a
+   ret nc
+   inc h
+   ret
+   

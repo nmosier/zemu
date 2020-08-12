@@ -1,0 +1,17 @@
+#include "zti.inc"
+#include "ti83plus/zdisp.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+start:
+   call _GrBufCpy
+   call _GetKey
+   ld h,0
+   ld l,DISP_HEIGHT
+   ld d,0
+   ld e,DISP_WIDTH
+   call zdisp_clearrect
+   ret
+   
+#include "ti83plus/zdisp.z80"

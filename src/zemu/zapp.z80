@@ -1,5 +1,7 @@
 ;; zapp.z80 -- AppVar routines
 ;; *** portable ***
+#ifndef ZAPP_Z80
+#define ZAPP_Z80
 
 #include "zapp.inc"
 #include "zerr.inc"
@@ -282,3 +284,5 @@ syment_size:
    sbc hl,bc   ; always NC
    UCAST_A_TO_DE
    ret
+
+#endif

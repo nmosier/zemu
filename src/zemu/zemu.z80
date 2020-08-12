@@ -220,3 +220,4 @@ zemu_prompt_game: .db "Story name: ",0
 #include "zvar.z80"
 #include "zwin.z80"
 #include "zti.z80"
+#include "util.z80"

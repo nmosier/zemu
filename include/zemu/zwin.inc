@@ -4,7 +4,7 @@
 #define __ZWIN_INC
 
 #include "zti.inc"
-#include "zutil.inc"
+#include "util.inc"
 #include "zdisp.inc"
 
 ; struct zwin

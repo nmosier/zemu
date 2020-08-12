@@ -1,9 +1,11 @@
 ; zaddr.z80 -- routines for zaddresses
+#ifndef ZADDR_Z80
+#define ZADDR_Z80
 
 #include "zemu.inc"
 #include "zhdr.inc"
 #include "zutil.inc"
-
+#include "zaddr.inc"
 
 ;; zaddr_valid -- check whether address is valid
 ;; INPUTS:
@@ -91,6 +93,7 @@ zaddr_pageent:
    add ix,de ; pointer to table entry
    ret
 
+#if 0
 ;; zaddr_accesspage -- get pointer to access page with given permissions
 ;; INPUTS:
 ;;  a = page number
@@ -108,7 +111,7 @@ zaddr_accesspage.write:
    ;; check if address in dynamic memory
    bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
    call nz,zmap_copypage
-   
+#endif
 
 ;; zaddr_to_paddr -- get physical byte address of Z-machine byte address
 ;; INPUTS:
@@ -367,3 +370,7 @@ zaddr_bit:
    ret c
    and a,(hl)
    ret
+
+#include "zmap.z80"
+
+#endif

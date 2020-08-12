@@ -1,6 +1,6 @@
-.lab
-.bin
-.8x?
+*.lab
+*.bin
+*.8x?
 *~
 .DS_Store
 cmake_install.cmake

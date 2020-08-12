@@ -1,0 +1,1128 @@
+#ifndef UTIL_Z80
+#define UTIL_Z80
+
+#include "zti.inc"
+#include "util.inc"
+#include "zstr.inc" ; JCLASS
+#include "zerr.inc"
+
+;; strncpy -- copy at most n bytes of null-terminated string
+;; INPUTS:
+;;  hl = src
+;;  de = dst
+;;  bc = n
+;; OUTPUTS:
+;;  de points to one past last written non-NUL character
+;;  bc contains number of remaining chars (not including NUL)
+;; DESTROYS: (all)
+;; NOTE: n must be positive. Also, string cannot be empty.
+;; *** portable ***
+strncpy:
+   xor a,a
+   jr strncpy.entry
+strncpy.loop:
+   ret po
+strncpy.entry:
+   cp a,(hl)
+   ldi
+   jr nz,strncpy.loop
+   dec de
+   inc bc
+   ret
+
+
+;; strcpy -- copy strings
+;; INPUTS:
+;;  hl = src
+;;  de = dst
+;; OUTPUTS:
+;;  hl, de point NUL-bytes of respective strings
+;; DESTROYS: a, hl, de
+;; *** portable ***
+strcpy:
+   jr strcpy.entry
+strcpy.loop:
+   inc hl
+   inc de
+strcpy.entry:
+   ld a,(hl)
+   ld (de),a
+   or a,a
+   jr nz,strcpy.loop
+   ret
+      
+
+
+
+
+;; mul_hl_de -- multiply hl by de (signed), placing the result in hl
+;; INPUTS:
+;;  hl, de (24-bit)
+;; OUTPUTS:
+;;  hl <- hl * de
+;; DESTROYS: (all)
+;; ERRORS: no.
+;; *** portable ***
+mul_hl_de:
+	ld bc,0
+	push bc ; top of stack stores accumulator
+	xor a
+	ld b,24
+mul_hl_de.loop:
+	add hl,hl
+	ex (sp),hl
+	jr nc,mul_hl_de.loop.skip
+	add hl,hl
+	add hl,de
+	ex (sp),hl
+	djnz mul_hl_de.loop
+	jr mul_hl_de.done
+mul_hl_de.loop.skip:
+	add hl,hl
+	ex (sp),hl
+	djnz mul_hl_de.loop
+mul_hl_de.done:
+	pop hl ; restore result
+	ret
+
+;; mul_hl_a -- multiply hl by a
+;; INPUTS:
+;;  hl = 24-bit operand
+;;  a = 8-bit operand
+;; OUTPUTS:
+;;  hl <- hl * a
+;; DESTROYS: a
+;; ERRORS: no.
+;; *** portable ***
+mul_hl_a:
+   push de
+   ld de,0
+   jr mul_hl_a.entry
+mul_hl_a.loop:
+   srl a
+   jr nc,mul_hl_a.adjust
+   ex de,hl
+   add hl,de
+   ex de,hl
+mul_hl_a.adjust:
+   add hl,hl
+mul_hl_a.entry:
+   or a,a
+   jr nz,mul_hl_a.loop
+   ex de,hl
+   pop de
+   ret
+
+;; memcpl_short -- complement up to 256 bytes of memory
+;; INPUTS:
+;;  hl = pointer
+;;  b = count
+;; OUTPUTS:
+;;  hl <- hl + b
+;; DESTROYS: a, b, hl
+;; *** portable ***
+memcpl_short:
+memcpl_short.loop:
+   ld a,(hl)
+   cpl
+   ld (hl),a
+   inc hl
+   djnz memcpl_short.loop
+   ret
+
+;; memneg_short -- negate up to 256 bytes of memory
+;; INPUTS:
+;;  hl = pointer
+;;  b = count
+;; OUTPUTS:
+;; DESTROYS: a, bc, hl
+;; *** portable ***
+memneg_short:
+   ld c,b
+   push hl
+   call memcpl_short
+   pop hl
+memneg_short.loop:
+   inc (hl)
+   ret po ; no overflow
+   inc hl
+   dec c
+   jr nz,memneg_short.loop
+   ret
+
+;; memset_short -- set up to 256 bytes of memory to a value
+;; INPUTS:
+;;  hl = pointer to memory
+;;  b = count (in bytes)
+;;  a = value
+;; OUTPUTS:
+;;  hl <- hl + b
+;;  b <- 0
+;; DESTROYS: b
+;; ERRORS: no.
+;; NOTE: requires b > 0. 
+;; *** portable ***
+memset_short:
+   inc b \ dec b
+   ret z
+memset_short.loop:
+   ld (hl),a
+   inc hl
+   djnz memset_short.loop
+   ret
+
+;; memset
+;; INPUTS:
+;;  hl = src
+;;  bc = len
+;;  a = value
+;; OUTPUTS:
+;; ERRORS: no.
+;; DESTROYS: all but %a
+;; *** portable ***
+memset:
+   ex de,hl
+   ld hl,1
+   or a,a
+   sbc hl,bc
+   ex de,hl
+   jr c,_
+   ret nz ; bc == 0
+_
+   ld (hl),a
+   ret z ; bc == 1
+   push hl \ pop de ; ld de,hl
+   inc de
+   dec bc ; prime ldir
+   ldir
+   ret   
+
+;; memmove -- move possibly overlapping memory from src to dst
+;; INPUTS:
+;;  hl = src
+;;  de = dst
+;;  bc = len
+;; OUTPUTS:
+;; ERRORS:
+;; DESTROYS:
+;; TODO: this is broken.
+;; *** portable ***
+memmove:
+   push hl
+   or a,a
+   sbc hl,hl
+   sbc hl,bc
+   pop hl
+   ret z ; bc == 0
+   ldir
+   ret
+
+;; div_hl_de -- divide hl by de using 24-bit signed division
+;; INPUTS:
+;;  hl (dividend), de (divisor)
+;; OUTPUTS:
+;;  hl <- hl / de
+;;  de <- hl % de
+;; DESTROYS: (all)
+;; ERRORS: no???
+;; TODO: divide by zero error
+;; TODO: Use stack, not global vars.
+;; *** portable ***
+div_hl_de:
+   ld bc,0
+   ex de,hl
+   or a,a
+   sbc hl,bc ; cp de,bc
+   ld a,ZERR_DIVZERO
+   ccf
+   ret z
+   ex de,hl
+	xor a ; initialize A to store sign
+div_hl_de.signs:
+   call absl
+   jr nc,div_hl_de.signs.de
+   cpl
+div_hl_de.signs.de:
+   ex de,hl
+   call absl
+   jr nc,div_hl_de.signs.done
+   cpl
+div_hl_de.signs.done:
+   ex de,hl
+div_hl_de.loopinit:
+	push af ; save sign bit
+	ld bc,0
+	push bc ; initialize accumulator on stack
+	xor a
+	ld	b,LONG_BITS
+div_hl_de.loop:
+   ; INVARIANTS:
+   ;  (sp) -- remainder
+   ;  hl -- dividend
+   ;  de -- divisor
+	add hl,hl ; sets/resets carry flag for rl
+	ex	(sp),hl
+   adc hl,hl ; rl h \ rl l
+	jr	c,div_hl_de.overflow
+   call cp_hl_de
+   jr c,div_hl_de.skip
+div_hl_de.overflow:
+   ; overflow and when rem > divisor
+	xor a ; faster
+	sbc	hl,de
+	ex	(sp),hl
+	inc	hl
+	djnz	div_hl_de.loop
+	jr div_hl_de.done
+div_hl_de.skip:
+	ex	(sp),hl
+	djnz div_hl_de.loop
+div_hl_de.done:
+	pop de ; remainder?
+	pop af ; restore sign of result
+	or a
+	ret z ; if positive, return result
+   push de
+	ex de,hl
+	ld hl,0
+	sbc hl,de ; else negate result
+   ex de,hl
+   pop bc ; restore remainder
+   ld hl,0
+   sbc hl,bc ; negate remainder
+   ex de,hl
+	ret
+
+div_hl_de.hl: DL 0
+div_hl_de.de: DL 0
+
+
+;; cp_hl_de -- flags(hl - de)
+;; INPUTS:
+;;  hl, de
+;; OUTPUTS:
+;;  all flags
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; *** portable ***
+cp_hl_de:
+   or a,a
+   sbc hl,de
+   push af
+   add hl,de
+   pop af
+   ret
+
+;; cp_hl_bc -- flags(hl - bc)
+;; INPUTS:
+;;  hl, bc
+;; OUTPUTS:
+;;  all flags
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; *** portable ***
+cp_hl_bc:
+   or a,a
+   sbc hl,bc
+   push af
+   add hl,bc
+   pop af
+   ret
+
+
+
+;; absl -- absolute value of long
+;; INPUTS:
+;;  hl = signed long
+;; OUTPUTS:
+;;  hl <- |hl|
+;; DESTROYS: (none)
+;; FLAGS: C if negative, NC otherwise
+;; ERRORS: no.
+;; *** portable ***
+absl:
+   call sgnl
+   jp c,negl ; flag: C
+   ; flag: NC
+   ret
+
+;; sgnl -- sign of long
+;; INPUTS:
+;;  hl = long
+;; OUTPUTS:
+;;  C if negative
+;;  NC if nonnegative
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; *** portable ***
+sgnl:
+   push hl
+   add hl,hl
+   pop hl
+   ret
+
+;; negl -- negate long
+;; INPUTS:
+;;  hl = long
+;; OUTPUTS:
+;;  hl <- -hl
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; FLAGS: C if hl != 0
+;; *** portable ***
+negl:
+   push de
+   ex de,hl
+   or a,a
+   sbc hl,hl
+   sbc hl,de
+   pop de
+   ret
+
+;; wtols -- word to long, signed
+;; INPUTS:
+;;  hl[15:0] = 16-bit word, signed
+;; OUTPUTS:
+;;  de = 24-bit long, sign-extended from hl[15:0]
+;; DESTROYS: (none)
+;; *** portable ***
+wtols:
+#if TI84PCE
+   push de
+   ld de,0
+   bit 7,h
+   jr z,wtols.transfer
+   dec de ; de <- $FFFFFF
+wtols.transfer:
+   ld d,h
+   ld e,l
+wtols.done:
+   ex de,hl
+   pop de
+   ret
+#elif TI83PLUS
+wtols:
+   push hl \ pop de
+   ret
+#endif
+
+;; wtolu -- word to long, unsigned
+;; INPUTS:
+;;  hl[15:0] = 16-bit word, unsigned
+;; OUTPUTS:
+;;  de = 24-bit unsigned long from hl[15:0]
+;; DESTROYS: (none)
+;; *** portable ***
+#if TI84PCE
+wtolu:
+   push de
+   ld de,0
+   ld d,h
+   ld e,l
+   ex de,hl
+   pop de
+   ret
+#elif TI83PLUS
+wtolu .equ wtols
+#endif
+
+;; btols -- byte to long, signed
+;; INPUTS:
+;;  a = byte, signed
+;; OUTPUTS:
+;;  hl = 24-bit long, sign-extended from %a
+;; DESTROYS: (none)
+;; *** portable ***
+btols:
+   ld hl,0
+   bit 7,a
+   jr z,btols.transfer
+   dec hl ; hl <- $FFFFFF
+btols.transfer:
+   ld l,a
+btols.done:
+   ret
+
+;; btolu -- byte to long, unsigned
+;; INPUTS:
+;;  a = byte, unsigned
+;; OUTPUTS:
+;;  hl = 24-bit unsigned long from %a
+;; DESTROYS: hl
+;; ERRORS: no.
+;; *** portable ***
+btolu:
+#if TI84PCE
+   ld hl,0
+   ld l,a
+   ret
+#elif TI83PLUS
+   ld h,0
+   ld l,a
+#endif
+
+;; ltobu -- long to byte, unsigned
+;; INPUTS:
+;;  hl = 24-bit unsigned long
+;; OUTPUTS:
+;;  a = hl[7:0]
+;;  C if downcast fails; NC otherwise
+;; DESTROYS: a
+;; ERRORS: no.
+;; *** portable ***
+ltobu:
+   ld a,l
+   push de
+   ld de,$100
+   call cp_hl_de
+   pop de
+   ccf
+   ret
+
+;; ltowu -- long to word, unsigned
+;; INPUTS:
+;;  hl = 24-bit unsigned long
+;; OUTPUTS:
+;;   hl[23:16] = 0
+;;   hl[15:0] remain
+;; DESTROYS: (none)
+;; ERRORS: no.
+ltowu:
+#if TI84PCE
+   push de
+   ld de,0
+   ld d,h
+   ld e,l
+   ex de,hl
+   pop de
+   ret
+#elif TI83PLUS
+   ret
+#endif
+
+
+;; maskb/exp2b -- get bitmask / find 2^n
+;; INPUTS:
+;;  a = bit/power
+;; OUTPUTS:
+;;  a = 2^n / 1 << n
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+maskb:
+exp2b:
+   push hl
+   push de
+   ld hl,exp2b.tab
+   UCAST_A_TO_DE
+   add hl,de
+   ld a,(hl)
+   pop de
+   pop hl
+   ret
+
+exp2b.tab:
+   .db $01
+   .db $02
+   .db $04
+   .db $08
+   .db $10
+   .db $20
+   .db $40
+   .db $80
+
+
+;; cftoa -- carry flag to a
+;; INPUTS:
+;;  carry flag (CF)
+;; OUTUTS:
+;;   if C, a <- $FF
+;;   if NC, a <- $00
+;; DESTROYS: a
+;; ERRORS: no.
+;; *** portable ***
+cftoa:
+   ld a,$FF
+   ret c
+   xor a
+   ret
+
+
+;; bsearch -- binary search
+;; INPUTS:
+;;  ix = comparison function
+;;  de = number of elements
+;;  bc = pointer to key
+;;  hl = base of array
+;;  a = element size
+;; OUTPUTS:
+;;  hl = pointer to entry, if found
+;;  a = 0 on success, a = error code on error
+;;  CF set if not found, reset otherwise
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; NOTES: de < $10000
+;; TODO: Use stack, not global mem.
+;; *** portable ***
+bsearch:
+   ld (bsearch.key),bc ; save key
+   ld (bsearch.size),a ; save size
+bsearch.loop:
+   ; INVARIANTS: hl = left bound; de = number of elts; a = elt size
+   ; halve # of elts
+   ld a,d
+   or a,e
+   jr z,bsearch.none
+   srl d
+   rr e
+   ex de,hl
+   push hl  ; save left-count
+   ld bc,0
+   adc hl,bc
+   push hl  ; save right-count
+   ld a,(bsearch.size)
+   call mul_hl_a ; preserves de
+   add hl,de ; new mid
+   ex de,hl
+   ; hl = left
+   ; de = mid
+   push hl ; save left
+   ld hl,(bsearch.key)
+   call bsearch.cmp
+   ; check for error
+   push af
+   or a,a
+   jr nz,bsearch.err ; 3
+   pop af
+   ; otherwise branch based on comparison
+   jr z,bsearch.eq    ;2
+   jr c,bsearch.lt ;2
+   jr bsearch.gt ;2
+
+bsearch.eq:
+   ex de,hl ; return mid
+   pop bc ; discard left
+   pop bc ; discard right-count
+   pop bc ; discard left-count
+   xor a,a ; no error
+   ret
+
+bsearch.lt:
+   ; left <- left
+   pop hl ; left <- left
+   pop bc ; discard right-count
+   pop de ; count <- left-count
+   jr bsearch.loop
+
+bsearch.gt:
+   ; left <- mid
+   ex de,hl ; left <- mid
+   pop bc ; discard left
+   pop de ; count <- right-count
+   pop bc ; discard left-count
+   jr bsearch.loop
+
+bsearch.none
+   ld hl,0
+   ; xor a,a
+   ; scf
+   ret
+   
+bsearch.err:
+   ld hl,4*LONG_SIZE
+   add hl,sp
+   ld sp,hl
+   scf
+   ret
+
+bsearch.cmp:
+   jp (ix)
+
+bsearch.size: .db 0
+bsearch.key: DL 0
+
+;; hexstr -- get hex string of value
+;; INPUTS:
+;;  hl = value
+;;  de = buffer
+;; OUTPUTS:
+;;  de <- de + 6
+;; DESTROYS: (all)
+;; ERRORS: no.
+;; *** portable ***
+hexstr:
+   ld b,3*4/2
+hexstr.loop:
+   push bc
+   xor a,a
+   add hl,hl
+   rla
+   add hl,hl
+   rla
+   add hl,hl
+   rla
+   add hl,hl
+   rla
+   ld ix,hexstr.lut
+   UCAST_A_TO_BC
+   add ix,bc
+   ld a,(ix)
+   ld (de),a
+   inc de
+   pop bc
+   djnz hexstr.loop
+   xor a,a
+   ld (de),a
+   ret
+
+
+hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
+
+
+;; xstrtoul -- convert hex string to unsigned long
+;; INPUTS:
+;;  hl = pointer to string
+;; OUTPUTS:
+;;  hl = value
+;; DESTROYS:
+;; ERRORS: no.
+;; *** portable ***
+xstrtoul:
+   ex de,hl
+   ld hl,0
+xstrtoul.loop:
+   ld a,(de)
+   or a,a
+   ret z
+   JCLASS('0','9',xstrtoul.digit)
+   JCLASS('A','F',xstrtoul.letter)
+   ret ; unrecognized char
+   
+xstrtoul.digit:
+   sub a,'0'
+   jr xstrtoul.shift
+
+xstrtoul.letter:
+   sub a,'A'-10
+   jr xstrtoul.shift   
+
+xstrtoul.shift:
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   or a,l
+   ld l,a
+   inc de
+   jr xstrtoul.loop
+
+;; ktoch -- convert key scan code (as returned by GetKey) to ASCII char
+;; INPUTS:
+;;  a = key scan code
+;; OUTPUTS:
+;;  a = ASCII char
+;; ERRORS: a == 0 if not convertible to character. And CF set properly.
+;; DESTROYS: (none)
+;; TODO: this is not completed.
+;; *** portable ***
+ktoch:
+   JCLASS(kCapA,kCapZ,ktoch.alpha)
+   JCLASS(k0,k9,ktoch.digit)
+   push hl
+   push bc
+   ld hl,ktoch.tab
+   ld c,a ; move key
+   jr ktoch.loop_search.entry
+ktoch.loop_search: ; search table
+   inc hl
+   cp a,c
+   jr z,ktoch.found
+   inc hl
+ktoch.loop_search.entry:
+   ld a,(hl)
+   or a,a   ; reached end of table?
+   jr nz,ktoch.loop_search
+ktoch.notfound:   
+   xor a,a
+   scf
+   jr ktoch.done
+   
+ktoch.found:
+   ld a,(hl)
+   or a,a ; NC
+ktoch.done:
+   pop bc
+   pop hl
+   ret
+
+ktoch.alpha:
+   add a,'A'-kCapA
+   or a,a
+   ret
+
+ktoch.digit:
+   add a,'0'-k0
+   or a,a
+   ret
+
+ktoch.tab:
+   .db kEnter, ASCII_NEWLINE
+   .db kDel,   ASCII_DEL
+   .db kClear, ASCII_CLEAR
+   .db kDiv,   '/'
+   .db kMul,   '*'
+   .db kAdd,   '+'
+   .db kSub,   '-'
+   .db kSpace, ' '
+   .db kQuote, '\"'
+   .db kQuest, '?'
+ktoch.tab.end:
+   .db 0
+   
+;; isprint -- is printable ASCII character
+;; INPUTS:
+;;  a = ASCII char
+;; OUTPUTS:
+;;  CF = whether printable
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+isprint:
+   JCLASS($01,$F2,isprint.true)
+isprint.false:
+   or a,a
+   ret   
+isprint.true:
+   scf
+   ret
+
+;; strtoul -- covnert string to unsigned long
+;; INPUTS:
+;;  hl = pointer to string
+;;  a = base (0 == auto)
+;; OUTPUTS:
+;;  hl = long number (signed)
+;;  de = pointer to first invalid char (or '\0')
+;;  CF = whether conversion was successful 
+;; DESTROYS: (all)
+;; ERRORS: no.
+;; TODO: Don't use global mem.
+;; *** portable ***
+strtoul:
+   cp a,8
+   jr nz,_
+   call strtoul.prefix.8
+   jr strtoul.main
+_  cp a,10
+   jr nz,_
+   call strtoul.prefix.10
+   jr strtoul.main
+_  cp a,16
+   jr nz,_
+   call strtoul.prefix.16
+   jr strtoul.main
+_  or a,a
+   jr nz,strtoul.error ; invalid base
+   call strtoul.prefix ; infer prefix
+strtoul.main:
+   ex de,hl
+   ld hl,0
+   ld bc,0 ; used for zero-extending bytes
+   jr strtoul.entry
+strtoul.loop:
+   call strtoul.handle
+   jr c,strtoul.error
+   or a,a ; set whether should continue
+   jr nz,strtoul.done
+   inc de
+strtoul.entry:
+   ld a,(de)
+   or a,a
+   jr nz,strtoul.loop
+strtoul.done:
+   or a,a ; NC
+   ret
+
+strtoul.error:
+   scf
+   ret
+
+strtoul.handle:
+   jp (ix)
+
+; ENTRY: hl = pointer to string
+; EXIT:  hl = pointer to next char
+;        ix = base handler
+strtoul.prefix:
+   ld a,(hl)
+   or a,a
+   scf
+   ret z ; invalid if end of string
+   cp a,'0'
+   jr nz,strtoul.prefix.10
+   inc hl
+   ; need to examine next character
+   ld a,(hl)
+   or a,a
+   ret z ; string is just '0'
+   inc hl
+   ; check if hex
+   cp a,'x'
+   jr z,strtoul.prefix.16
+   cp a,'X'
+   jr z,strtoul.prefix.16
+   ; otherwise octal
+   dec hl
+   jr strtoul.prefix.8
+
+strtoul.prefix.done:
+   or a,a
+   ret
+
+strtoul.prefix.8:
+   ld ix,strtoul.handle.8
+   jr strtoul.prefix.done
+
+strtoul.prefix.10:
+   ld ix,strtoul.handle.10
+   jr strtoul.prefix.done
+
+strtoul.prefix.16:
+   ld ix,strtoul.handle.16
+   jr strtoul.prefix.done
+
+strtoul.handle.8:
+   cp a,'0'
+   jr c,strtoul.handle.error
+   cp a,'7'+1
+   jr nc,strtoul.handle.error   
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   add hl,hl ; multiply hl by 8
+   ret c
+   sub a,'0'
+   or a,l
+   ld l,a
+   xor a,a ; good
+   ret ; NC
+
+strtoul.handle.10:
+   cp a,'0'
+   jr c,strtoul.handle.error
+   cp a,'9'+1
+   jr nc,strtoul.handle.error
+   call mul_hl_10
+   ret c
+   sub a,'0'
+   ld c,a
+   xor a,a
+   add hl,bc
+   ret ; CF
+
+strtoul.handle.16:
+   call ctox
+   jr c,strtoul.handle.error ; invalid
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   add hl,hl
+   ret c
+   or a,l
+   ld l,a
+   xor a,a
+   ret ; NC
+
+strtoul.handle.error:
+   ld a,1
+   or a,a
+   ret
+
+strtoul.handler: DL 0
+
+
+;; mul_hl_10 -- multiply hl by 10
+;; INPUTS:
+;;  hl = number, signed
+;; OUTPUTS:
+;;  hl <- hl * 10
+;;  CF if overflow
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+mul_hl_10:
+   push de
+   ; *10
+   add hl,hl
+   ; *5
+   push hl \ pop de
+   add hl,hl
+   add hl,hl
+   add hl,de
+   pop de
+   ret
+
+
+;; ctox -- convert character to hex digit
+;; INPUTS:
+;;  a = character
+;; OUTPUTS:
+;;  a = hex digit
+;;  CF = whether invalid
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+ctox:
+   JCLASS('0','9',ctox.digit)
+   JCLASS('a','f',ctox.lwr)
+   JCLASS('A','F',ctox.cap)
+   scf
+   ret
+
+ctox.digit:
+   sub a,'0'
+   ret ; NC
+
+ctox.lwr:
+   sub a,'a'-10
+   ret ; NC
+
+ctox.cap:
+   sub a,'A'-10
+   ret ; NC
+
+;; xtoc -- convert hex digit to character
+;; INPUTS:
+;;  a = hex digit (0 <= a < 16)
+;; OUTPUTS:
+;;  a = character (0 if invalid)
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+xtoc:
+   cp a,10
+   jr c,xtoc.digit
+   cp a,16
+   jr c,xtoc.letter
+   ; not a hex digit
+   xor a,a
+   ret
+   
+xtoc.letter:
+   add a,'a'-10
+   ret
+   
+xtoc.digit:
+   add a,'0'
+   ret
+
+
+;; cp_hl_0 -- compare hl to 0
+;; INPUTS:
+;;  hl
+;; OUTPUTS:
+;;  flags
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+cp_hl_0:
+   push de
+   ld de,0
+   or a,a
+   sbc hl,de
+   pop de
+   ret
+
+;; strchr -- find first occurrence of char in string
+;; INPUTS:
+;;  hl = string
+;;  a = character
+;; OUTPUTS:
+;;  hl = pointer to first occurrence, or *hl = '\0' if not found
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; *** portable ***
+strchr:
+   push bc
+   ld b,a
+   jr strchr.entry
+strchr.loop:
+   inc hl
+strchr.entry:
+   ld a,(hl)
+   cp a,b
+   jr z,strchr.done ; found
+   or a,a
+   jr nz,strchr.loop
+strchr.done:
+   ld a,b
+   pop bc
+   ret
+
+;; sys_getkey -- lowest-level wrapper for keyboard input
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  a = key scan code
+;; DESTROYS: ???
+;; ERRORS: generates interrupt `error' when `ON' is pressed.
+;; *** portable ***
+sys_getkey:
+   ld iy,flags
+   call _GetKey
+   or a,a
+   ret nz
+   ;; ON key
+   res onInterrupt,(iy+onFlags)
+   ld a,ZERR_INTR
+   scf
+   ret
+
+;; upperbyte -- get upper byte of long
+;; INPUTS:
+;;  hl = long value
+;; OUTPUTS:
+;;  a = upper byte
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; TODO: Shouldn't use global mem.
+;; *** portable ***
+upperbyte:
+#if TI84PCE
+   ld (upperbyte.long),hl
+   ld a,(upperbyte.long+2)
+   ret
+upperbyte.long: .dl 0
+#elif TI83PLUS
+   ld a,0
+   ret
+#endif   
+
+;; ldw_bc_from_hl -- load word at (hl) into bc
+;; INPUTS:
+;;  hl = pointer to word
+;; OUTPUTS:
+;;  hl = pointer to word
+;;  bc = word value (zero-extended if in ADL mode)
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; *** portable ***
+ldw_bc_from_hl:
+  CLEAR_UPPER_BC
+  ld c,(hl)
+  inc hl
+  ld b,(hl)
+  dec hl
+  ret
+
+;;;;;;;;;;;;;;;;;
+;; GLOBAL VARS ;;
+;;;;;;;;;;;;;;;;;
+
+emptystr: .db 0
+
+
+#endif

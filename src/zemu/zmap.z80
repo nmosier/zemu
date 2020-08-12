@@ -1,7 +1,10 @@
 ;; zmap.z80 -- zmap routines
 ;; Nicholas Mosier 2019
+#ifndef ZMAP_Z80
+#define ZMAP_Z80
 
 #include "zaddr.inc"
+#include "zemu.inc"
 
 ;; zmap_fetchpage -- fetch pointer to zpage.
 ;; INPUTS:
@@ -232,3 +235,6 @@ zmap_table:  .dl 0
 zmap_name_canonical: RESB(VARNAMELEN)
 zmap_name_current:   .db "ZEMUMAP",0
 
+#include "zapp.z80"
+
+#endif

@@ -1,10 +1,10 @@
 ;; zemu.inc
 
-#ifndef __ZEMU_INC
-#define __ZEMU_INC
+#ifndef ZEMU_INC
+#define ZEMU_INC
 
 #include "zti.inc"
-#include "zutil.inc"
+#include "util.inc"
 
 ZWORD_BYTE .equ 1
 ZWORD_SIZE .equ 2

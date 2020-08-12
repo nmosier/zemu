@@ -1,25 +1,164 @@
 #include "zdisp.inc"
 
-;; zdisp_clearrect -- clear rectangle
-;; INPUTS:
-;;  ix = zrect pointer
-;; OUTPUTS:
-;;  ix = zrect pointer
+;; zdisp_clearrect.aligned -- clear 8-bit aligned rectangle
+;; INPUTS
+;;  h = start row
+;;  l = height (pixels)
+;;  d = start col byte
+;;  e = width (bytes)
+;; OUTPUTS: (none)
 ;; DESTROYS: (all)
-;; ERRORS: no.
-zdisp_clearrect:
-   ld a,(ix+ZRECT.ORGROW)
-   ld h,a
-   add a,(ix+ZRECT.HEIGHT)
-   dec a
-   ld d,a
-   ld a,(ix+ZRECT.ORGCOL)
-   ld l,a
-   add a,(ix+ZRECT.WIDTH)
-   dec a
-   ld e,a
-   push ix
-   call _ClearRect
-   pop ix
+zdisp_clearrect.aligned:
+   ld c,d
+   ld a,h
+   ld d,l
+   call zdisp_byteaddr
+   xor a,a
+   inc d
+   jr zdisp_clearrect.aligned.row.entry
+zdisp_clearrect.aligned.row:
+   ;; INVARIANTS:
+   ;;  hl = current address.
+   ;;  a = 0
+   ;;  d = remaining height
+   push hl
+   ld b,e ; width
+   call memset_short
+   pop hl
+   ld bc,DISP_WIDTH/8
+   add hl,bc
+zdisp_clearrect.aligned.row.entry:
+   dec d
+   jr nz,zdisp_clearrect.aligned.row
    ret
 
+;; zdisp_clearrect.column -- clear rectangle fitting in single column byte
+;; INPUTS
+;;  h = start row
+;;  l = height (pixels)
+;;  d = start col byte
+;;  e = mask
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+zdisp_clearrect.column:
+   push af
+   push bc
+   push de
+   push hl
+   ld c,d
+   ld d,l
+   ld a,h
+   call zdisp_byteaddr
+   inc d
+   jr zdisp_clearrect.column.row.entry
+zdisp_clearrect.column.row:
+   ld a,d
+   and a,(hl)
+   ld (hl),a
+   ld bc,DISP_WIDTH/8
+   add hl,bc
+zdisp_clearrect.column.row.entry:   
+   dec d
+   jr nz,zdisp_clearrect.column.row
+   pop hl
+   pop de
+   pop bc
+   pop af
+   ret
+
+;; zdisp_clearrect -- clear rectangle in VRAM
+;; INPUTS
+;;  h = start row
+;;  l = height (pixels)
+;;  d = start column
+;;  e = width (pixels)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+zdisp_clearrect:
+   ;; check if rectangle has zero area
+   xor a,a
+   cp a,l
+   ret z ; zero height
+   cp a,e
+   ret z ; zero width
+
+   ;; compute overhang masks
+   ;; left overhang
+   ld a,h
+   neg
+   and a,%111
+   call maskb
+   neg
+   ld b,a
+   ;; right overhang
+   ld a,h
+   add a,l
+   neg
+   and a,%111
+   call maskb
+   dec a
+   ld c,a
+
+   ;; check if overhangs are in one column byte
+   ld a,d
+   neg
+   and a,%111 ; a <- 8 - (a % 8)
+   cp a,e
+   jr nc,zdisp_clearrect.colbyte ; only one column byte
+
+   push de
+
+   ;; clear left overhang
+   ld e,b
+   call zdisp_clearrect.column
+
+   ;; clear right overhang
+   ld e,c
+   call zdisp_clearrect.column
+
+   pop de
+
+   ;; clear aligned middle
+   ld a,d
+   dec a
+   or a,%111
+   inc a
+   add a,e
+   and a,~%111
+   rra
+   rra
+   rra
+   ld e,a
+   jp zdisp_clearrect.aligned
+   
+zdisp_clearrect.colbyte:
+   ;; get column byte
+   srl d
+   srl d
+   srl d
+   pop bc
+   ld a,b
+   or a,c
+   ld e,a ; mask
+   jp zdisp_clearrect.column
+   
+;; zdisp_byteaddr -- get address of byte in VRAM
+;; INPUTS
+;;  a = row
+;;  c = column group
+;; OUTPUTS:
+;;  hl = byte address
+;; ERRORS: no.
+;; DESTROYS: a
+zdisp_byteaddr:
+   push bc
+   ld hl,DISP_WIDTH/8
+   call mul_hl_a
+   ld b,0
+   add hl,bc
+   ld bc,DISP_VRAM
+   add hl,bc
+   pop bc
+   ret
+
+#include "util.z80"

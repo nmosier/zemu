@@ -1,0 +1,4 @@
+#if TI84PCE
+#elif TI83PLUS
+#include "ti83plus/zti83plus.z80"
+#endif

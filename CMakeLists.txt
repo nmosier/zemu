@@ -12,3 +12,4 @@ find_program(SPASM spasm REQUIRED)
 include(cmake/TITarget.cmake)
 
 add_subdirectory(src)
+add_subdirectory(drivers)

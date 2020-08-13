@@ -1,0 +1,17 @@
+#ifndef TI83PLUS_UTIL_Z80
+#define TI83PLUS_UTIL_Z80
+
+;; div_a_8 -- divide %a by 8
+;; INPUTS:
+;;  a
+;; OUTPUTS:
+;;  a <- a/8
+;; DESTROYS: (none)
+div_a_8:
+  and a,~%111
+  rra
+  rra
+  rra
+  ret
+
+#endif

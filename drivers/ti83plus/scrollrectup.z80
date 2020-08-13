@@ -1,0 +1,32 @@
+#include "zti.inc"
+#include "zdisp.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+start:
+  ld a,$aa
+  call fill
+  bcall(_GrBufCpy)
+  bcall(_GetKey)
+  ld ix,rect
+  ld a,1
+  call zdisp_scrollrect_up
+  bcall(_GetKey)
+  ret
+
+;; fill -- fill screen with 8-bit pattern
+;; INPUTS:
+;;  a = pattern
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+fill:
+   ld hl,DISP_VRAM
+   ld bc,DISP_WIDTH*DISP_HEIGHT/8
+   call memset
+   ret
+
+;; GLOBAL VARS ;;
+rect: D_ZRECT(2, 2, 16, 4)
+
+#include "zdisp.z80"

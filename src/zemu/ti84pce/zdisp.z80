@@ -74,7 +74,7 @@ zdisp_pixaddr:
 ;;  ix = rectangle
 ;;  a = upward shift
 ;; ERRORS: no.
-;; DESTROYS: ???
+;; DESTROYS: bc, de, hl
 zdisp_scrollrect_up.copy:
    push af
    ld b,(ix+ZRECT.HEIGHT)

@@ -1,0 +1,28 @@
+#include "zti.inc"
+#include "zdisp.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+start:
+  call fill_black
+  bcall(_GrBufCpy)
+  bcall(_GetKey)
+  ld ix,rect
+  ld a,10
+  call zdisp_scrollrect_up.clear
+  bcall(_GetKey)
+  ret
+
+fill_black:
+   ld hl,DISP_VRAM
+   ld bc,DISP_WIDTH*DISP_HEIGHT/8
+   ld a,$ff
+   call memset
+   ret
+
+
+;; GLOBAL VARS ;;
+rect: D_ZRECT(DISP_WIDTH/4, DISP_HEIGHT/4, DISP_WIDTH/2, DISP_HEIGHT/2)
+
+#include "zdisp.z80"

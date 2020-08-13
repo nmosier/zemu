@@ -1124,5 +1124,9 @@ ldw_bc_from_hl:
 
 emptystr: .db 0
 
+#if TI83PLUS
+#include "ti83plus/util.z80"
+#endif
+
 
 #endif

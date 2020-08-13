@@ -8,3 +8,4 @@ CMakeFiles/
 CMakeCache.txt
 Makefile
 build/
+*.rom

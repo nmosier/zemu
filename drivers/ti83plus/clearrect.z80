@@ -13,5 +13,8 @@ start:
    ld e,DISP_WIDTH
    call zdisp_clearrect
    ret
+
+fill_black:
+	
    
 #include "ti83plus/zdisp.z80"

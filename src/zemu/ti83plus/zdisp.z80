@@ -1,5 +1,39 @@
 #include "zdisp.inc"
 
+;; zdisp_clearrect -- clear rectangle
+;; INPUTS:
+;;  ix = zrect pointer
+;; OUTPUTS:
+;;  ix = zrect pointer
+;; DESTROYS: (all)
+;; ERRORS: no.
+zdisp_clearrect:
+   ld h,(ix+ZRECT.ORGROW)
+   ld a,h
+   add a,(ix+ZRECT.HEIGHT)
+   dec a
+   ld d,a
+   ld l,(ix+ZRECT.ORGCOL)
+   ld a,l
+   add a,(ix+ZRECT.WIDTH)
+   dec a
+   ld e,a
+   push ix
+   call _ClearRect
+   pop ix
+   ret
+
+;; zdisp_init -- do basic initialization of LCD
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: (none)
+zdisp_init:
+   res plotLoc,(iy+plotFlags)
+   ret
+
+
+#if 0
 ;; zdisp_clearrect.aligned -- clear 8-bit aligned rectangle
 ;; INPUTS
 ;;  h = start row
@@ -141,7 +175,8 @@ zdisp_clearrect.colbyte:
    or a,c
    ld e,a ; mask
    jp zdisp_clearrect.column
-   
+#endif
+
 ;; zdisp_byteaddr -- get address of byte in VRAM
 ;; INPUTS
 ;;  a = row
@@ -160,5 +195,6 @@ zdisp_byteaddr:
    add hl,bc
    pop bc
    ret
+
 
 #include "util.z80"

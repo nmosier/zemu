@@ -10,14 +10,6 @@
 #include "ti83plus/zdisp.z80"
 #endif
 
-;; zdisp_init -- do basic initialization of LCD
-;; INPUTS: (none)
-;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: a
-zdisp_init:
-   ret
-
 ;; sfont_width -- get width of small font character
 ;; INPUTS:
 ;;  a = character

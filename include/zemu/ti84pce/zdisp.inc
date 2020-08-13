@@ -19,6 +19,7 @@ PIXEL_SIZE .equ 2
    add hl,hl
 #endmacro
 
+COL_SIZE .equ LONG_SIZE
 #define DCOL DL
 
 #endif

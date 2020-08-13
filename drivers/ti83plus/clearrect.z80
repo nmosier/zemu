@@ -5,6 +5,7 @@
 .db t2ByteTok,tAsmCmp
 
 start:
+   call fill_black
    bcall(_GrBufCpy)
    bcall(_GetKey)
    ld h,0
@@ -15,6 +16,10 @@ start:
    ret
 
 fill_black:
-	
-   
+   ld hl,DISP_VRAM
+   ld bc,DISP_WIDTH*DISP_HEIGHT/8
+   ld a,$ff
+   call memset
+   ret
+
 #include "ti83plus/zdisp.z80"

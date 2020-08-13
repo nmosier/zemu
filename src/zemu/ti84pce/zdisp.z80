@@ -32,3 +32,95 @@ zdisp_clearrect:
 ;; DESTROYS: (none)
 zdisp_init:
    ret
+
+
+
+;; zdisp_rowaddr -- address of row in VRAM
+;; INPUTS:
+;;  a = row number
+;; OUTPUTS:
+;;  hl = row address
+;; DESTROYS: a, de
+;; ERRORS: no.
+zdisp_rowaddr:
+   MLT_A_DISP_WIDTH(R_HL)
+   ld de,DISP_VRAM
+   add hl,de
+   ret
+
+;; zdisp_pixaddr -- address of pixel in VRAM
+;; INPUTS:
+;;  a = row number
+;;  hl = column number
+;; OUTPUTS:
+;;  hl = pixel address
+;; DESTROYS: a, de
+;; ERRORS: no.
+zdisp_pixaddr:
+   add hl,hl ; x2 because there are 2 bytes per pixel
+   push hl
+   call zdisp_rowaddr
+   pop de
+   add hl,de
+   ret
+
+
+
+;; zdisp_scrollrect_up.copy -- scroll up by copying contents of VRAM
+;; INPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; OUTPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; ERRORS: no.
+;; DESTROYS: ???
+zdisp_scrollrect_up.copy:
+   push af
+   ld b,(ix+ZRECT.HEIGHT)
+   ld c,a
+   sub a,b
+   jr nc,zdisp_scrollrect_up.copy.done  ; nothing to copy
+   neg
+   ld b,a
+   ;; b stores number of rows to copy (b > 0)
+   push bc
+   ;; compute src and dst addresses
+   ;;  compute dst address
+   ld a,(ix+ZRECT.ORGROW)
+   LD_HLL_FROM_IX(ZRECT.ORGCOL)
+   call zdisp_pixaddr
+   push hl
+   ;;  compute src address
+   add a,c  ;  add upward shift
+   LD_HLL_FROM_IX(ZRECT.ORGCOL)
+   call zdisp_pixaddr
+   push hl
+   jr zdisp_scrollrect_up.copy.entry
+zdisp_scrollrect_up.copy.loop:
+   push bc
+   LD_BCL_FROM_IX(ZRECT.WIDTH)
+   sla c
+   rl b
+   or a,a
+   sbc hl,bc
+   ex de,hl
+   sbc hl,bc
+   ld bc,DISP_WIDTH*PIXEL_SIZE
+   add hl,bc
+   ex de,hl
+   add hl,bc
+   push de
+   push hl
+zdisp_scrollrect_up.copy.entry:
+   pop hl   ; src
+   pop de   ; dst
+   LD_BCL_FROM_IX(ZRECT.WIDTH)
+   sla c
+   rl b
+   ldir
+   pop bc
+   djnz zdisp_scrollrect_up.copy.loop
+zdisp_scrollrect_up.copy.done:
+   pop af
+   ret

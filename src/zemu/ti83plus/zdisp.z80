@@ -141,17 +141,27 @@ zdisp_scrollrect_up.copy.column:
   ld c,e ; save width
   call zdisp_get_src_dst ; preserves bc
 zdisp_scrollrect_up.copy.column.loop:
-  ld a,(hl)
-  and a,c
-  ld (de),a
   push bc
+
+  ld a,(de)
+  and a,c
+  ld b,a
+  ld a,c
+  cpl
+  ld c,(hl)
+  and a,c
+  or a,b
+  ld (de),a
+
   ld bc,DISP_WIDTH/8
   add hl,bc
   ex de,hl
   add hl,bc
   ex de,hl
+  
   pop bc
   djnz zdisp_scrollrect_up.copy.column.loop
+
   pop hl
   pop de
   pop bc
@@ -249,17 +259,18 @@ _ ld c,a
   jp zdisp_scrollrect_up.copy.aligned
    
 zdisp_clearrect.colbyte:
-   ;; get column byte
-   srl d
-   srl d
-   srl d
-   ld e,a ; save shift
-   ld a,b
-   or a,c
-   ld b,a ; save mask
-   ld a,e ; restore shift
-   ld e,b ; restore mask
-   jp zdisp_scrollrect_up.copy.column
+  pop af
+  ;; get column byte
+  srl d
+  srl d
+  srl d
+  ld e,a ; save shift
+  ld a,b
+  or a,c
+  ld b,a ; save mask
+  ld a,e ; restore shift
+  ld e,b ; restore mask
+  jp zdisp_scrollrect_up.copy.column
 
 ;; zdisp_byteaddr -- get address of byte in VRAM
 ;; INPUTS

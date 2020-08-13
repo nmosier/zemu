@@ -1,4 +1,17 @@
+#ifndef TI83PLUS_ZDISP_Z80
+#define TI83PLUS_ZDISP_Z80
+
 #include "zdisp.inc"
+
+;; zdisp_show -- show updated buffer
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+zdisp_show:
+  push ix
+  bcall(_GrBufCpy)
+  pop ix
+  ret
 
 ;; zdisp_clearrect -- clear rectangle
 ;; INPUTS:
@@ -23,6 +36,7 @@ zdisp_clearrect:
    pop ix
    ret
 
+
 ;; zdisp_init -- do basic initialization of LCD
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
@@ -32,150 +46,220 @@ zdisp_init:
    res plotLoc,(iy+plotFlags)
    ret
 
-
-#if 0
-;; zdisp_clearrect.aligned -- clear 8-bit aligned rectangle
+;; zdisp_scrollrect_up.copy.aligned
 ;; INPUTS
 ;;  h = start row
 ;;  l = height (pixels)
 ;;  d = start col byte
 ;;  e = width (bytes)
+;;  a = upward shift
 ;; OUTPUTS: (none)
-;; DESTROYS: (all)
-zdisp_clearrect.aligned:
-   ld c,d
-   ld a,h
-   ld d,l
-   call zdisp_byteaddr
-   xor a,a
-   inc d
-   jr zdisp_clearrect.aligned.row.entry
-zdisp_clearrect.aligned.row:
-   ;; INVARIANTS:
-   ;;  hl = current address.
-   ;;  a = 0
-   ;;  d = remaining height
-   push hl
-   ld b,e ; width
-   call memset_short
-   pop hl
-   ld bc,DISP_WIDTH/8
-   add hl,bc
-zdisp_clearrect.aligned.row.entry:
-   dec d
-   jr nz,zdisp_clearrect.aligned.row
-   ret
+;; DESTROYS: bc, de, hl
+zdisp_scrollrect_up.copy.aligned:
+  push af
+  ld c,a ; save shift
+  sub a,l
+  ret nc ; height <= shift, so nothing to do
+  neg
+  ld b,a ; b = number of rows to copy (b > 0)
+  ld a,c ; restore shift
+  ld c,e ; save width
+  call zdisp_get_src_dst ; preserves bc
+  ld a,b
+  ld b,0
+zdisp_scollrect_up.copy.aligned.loop:
+  push bc
+  push hl
+  push de
+  ldir
+  ld bc,DISP_WIDTH/8
+  pop hl
+  add hl,bc
+  ex de,hl
+  pop hl
+  add hl,bc
+  pop bc
+  dec a
+  jr nz,zdisp_scollrect_up.copy.aligned.loop
+  pop af
+  ret
 
-;; zdisp_clearrect.column -- clear rectangle fitting in single column byte
+;; zdisp_get_src_dst -- get source and destination of column in VRAM
+;; INPUTS:
+;;  a = upward shift
+;;  h = start row
+;;  l = height
+;;  d = start column group
+;; OUTPUTS:
+;;  hl = source
+;;  de = destination
+;; DESTROYS: (none)
+;; REQUIRES: height > shift (l > a)
+zdisp_get_src_dst:
+  push af
+  push bc
+  ;; get copy source
+  add a,h ; shift + row
+  ld c,d  ; col
+  push hl
+  call zdisp_byteaddr
+  ex (sp),hl ; save source on stack, get old hl
+  ;; get copy dest
+  ld a,h ; row
+  call zdisp_byteaddr
+  ;; done
+  ex de,hl
+  pop hl
+  pop bc
+  pop af
+  ret  
+
+
+
+
+;; zdisp_scrollrect_up.copy.column -- scroll rectangle up fitting in single column byte
 ;; INPUTS
 ;;  h = start row
 ;;  l = height (pixels)
 ;;  d = start col byte
 ;;  e = mask
+;;  a = upward shift
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
-zdisp_clearrect.column:
-   push af
-   push bc
-   push de
-   push hl
-   ld c,d
-   ld d,l
-   ld a,h
-   call zdisp_byteaddr
-   inc d
-   jr zdisp_clearrect.column.row.entry
-zdisp_clearrect.column.row:
-   ld a,e
-   and a,(hl)
-   ld (hl),a
-   ld bc,DISP_WIDTH/8
-   add hl,bc
-zdisp_clearrect.column.row.entry:   
-   dec d
-   jr nz,zdisp_clearrect.column.row
-   pop hl
-   pop de
-   pop bc
-   pop af
-   ret
+;; OPTIM: unite with zdisp_scrollrect_up.copy.*
+zdisp_scrollrect_up.copy.column:
+  push af
+  push bc
+  push de
+  push hl
+  ld c,a ; save shift
+  sub a,l
+  ret nc ; height <= shift, so nothing to do
+  neg
+  ld b,a ; b = number of rows to copy (b > 0)
+  ld a,c ; restore shift
+  ld c,e ; save width
+  call zdisp_get_src_dst ; preserves bc
+zdisp_scrollrect_up.copy.column.loop:
+  ld a,(hl)
+  and a,c
+  ld (de),a
+  push bc
+  ld bc,DISP_WIDTH/8
+  add hl,bc
+  ex de,hl
+  add hl,bc
+  ex de,hl
+  pop bc
+  djnz zdisp_scrollrect_up.copy.column.loop
+  pop hl
+  pop de
+  pop bc
+  pop af
+  ret
 
-;; zdisp_clearrect -- clear rectangle in VRAM
-;; INPUTS
-;;  h = start row
-;;  l = height (pixels)
-;;  d = start column
-;;  e = width (pixels)
-;; OUTPUTS: (none)
-;; DESTROYS: (all)
-zdisp_clearrect:
-   ;; check if rectangle has zero area
-   xor a,a
-   cp a,l
-   ret z ; zero height
-   cp a,e
-   ret z ; zero width
 
-   ;; compute overhang masks
-   ;; left overhang
-   ld a,h
-   neg
-   and a,%111
-   call maskb
-   neg
-   ld b,a
-   ;; right overhang
-   ld a,h
-   add a,l
-   neg
-   and a,%111
-   call maskb
-   dec a
-   ld c,a
+;; zdisp_scrollrect_up.copy -- scroll up by copying contents of VRAM
+;; INPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; OUTPUTS:
+;;  ix = rectangle
+;;  a = upward shift
+;; ERRORS: no.
+;; DESTROYS: bc, de, hl
+zdisp_scrollrect_up.copy:
+  push af
+  ;; h = ORGROW
+  ;; l = HEIGHT
+  ;; d = ORGCOL
+  ;; e = WIDTH
+  ld h,(ix+ZRECT.ORGROW)
+  ld l,(ix+ZRECT.HEIGHT)
+  ld d,(ix+ZRECT.ORGCOL)
+  ld e,(ix+ZRECT.WIDTH)
+  ;; compute overhang masks
+  ;; left overhang
+  ld a,d
+  neg
+  and a,%111
+  call maskb
+  neg
+  ld b,a
+  ;; right overhang
+  ld a,d
+  add a,e
+  neg
+  and a,%111
+  call maskb
+  dec a
+  jr nz,_ ; if a == $00, then a <- $ff
+  dec a
+_ ld c,a
+  
+  ;; check if overhangs are in one column byte
+  ld a,d
+  neg
+  and a,%111 ; a <- 8 - (a % 8)
+  cp a,e
+  jr nc,zdisp_clearrect.colbyte ; only one column byte
 
-   ;; check if overhangs are in one column byte
-   ld a,d
-   neg
-   and a,%111 ; a <- 8 - (a % 8)
-   cp a,e
-   jr nc,zdisp_clearrect.colbyte ; only one column byte
+  pop af
+  push de
 
-   push de
+  ;; scroll left overhang
+  ld e,b
+  srl d \ srl d \ srl d
+  inc e
+  dec e
+  call nc,zdisp_scrollrect_up.copy.column ; call if e != $ff
 
-   ;; clear left overhang
-   ld e,b
-   call zdisp_clearrect.column
+  ;; scroll right overhang
+  pop de
+  push de
+  ld b,a
+  ld a,d
+  add a,e
+  call div_a_8
+  ld d,a
+  ld e,c
+  ld a,b
+  inc e
+  dec e
+  call nc,zdisp_scrollrect_up.copy.column ; call if e != $ff
 
-   ;; clear right overhang
-   ld e,c
-   call zdisp_clearrect.column
+  pop de
 
-   pop de
-
-   ;; clear aligned middle
-   ld a,d
-   dec a
-   or a,%111
-   inc a
-   add a,e
-   and a,~%111
-   rra
-   rra
-   rra
-   ld e,a
-   jp zdisp_clearrect.aligned
+  ;; scroll aligned middle
+  ld c,a ; save shift
+  ld a,d
+  add a,e
+  call div_a_8
+  ld e,a
+  ld a,d
+  dec a
+  and a,%111
+  inc a
+  call div_a_8
+  ld d,a
+  sub a,e
+  neg
+  ld e,a
+  ld a,c ; restore shift
+  jp zdisp_scrollrect_up.copy.aligned
    
 zdisp_clearrect.colbyte:
    ;; get column byte
    srl d
    srl d
    srl d
-   pop bc
+   ld e,a ; save shift
    ld a,b
    or a,c
-   ld e,a ; mask
-   jp zdisp_clearrect.column
-#endif
+   ld b,a ; save mask
+   ld a,e ; restore shift
+   ld e,b ; restore mask
+   jp zdisp_scrollrect_up.copy.column
 
 ;; zdisp_byteaddr -- get address of byte in VRAM
 ;; INPUTS
@@ -196,7 +280,6 @@ zdisp_byteaddr:
    pop bc
    ret
 
-
-zdisp_scrollrect_up.copy .equ 0 ;; stub
-
 #include "util.z80"
+
+#endif

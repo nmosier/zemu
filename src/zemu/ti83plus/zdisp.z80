@@ -19,7 +19,7 @@ zdisp_clearrect:
    dec a
    ld e,a
    push ix
-   call _ClearRect
+   bcall(_ClearRect)
    pop ix
    ret
 
@@ -196,5 +196,7 @@ zdisp_byteaddr:
    pop bc
    ret
 
+
+zdisp_scrollrect_up.copy .equ 0 ;; stub
 
 #include "util.z80"

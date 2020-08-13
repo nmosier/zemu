@@ -13,6 +13,7 @@ DISP_VRAM .equ plotSScreen
 #define MLT_A_DISP_WIDTH(reg) MLT_A(DISP_WIDTH, reg)
 
 #define DCOL DB
+COL_SIZE .equ 1
 
 #define LD_COL_FROM_IX(off, reg) LD_REG8_FROM_IX(off, R_LOW(reg))
 

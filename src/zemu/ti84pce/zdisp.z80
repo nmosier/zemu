@@ -124,3 +124,10 @@ zdisp_scrollrect_up.copy.entry:
 zdisp_scrollrect_up.copy.done:
    pop af
    ret
+
+;; zdisp_show -- show updated buffer
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+zdisp_show:
+  ret

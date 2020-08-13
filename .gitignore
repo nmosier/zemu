@@ -8,4 +8,8 @@ CMakeFiles/
 CMakeCache.txt
 Makefile
 build/
+*.romCEmu.exe
 *.rom
+*.exe
+*.pdf
+zmap

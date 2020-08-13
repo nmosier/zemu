@@ -36,7 +36,7 @@ PENCOL_SIZE .equ BYTE_SIZE
    ADD_IX_REG(reg)
 #endmacro
 
-#macro LEA_HL_IX(off)
+#macro _LEA_HL_IX(off)
    push af
    ld a,off
    call lea_hl_ix

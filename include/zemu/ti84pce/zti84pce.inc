@@ -27,7 +27,7 @@ PENCOL_SIZE .equ LONG_SIZE
 #define LD_DE_BC push bc \\ pop de
 
 #define LEA_IX_IX(off, reg) lea ix,ix+off
-#define LEA_HL_IX(off) lea hl,ix+off
+#define _LEA_HL_IX(off) lea hl,ix+off
 
 #define LD_HLL_FROM_IX(off) ld hl,(ix+off)
 #define LD_DEL_FROM_IX(off) ld de,(ix+off)

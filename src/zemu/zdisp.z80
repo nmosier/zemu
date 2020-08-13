@@ -42,15 +42,14 @@ sfont_width:
 ;; INPUTS:
 ;;  ix = rectangle
 ;;  a = upward shift (in pixels)
-;; OUTPUTS: ???
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
 ;; ERRORS: no.
 ;; *** portable ***
 zdisp_scrollrect_up:
    call zdisp_scrollrect_up.copy
    call zdisp_scrollrect_up.clear
-   ret
-
-
+   jp zdisp_show
 
 ;; zdisp_scrollrect_up.clear -- clear rectangle after scrolling up
 ;; INPUTS:

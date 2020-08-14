@@ -17,26 +17,20 @@
 ;; INPUTS:
 ;;  a = character
 ;; OUTPUTS:
-;;  bc = width of character
-;; DESTROYS: (none)
+;;  b = width of character
+;; DESTROYS: c
 ;; ERRORS: no.
 sfont_width:
+   push af
    push hl
    push de
    MLT_A(SFONT_TAB_ENTLEN, R_HL)
    SYSCALL(_SFont_Len)
-#if TI84PCE
-   push af
-   ld a,b
-   UCAST_A_TO_BC
-   pop af
-#elif TI83PLUS
-   ld c,b
-   ld b,0
-#endif
    pop de
    pop hl
+   pop af
    ret
+
 
 ;; zdisp_scrollrect_up -- shift rectangle upwards in VRAM
 ;; INPUTS:

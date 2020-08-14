@@ -111,6 +111,7 @@ zwin_putc.base.other:
    ld de,(ix+ZWIN.ORGCOL)
    or a,a
    sbc hl,de ; find current width of line
+   
    call sfont_width ; bc = character width
    push af
    ld a,b
@@ -179,8 +180,14 @@ zwin_unputcursor:
    ld a,(hl)
    ld (ix+ZWIN.BUFPTR),hl
    ld hl,(ix+ZWIN.CURCOL)
-   ld bc,0
+
    call sfont_width
+   push af
+   ld a,b
+   ld bc,0
+   ld c,a
+   pop af
+
    or a,a
    sbc hl,bc
    ld de,(ix+ZWIN.ORGCOL)
@@ -352,8 +359,14 @@ zwin_eol.loop:
    cp a,ASCII_NEWLINE
    jr z,zwin_eol.inc_found
    push bc
-   ld bc,0 ; zero-extend char width
+   
    call sfont_width
+   push af
+   ld a,b
+   ld bc,0
+   ld c,a
+   pop af
+
    or a,a ; NC
    sbc hl,bc
    pop bc
@@ -710,7 +723,6 @@ zwin_getc_bare:
    call ktoch
    jr c,zwin_getc_bare
    ret
-
 
 ;; zwin_getsn -- get input string
 ;; INPUTS:

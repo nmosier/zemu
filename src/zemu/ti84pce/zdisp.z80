@@ -24,6 +24,7 @@ zdisp_clearrect:
    push ix
    call _ClearRect
    pop ix
+   ret
 
 ;; zdisp_init -- do basic initialization of LCD
 ;; INPUTS: (none)

@@ -1,32 +1,6 @@
 {
     "rom": "../misc/ce.rom",
-    "transfer_files": [
-        "../src/zemu/zemu.8xp",
-        "../vars/zork/ZORK.8xv",
-        "../vars/zork/ZORKRaa.8xv",
-        "../vars/zork/ZORKRab.8xv",
-        "../vars/zork/ZORKRac.8xv",
-        "../vars/zork/ZORKRad.8xv",
-        "../vars/zork/ZORKRae.8xv",
-        "../vars/zork/ZORKRaf.8xv",
-        "../vars/zork/ZORKRag.8xv",
-        "../vars/zork/ZORKRah.8xv",
-        "../vars/zork/ZORKRai.8xv",
-        "../vars/zork/ZORKRaj.8xv",
-        "../vars/zork/ZORKRak.8xv",
-        "../vars/zork/ZORKRal.8xv",
-        "../vars/zork/ZORKRam.8xv",
-        "../vars/zork/ZORKRan.8xv",
-        "../vars/zork/ZORKRao.8xv",
-        "../vars/zork/ZORKRap.8xv",
-        "../vars/zork/ZORKRaq.8xv",
-        "../vars/zork/ZORKRar.8xv",
-        "../vars/zork/ZORKRas.8xv",
-        "../vars/zork/ZORKRat.8xv",
-        "../vars/zork/ZORKRau.8xv",
-        "../vars/zork/ZORKRav.8xv",
-        "../vars/zork/ZORKRaw.8xv"
-    ],
+    "transfer_files": [ "/Users/nicholas/Projects/zemu/src/zemu/zemu.8xp", "../vars/zork/ZORKRas.8xv","../vars/zork/ZORKRad.8xv","../vars/zork/ZORKRae.8xv","../vars/zork/ZORKRar.8xv","../vars/zork/ZORKRap.8xv","../vars/zork/ZORKRag.8xv","../vars/zork/ZORKRaf.8xv","../vars/zork/ZORKRaq.8xv","../vars/zork/ZORKRab.8xv","../vars/zork/ZORKRau.8xv","../vars/zork/ZORKRat.8xv","../vars/zork/ZORKRac.8xv","../vars/zork/ZORKRaa.8xv","../vars/zork/ZORKRav.8xv","../vars/zork/ZORKRaw.8xv","../vars/zork/ZORK.8xv","../vars/zork/ZORKRam.8xv","../vars/zork/ZORKRal.8xv","../vars/zork/ZORKRan.8xv","../vars/zork/ZORKRao.8xv","../vars/zork/ZORKRak.8xv","../vars/zork/ZORKRaj.8xv","../vars/zork/ZORKRah.8xv","../vars/zork/ZORKRai.8xv" ],
     "target": {
         "name": "ZEMU",
         "isASM": true
@@ -38,10 +12,10 @@
     ],
     "hashes": {
         "1": {
-            "description": "displays ZORK start screen",
+            "description": "ZORK welcome screen",
             "start": "vram_start",
             "size": "vram_16_size",
-            "expected_CRCs": ["941015F8"]
+            "expected_CRCs": ["E3E88479"]
         }
     }
 }

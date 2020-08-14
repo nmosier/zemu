@@ -53,5 +53,7 @@ function(add_8xp TARGET MAIN_SOURCE)
   add_custom_target(${TARGET} ALL
     DEPENDS ${OUTPUT}
     )
+
+  set_target_properties(${TARGET} PROPERTIES 8XP ${OUTPUT})
   
 endfunction()

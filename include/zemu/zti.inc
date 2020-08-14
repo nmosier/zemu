@@ -23,9 +23,6 @@ LONG_MAX .equ LONG_MIN - 1
 ULONG_MIN .equ 0
 ULONG_MAX .equ (1 << LONG_BITS) - 1
 
-PENROW_SIZE .equ BYTE_SIZE
-
-
 #define LD_IX_DE push de \\ pop ix
 #define LD_IX_HL push hl \\ pop ix
 #define LD_HL_IX push ix \\ pop hl

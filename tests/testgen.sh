@@ -124,7 +124,7 @@ cat > "$OUT" <<EOF
     "delay_after_key": $KEYDELAY,
     "sequence": [
         "action|launch",
-        "delay|1000",
+        "delay|2000",
         $KEYCMDS
         "hash|1"
     ],

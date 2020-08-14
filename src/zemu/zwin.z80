@@ -80,8 +80,10 @@ zwin_flush:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;;  a = character
-;; OUTPUTS: (none)
-;; DESTROYS: all but a,ix
+;; OUTPUTS:
+;;  ix = pointer to window struct
+;;  a = character
+;; DESTROYS: (all)
 ;; ERRORS: no, but safe.
 zwin_putc:
    scf
@@ -104,39 +106,8 @@ zwin_putc.base:
    ; 3. Check if clear.
    cp a,ASCII_CLEAR
    jr z,zwin_putc.clear
-zwin_putc.base.other:   
    ; Otherwise
-   push ix
-   ld hl,(ix+ZWIN.CURCOL)
-   ld de,(ix+ZWIN.ORGCOL)
-   or a,a
-   sbc hl,de ; find current width of line
-   
-   call sfont_width ; bc = character width
-   push af
-   ld a,b
-   ld bc,0
-   ld c,a
-   pop af
-   ; bc = character width
-   
-   push bc
-   add hl,bc
-   ld bc,(ix+ZWIN.WIDTH)
-   scf
-   sbc hl,bc ; new strlen - width - 1
-   call nc,zwin_newline_bare ; don't buffer
-   call zwin_select ; select window for writing
-   push iy
-   ld iy,flags
-   call _VPutMap ; display char
-   pop iy
-   pop bc
-   pop ix
-   ; update current column
-   ld hl,(ix+ZWIN.CURCOL)
-   add hl,bc
-   ld (ix+ZWIN.CURCOL),hl
+   call zwin_putc.base.other
 zwin_putc.done:
    pop af
    ; Buffer char

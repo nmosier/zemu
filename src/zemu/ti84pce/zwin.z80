@@ -48,4 +48,41 @@ zwin_border:
 #endif
 
 
+;; zwin_putc.base.other
+;; INPUTS:
+;;  a = character
+;;  ix = pointer to window struct
+;; OUTPUTS:
+;;  ix = pointer to window struct
+;; DESTROYS: (all)
+;; ERRORS: (none)
+zwin_putc.base.other:
+   push ix
+   ld hl,(ix+ZWIN.CURCOL)
+   ld de,(ix+ZWIN.ORGCOL)
+   or a,a
+   sbc hl,de ; find current width of line
+   
+   call sfont_width ; bc = character width
+   ld d,b
+   ld bc,0
+   ld c,d
+   ; bc = character width
+   
+   push bc
+   add hl,bc
+   ld bc,(ix+ZWIN.WIDTH)
+   scf
+   sbc hl,bc ; new strlen - width - 1
+   call nc,zwin_newline_bare ; don't buffer
+   call zwin_select ; select window for writing
+   call _VPutMap ; display char
+   pop bc
+   pop ix
+   ; update current column
+   ld hl,(ix+ZWIN.CURCOL)
+   add hl,bc
+   ld (ix+ZWIN.CURCOL),hl
+   ret  
+
 #endif

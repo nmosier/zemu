@@ -47,12 +47,33 @@ zwin_border:
 ;; INPUTS:
 ;;  a = character
 ;;  ix = pointer to window struct
+;; OUTPUTS:
+;;  ix = pointer to window struct
+;; DESTROYS: (all)
+;; ERRORS: (none)
 zwin_putc.base.other:
-  ld d,a ; save char
-  ld a,(ix+ZWIN.CURCOL)
-  sub a,(ix+ZWIN.ORGCOL)
+  ; compute new length of line with added character
   call sfont_width
-
-  add a,
+  ld c,a
+  push bc ; save char and sfontlen
+  ld a,(ix+ZWIN.CURCOL)
+  add a,b
+  sub a,(ix+ZWIN.ORGCOL)
+  ; a = new width of line
+  ; if line > width, newline
+  scf
+  sbc a,(ix+ZWIN.WIDTH)
+  ld a,c ; restore char
+  call nc,zwin_newline_bare ; newline, no buffering
+  call zwin_select ; select window for writing
+  push ix
+  ; a = char
+  bcall(_VPutMap)
+  pop ix
+  pop af ; a <- sfont_len
+  ; update current column
+  add a,(ix+ZWIN.CURCOL)
+  ld (ix+ZWIN.CURCOL),a
+  ret
 
 #endif

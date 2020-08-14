@@ -96,6 +96,7 @@ cat > "$OUT" <<EOF
         "name": "$TARGET",
         "isASM": true
     },
+    "delay_after_key": 100,
     "sequence": [
         "action|launch",
         "delay|1000",

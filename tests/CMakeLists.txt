@@ -30,6 +30,7 @@ function(add_zemu_test NAME EXEC)
   # Generate test command
   add_custom_command(OUTPUT ${NAME}.json
     COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -c ${ZT_CRC} ${DESC_FLAG} -o ${NAME}.json
+    DEPENDS ${TESTGEN}
     )
 
   # Generate test target

@@ -32,9 +32,15 @@ function(add_zemu_test NAME EXEC)
       set(ZT_KEY_DELAY -w ${ZT_KEY_DELAY})
     endif()
 
+    # Quote Commands (???)
+    set(COMMANDS)
+    foreach(COMMAND ${ZT_COMMANDS})
+      list(APPEND COMMANDS "'${COMMAND}'")
+    endforeach()
+
     # Generate test command
     add_custom_command(OUTPUT ${NAME}.json
-      COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -c ${ZT_CRC} ${DESC_FLAG} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${ZT_COMMANDS}
+      COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -c ${ZT_CRC} ${DESC_FLAG} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
       DEPENDS ${TESTGEN} str2keys
       )
     
@@ -64,14 +70,14 @@ add_zemu_test(zork-north ${zemu_8xp}
   VARDIR "../vars/zork"
   CRC "830BA2CD"
   DESCRIPTION "ZORK go north once"
-  COMMANDS "n"
+  COMMANDS "n\\n"
   )
 
 add_zemu_test(zork-open-mailbox ${zemu_8xp}
   VARDIR "../vars/zork"
   CRC "8F98BDAF"
   DESCRIPTION "ZORK open mailbox"
-  COMMANDS "open mailbox"
+  COMMANDS "open mailbox\\n"
   )
 
 add_zemu_test(zork-multiline-command ${zemu_8xp} JSON)

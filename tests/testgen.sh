@@ -100,7 +100,11 @@ done
 
 # get string of keypresses
 KEYCMDS=
-for STRING in "$@"; do
+while [ $# -gt 0 ]; do
+    # get string
+    STRING="$1"
+    shift
+    
     # add keypress commands
     KEYS="$("$STR2KEY" "$STRING")"
     read -ra KEYARR <<< "$KEYS"
@@ -108,8 +112,11 @@ for STRING in "$@"; do
         KEYCMDS+="\"key|$KEY\","
     done
 
+    # get crc
+    # CRC="$1"
+    # shift
+    
     # add enter keypress
-    KEYCMDS+="\"key|enter\","
     KEYCMDS+="\"delay|1000\","
 done
 

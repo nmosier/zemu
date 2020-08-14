@@ -11,6 +11,7 @@ using Key = std::string;
 using Keys = std::list<Key>;
 
 bool alpha_lock = false;
+constexpr char ESCAPE = '\\';
 
 Key alpha2key(char c) {
    assert(isalpha(c));
@@ -62,12 +63,22 @@ Keys ascii2key(char c) {
          alpha_lock = true;
       }
       keys.push_back("0");
+   } else if (c == '\n') {
+      keys.push_back("enter");
    } else {
       fprintf(stderr, "don't know how to translate '%c' into keypresses\n", c);
       exit(1);
    }
    
    return keys;
+}
+
+Keys escape2key(char c) {
+   switch (c) {
+   case 'n': return {"enter"};
+   default:
+      return ascii2key(c);
+   }
 }
 
 int main(int argc, char *argv[]) {
@@ -100,10 +111,17 @@ int main(int argc, char *argv[]) {
       return 1;
    }
 
-   std::string s = argv[optind++];
+   const char *s = argv[optind++];
    Keys keys;
-   for (char c : s) {
-      keys.splice(keys.end(), ascii2key(c));
+   for (; *s; ++s) {
+      switch (*s) {
+      case ESCAPE:
+         keys.splice(keys.end(), escape2key(*++s));
+         break;
+      default:
+         keys.splice(keys.end(), ascii2key(*s));
+         break;
+      }
    }
 
    for (auto it = keys.begin(); it != keys.end(); ++it) {

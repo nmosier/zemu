@@ -61,7 +61,7 @@ Keys ascii2key(char c) {
 
 int main(int argc, char *argv[]) {
    if (argc != 2) {
-      fprintf(stderr, "usage: %s <string>", argv[0]);
+      fprintf(stderr, "usage: %s <string>\n", argv[0]);
       return 1;
    }
 

@@ -40,3 +40,56 @@ Structure of the JSON object for the test config files:
         - "expected_CRCs" (array of strings (in hex, without a prefix)): one or several expected/valid CRCs
         - "timeout" (optional: positive integer): if a hashWait action is used, sets the maximum ms to wait for
 
+
+VALID KEYS
+graph
+trace
+zoom
+window
+y=
+2nd
+mode
+del
+on
+sto
+ln
+log
+^2
+-1
+math
+alpha
+0
+1
+4
+7
+,
+sin
+apps
+xton
+.
+2
+5
+8
+(
+cos
+prgm
+stat
+(-)
+3
+6
+9
+)
+tan
+vars
+enter
++
+-
+*
+/
+^
+clear
+down
+left
+right
+up
+

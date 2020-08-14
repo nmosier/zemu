@@ -1,4 +1,4 @@
-set(DRIVERS clearrect scrollrectupclear scrollrectup test)
+set(DRIVERS clearrect scrollrectupclear scrollrectup)
 
 foreach(DRIVER ${DRIVERS})
   add_8xp(${DRIVER} ${DRIVER}.z80

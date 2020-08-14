@@ -1,44 +1,21 @@
 ;; zwin.z80 -- window management routines
 ;; TODO -- need to unscale rows
 
+#ifndef ZWIN_Z80
+#define ZWIN_Z80
+
 #include "zti.inc"
 #include "zwin.inc"
 #include "zstr.inc"
-
-;; zwin_select -- select window for displaying characters
-;; INPUTS:
-;;  ix = pointer to window struct
-;; OUTPUTS: (none)
-;; DESTROYS: (none)
-;; ERRORS: no.
-;; *** portable ***
-zwin_select:
-   push af
-   push hl
-   ld a,(ix+ZWIN.CURROW)
-   ld (penRow),a
-   LD_HLL_FROM_IX(ZWIN.CURCOL)
-#ifdef TI84PCE
-   ld (penCol),hl
-#else
-#ifdef TI83PLUS
-   ld a,l
-   ld (penCol),a
-#endif
-#endif
-   pop hl
-   pop af
-   ret
 
 ;; zwin_clear -- clear window
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; DESTROYS: a, hl, de, bc
+;; DESTROYS: (all)
 ;; ERRORS: no.
+;; *** portable ***
 zwin_clear:
-   ;; white out window
-   ld hl,$ffff
    call zwin_fill
    jp zwin_org
    
@@ -48,8 +25,9 @@ zwin_clear:
 ;;  hl = value to fill with
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; DESTROYS: a, hl, de, bc
+;; DESTROYS: (all)
 ;; ERRORS: no.
+;; *** portable ***
 zwin_fill:
    push ix
    LEA_IX_IX(ZWIN.RECT, R_DE)
@@ -57,44 +35,22 @@ zwin_fill:
    pop ix
    ret
 
-#ifdef ZBORDER
-;; zwin_border -- display window border
-;; INPUTS:
-;;  ix = window
-;; OUTPUTS: (none)
-;; DESTROYS: (all)
-;; ERRORS: no.
-;; NOTE: Assumes that window has display margin of at least 1px.
-zwin_border:
-   ;; fetch rows
-   ld a,(ix+ZWIN.ORGROW)
-   ld b,a
-   dec b
-   add a,(ix+ZWIN.HEIGHT)
-   ld c,a
-   ;; fetch cols
-   ld de,(ix+ZWIN.ORGCOL)
-   ld hl,(ix+ZWIN.WIDTH)
-   add hl,de
-   ex de,hl
-   dec hl
-   ;; draw rect
-   push ix
-   call _DrawRectBorder
-   pop ix
-   ret
-#endif
-
 ;; zwin_org -- set window's cursor back to the origin
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
 ;; DESTROYS: a, hl
 ;; ERRORS: no.
+;; *** portable ***
 zwin_org:
    ;; reset cursor
+#if TI83PLUS
+   ld a,(ix+ZWIN.ORGCOL)
+   ld (ix+ZWIN.CURCOL),a
+#elif TI84PCE
    ld hl,(ix+ZWIN.ORGCOL)
    ld (ix+ZWIN.CURCOL),hl
+#endif
    ld a,(ix+ZWIN.ORGROW)
    ld (ix+ZWIN.CURROW),a
    ;; flush buffer
@@ -108,14 +64,15 @@ zwin_org:
 ;; DESTROYS: hl
 ;; ERRORS no.
 ;; NOTE: does not assume that window is buffered.
+;; *** portable ***
 zwin_flush:
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z
-   lea hl,ix+ZWIN.BUF
-   ld (ix+ZWIN.BUF),hl
+   _LEA_HL_IX(ZWIN.BUF)
+   LD_HLL_TO_IX(ZWIN.BUF)
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret z
-   ld (ix+ZWIN.BUFANC),hl
+   LD_HLL_TO_IX(ZWIN.BUFANC)
    ret
 
 ;; zwin_putc -- put character in window, buffered
@@ -147,14 +104,21 @@ zwin_putc.base:
    ; 3. Check if clear.
    cp a,ASCII_CLEAR
    jr z,zwin_putc.clear
+zwin_putc.base.other:   
    ; Otherwise
    push ix
    ld hl,(ix+ZWIN.CURCOL)
    ld de,(ix+ZWIN.ORGCOL)
    or a,a
    sbc hl,de ; find current width of line
-   ld bc,0
    call sfont_width ; bc = character width
+   push af
+   ld a,b
+   ld bc,0
+   ld c,a
+   pop af
+   ; bc = character width
+   
    push bc
    add hl,bc
    ld bc,(ix+ZWIN.WIDTH)
@@ -901,3 +865,11 @@ zwin_putcursor:
    ld a,ZWIN_CURSOR
    jp zwin_putc
 
+
+#if TI83PLUS
+#include "ti83plus/zwin.z80"
+#elif TI84PCE
+#include "ti84pce/zwin.z80"
+#endif
+
+#endif

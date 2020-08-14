@@ -14,6 +14,7 @@ Options:
  -c <crc32>    expected CRC code
  -m <desc>     description of test
  -k <str2key>  path to str2key binary
+ -w <ms>       delay after each keypress, in ms
 EOF
 }
 
@@ -32,12 +33,13 @@ ROM=
 TARGET=
 VARDIR=
 EXEC=
-OUT=
+OUT=/dev/fd/1
 CRC=
 DESC=
 STR2KEY=
+KEYDELAY=100 # default: 100 ms
 
-while getopts "hr:t:v:x:o:c:m:k:" OPTION; do
+while getopts "hr:t:v:x:o:c:m:k:w:" OPTION; do
     case $OPTION in
         h)
             usage
@@ -67,6 +69,9 @@ while getopts "hr:t:v:x:o:c:m:k:" OPTION; do
         k)
             STR2KEY="$OPTARG"
             ;;
+        w)
+            KEYDELAY="$OPTARG"
+            ;;
         "?")
             usage >&2
             exit 1
@@ -80,7 +85,6 @@ shift $((OPTIND-1))
 [ -z "$TARGET" ]  && error "$0: specify target with '-t'"
 [ -z "$VARDIR" ]  && error "$0: specify variable directory with '-v'"
 [ -z "$EXEC" ]    && error "$0: specify *.8xp executable with '-x'"
-[ -z "$OUT" ]     && OUT=/dev/fd/1  # output to stdout
 [ -z "$CRC" ]     && error "$0: specify expected CRC32 code with '-c'"
 [ -z "$DESC" ]    && DESC="$TARGET $VARDIR"
 [ -z "$STR2KEY" ] && error "$0: specify str2key binary with '-k'"
@@ -98,7 +102,9 @@ done
 KEYCMDS=
 for STRING in "$@"; do
     # add keypress commands
-    for KEY in $("$STR2KEY" "$STRING"); do
+    KEYS="$("$STR2KEY" "$STRING")"
+    read -ra KEYARR <<< "$KEYS"
+    for KEY in "${KEYARR[@]}"; do
         KEYCMDS+="\"key|$KEY\","
     done
 
@@ -115,7 +121,7 @@ cat > "$OUT" <<EOF
         "name": "$TARGET",
         "isASM": true
     },
-    "delay_after_key": 100,
+    "delay_after_key": $KEYDELAY,
     "sequence": [
         "action|launch",
         "delay|1000",

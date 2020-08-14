@@ -5,9 +5,12 @@
 #include <string>
 #include <iostream>
 #include <list>
+#include <unistd.h>
 
 using Key = std::string;
 using Keys = std::list<Key>;
+
+bool alpha_lock = false;
 
 Key alpha2key(char c) {
    assert(isalpha(c));
@@ -46,10 +49,18 @@ Key alpha2key(char c) {
 Keys ascii2key(char c) {
    Keys keys;
    if (isalpha(c)) {
-      keys.push_back("alpha");
+      if (!alpha_lock) {
+         keys.push_back("2nd");
+         keys.push_back("alpha");
+         alpha_lock = true;
+      }
       keys.push_back(alpha2key(c));
    } else if (c == ' ') {
-      keys.push_back("alpha");
+      if (!alpha_lock) {
+         keys.push_back("2nd");
+         keys.push_back("alpha");
+         alpha_lock = true;
+      }
       keys.push_back("0");
    } else {
       fprintf(stderr, "don't know how to translate '%c' into keypresses\n", c);
@@ -60,12 +71,36 @@ Keys ascii2key(char c) {
 }
 
 int main(int argc, char *argv[]) {
-   if (argc != 2) {
-      fprintf(stderr, "usage: %s <string>\n", argv[0]);
+   const auto usage =
+      [&] (FILE *f) {
+         const char *usage =
+            "usage: %s [-ah] <string>\n"        \
+            "";
+         fprintf(f, usage, argv[0]);
+      };
+
+   const char *optstring = "ah";
+   int optchar;
+   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
+      switch (optchar) {
+      case 'a':
+         alpha_lock = true;
+         break;
+      case 'h':
+         usage(stdout);
+         return 0;
+      default:
+         usage(stderr);
+         return 1;
+      }
+   }
+
+   if (optind != argc - 1) {
+      usage(stderr);
       return 1;
    }
 
-   std::string s = argv[1];
+   std::string s = argv[optind++];
    Keys keys;
    for (char c : s) {
       keys.splice(keys.end(), ascii2key(c));

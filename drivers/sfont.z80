@@ -1,0 +1,32 @@
+#include "zti.inc"
+#include "zdisp.inc"
+
+#if TI84PCE
+.assume ADL=1
+#endif
+.org userMem-2
+
+#if TI83PLUS
+.db t2ByteTok, tAsmCmp
+#elif TI84PCE
+.db tExtTok, tAsm84CeCmp
+#endif
+
+start:
+   res fracDrawLFont,(iy+fontFlags)
+
+   SYSCALL(_ClrScrnFull)
+   
+   ld hl,' '*SFONT_TAB_ENTLEN
+
+   SYSCALL(_SFont_Len)
+   ld hl,0
+   ld l,b
+   
+   ld a,0
+   ld (curRow),a
+   ld (curCol),a
+   SYSCALL(_DispHL)
+
+   ret
+   

@@ -1,0 +1,51 @@
+#ifndef TI84PCE_ZWIN_Z80
+#define TI84PCE_ZWIN_Z80
+
+;; zwin_select -- select window for displaying characters
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+;; ERRORS: no.
+;; *** portable ***
+zwin_select:
+  push af
+  push hl
+  ld a,(ix+ZWIN.CURROW)
+  ld (penRow),a
+  ld hl,(ix+ZWIN.CURCOL)
+  ld (penCol),hl
+  pop hl
+  pop af
+  ret
+
+#ifdef ZBORDER
+;; zwin_border -- display window border
+;; INPUTS:
+;;  ix = window
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: no.
+;; NOTE: Assumes that window has display margin of at least 1px.
+zwin_border:
+   ;; fetch rows
+   ld a,(ix+ZWIN.ORGROW)
+   ld b,a
+   dec b
+   add a,(ix+ZWIN.HEIGHT)
+   ld c,a
+   ;; fetch cols
+   ld de,(ix+ZWIN.ORGCOL)
+   ld hl,(ix+ZWIN.WIDTH)
+   add hl,de
+   ex de,hl
+   dec hl
+   ;; draw rect
+   push ix
+   call _DrawRectBorder
+   pop ix
+   ret
+#endif
+
+
+#endif

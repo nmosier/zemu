@@ -1,0 +1,21 @@
+{
+    "rom": "ce.rom",
+    "transfer_files": ["chars.8xp"],
+    "target": {
+        "name": "CHARS",
+        "isASM": true
+    },
+    "sequence": [
+        "action|launch",
+        "hashWait|1"
+    ],
+    "hashes": {
+        "1": {
+            "description": "int true",
+            "start": "saveSScreen",
+            "size": 3,
+            "expected_CRCs": ["c5253104"],
+            "timeout": 10000
+        }
+    }
+}

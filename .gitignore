@@ -13,3 +13,5 @@ build/
 *.exe
 *.pdf
 zmap
+*CTestTestfile.cmake
+Testing/

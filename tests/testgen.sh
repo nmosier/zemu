@@ -13,6 +13,7 @@ Options:
  -o <output>   output CEmu JSON autotester file
  -c <crc32>    expected CRC code
  -m <desc>     description of test
+ -k <str2key>  path to str2key binary
 EOF
 }
 
@@ -34,8 +35,9 @@ EXEC=
 OUT=
 CRC=
 DESC=
+STR2KEY=
 
-while getopts "hr:t:v:x:o:c:m:" OPTION; do
+while getopts "hr:t:v:x:o:c:m:k:" OPTION; do
     case $OPTION in
         h)
             usage
@@ -62,6 +64,9 @@ while getopts "hr:t:v:x:o:c:m:" OPTION; do
         m)
             DESC="$OPTARG"
             ;;
+        k)
+            STR2KEY="$OPTARG"
+            ;;
         "?")
             usage >&2
             exit 1
@@ -71,13 +76,14 @@ done
 
 shift $((OPTIND-1))
 
-[ -z "$ROM" ]    && error "$0: specify ROM with '-r'"
-[ -z "$TARGET" ] && error "$0: specify target with '-t'"
-[ -z "$VARDIR" ] && error "$0: specify variable directory with '-v'"
-[ -z "$EXEC" ]   && error "$0: specify *.8xp executable with '-x'"
-[ -z "$OUT" ]    && OUT=/dev/fd/1  # output to stdout
-[ -z "$CRC" ]    && error "$0: specify expected CRC32 code with '-c'"
-[ -z "$DESC" ]   && DESC="$TARGET $VARDIR"
+[ -z "$ROM" ]     && error "$0: specify ROM with '-r'"
+[ -z "$TARGET" ]  && error "$0: specify target with '-t'"
+[ -z "$VARDIR" ]  && error "$0: specify variable directory with '-v'"
+[ -z "$EXEC" ]    && error "$0: specify *.8xp executable with '-x'"
+[ -z "$OUT" ]     && OUT=/dev/fd/1  # output to stdout
+[ -z "$CRC" ]     && error "$0: specify expected CRC32 code with '-c'"
+[ -z "$DESC" ]    && DESC="$TARGET $VARDIR"
+[ -z "$STR2KEY" ] && error "$0: specify str2key binary with '-k'"
 
 # get list of files
 VARS="$(find "$VARDIR" -name "*.8xv")"
@@ -86,6 +92,19 @@ VARS=
 for VAR in $(find "$VARDIR" -name "*.8xv"); do
     [ -z "$VARS" ] || VARS+=","
     VARS+="\"$VAR\""
+done
+
+# get string of keypresses
+KEYCMDS=
+for STRING in "$@"; do
+    # add keypress commands
+    for KEY in $("$STR2KEY" "$STRING"); do
+        KEYCMDS+="\"key|$KEY\","
+    done
+
+    # add enter keypress
+    KEYCMDS+="\"key|enter\","
+    KEYCMDS+="\"delay|1000\","
 done
 
 cat > "$OUT" <<EOF
@@ -100,6 +119,7 @@ cat > "$OUT" <<EOF
     "sequence": [
         "action|launch",
         "delay|1000",
+        $KEYCMDS
         "hash|1"
     ],
     "hashes": {

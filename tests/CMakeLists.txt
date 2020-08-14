@@ -7,7 +7,7 @@ function(add_zemu_test NAME EXEC)
   cmake_parse_arguments(ZT
     ""
     "VARDIR;CRC;DESCRIPTION"
-    ""
+    "COMMANDS"
     ${ARGN}
     )
 
@@ -29,8 +29,8 @@ function(add_zemu_test NAME EXEC)
 
   # Generate test command
   add_custom_command(OUTPUT ${NAME}.json
-    COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -c ${ZT_CRC} ${DESC_FLAG} -o ${NAME}.json
-    DEPENDS ${TESTGEN}
+    COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -c ${ZT_CRC} ${DESC_FLAG} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${ZT_COMMANDS}
+    DEPENDS ${TESTGEN} str2keys
     )
 
   # Generate test target
@@ -52,6 +52,13 @@ add_zemu_test(zork-welcome ${zemu_8xp}
   CRC "E3E88479"
   DESCRIPTION "ZORK welcome screen"
   )
+add_zemu_test(zork-north ${zemu_8xp}
+  VARDIR "../vars/zork"
+  CRC "2D5D448A"
+  DESCRIPTION "ZORK go north once"
+  COMMANDS "n"
+  )
+
 
 # foreach(TEST ${TESTS})
 #   get_filename_component(${TEST}_json ${TEST}.json ABSOLUTE)

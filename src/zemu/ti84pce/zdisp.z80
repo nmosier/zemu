@@ -31,6 +31,7 @@ zdisp_clearrect:
 ;; ERRORS: no.
 ;; DESTROYS: (none)
 zdisp_init:
+   res indicRun,(iy+indicFlags)
    ret
 
 

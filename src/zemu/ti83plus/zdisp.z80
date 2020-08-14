@@ -44,6 +44,7 @@ zdisp_clearrect:
 ;; DESTROYS: (none)
 zdisp_init:
    res plotLoc,(iy+plotFlags)
+   res indicRun,(iy+indicFlags)
    ret
 
 ;; zdisp_scrollrect_up.copy.aligned

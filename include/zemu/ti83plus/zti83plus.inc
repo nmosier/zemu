@@ -7,8 +7,6 @@
 
 LONG_SIZE .equ WORD_SIZE
 
-PENCOL_SIZE .equ BYTE_SIZE
-
 #define DL DW
 
 #macro CLEAR_UPPER_HL
@@ -54,6 +52,19 @@ PENCOL_SIZE .equ BYTE_SIZE
 #macro LD_BCL_FROM_IX(off)
    ld c,(ix+off)
    ld b,(ix+off+1)
+#endmacro
+
+#macro LD_HLL_TO_IX(off)
+  ld (ix+off),l
+  ld (ix+off+1),h
+#endmacro
+#macro LD_DEL_TO_IX(off)
+  ld (ix+off),e
+  ld (ix+off+1),d
+#endmacro
+#macro LD_BCL_TO_IX(off)
+  ld (ix+off),c
+  ld (ix+off+1),b
 #endmacro
 
 #macro MLT_A(off, reg16) 

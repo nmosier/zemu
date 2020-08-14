@@ -7,8 +7,6 @@
 
 LONG_SIZE .equ 3
 
-PENCOL_SIZE .equ LONG_SIZE
-
 #define DL .dl
 
 #define CLEAR_UPPER_HL ld hl,0
@@ -32,6 +30,10 @@ PENCOL_SIZE .equ LONG_SIZE
 #define LD_HLL_FROM_IX(off) ld hl,(ix+off)
 #define LD_DEL_FROM_IX(off) ld de,(ix+off)
 #define LD_BCL_FROM_IX(off) ld bc,(ix+off)
+
+#define LD_HLL_TO_IX(off) ld (ix+off),hl
+#define LD_DEL_TO_IX(off) ld (ix+off),de
+#define LD_BCL_TO_IX(off) ld (ix+off),bc
 
 #macro MLT_A(off, reg16)
 #if reg16 == R_HL       

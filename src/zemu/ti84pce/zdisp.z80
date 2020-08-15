@@ -90,18 +90,18 @@ zdisp_scrollrect_up.copy:
    ;; compute src and dst addresses
    ;;  compute dst address
    ld a,(ix+ZRECT.ORGROW)
-   LD_HLL_FROM_IX(ZRECT.ORGCOL)
+   ld hl,(ix+ZRECT.ORGCOL)
    call zdisp_pixaddr
    push hl
    ;;  compute src address
    add a,c  ;  add upward shift
-   LD_HLL_FROM_IX(ZRECT.ORGCOL)
+   ld hl,(ix+ZRECT.ORGCOL)
    call zdisp_pixaddr
    push hl
    jr zdisp_scrollrect_up.copy.entry
 zdisp_scrollrect_up.copy.loop:
    push bc
-   LD_BCL_FROM_IX(ZRECT.WIDTH)
+   ld bc,(ix+ZRECT.WIDTH)
    sla c
    rl b
    or a,a
@@ -117,7 +117,7 @@ zdisp_scrollrect_up.copy.loop:
 zdisp_scrollrect_up.copy.entry:
    pop hl   ; src
    pop de   ; dst
-   LD_BCL_FROM_IX(ZRECT.WIDTH)
+   ld bc,(ix+ZRECT.WIDTH)
    sla c
    rl b
    ldir

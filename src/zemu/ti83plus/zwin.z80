@@ -76,4 +76,70 @@ zwin_putc.base.other:
   ld (ix+ZWIN.CURCOL),a
   ret
 
+
+;; zwin_unputc -- remove last character from window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; ERRORS: no, but safe.
+;; DESTROYS: a, bc
+;; NOTES: erases character on screen.
+zwin_unputc:
+zwin_unputcursor:
+  push hl \ push de
+
+  ;; get buffer index
+  push ix \ pop de
+  LD_HLL_FROM_IX(ZWIN.BUFPTR)
+  push hl
+  ld de,ZWIN.BUF
+  LD_BC_IX
+  or a,a
+  sbc hl,de
+  sbc hl,bc
+  ;; if index == 0, nothing to unput 
+  jr z,zwin_unputc.done
+
+  ;; decrement buffer pointer and get removed char
+  pop hl
+  dec hl
+  ld a,(hl)
+  LD_HLL_TO_IX(ZWIN.BUFPTR)
+
+  ;; get width of removed char
+  call sfont_width
+  ld a,(ix+ZWIN.CURCOL)
+  sub a,b
+  cp a,(ix+ZWIN.ORGCOL)
+  jr z,zwin_unputc.prevline
+
+  ;; save new width
+  ld (ix+ZWIN.CURCOL),a
+
+  ;; clear char rectangle
+  ld c,(ix+ZWIN.CURROW)
+  push ix
+  ld ix,-ZRECT.SIZE
+  add ix,sp
+  ld sp,ix
+  ld (ix+ZRECT.ORGCOL),a
+  ld (ix+ZRECT.ORGROW),c
+  ld (ix+ZRECT.WIDTH),b
+  ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
+  call zdisp_clearrect
+  ld ix,ZRECT_SIZE
+  add ix,sp
+  ld sp,ix
+  pop ix
+zwin_unputc.done:
+  pop de \ pop hl
+  or a,a
+  ret
+
+zwin_unputc.prevline:
+  call zwin_redraw
+  jr zwin_unputc.done
+
+
+
 #endif

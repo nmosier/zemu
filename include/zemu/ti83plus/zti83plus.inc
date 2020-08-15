@@ -34,38 +34,85 @@ LONG_SIZE .equ WORD_SIZE
    ADD_IX_REG(reg)
 #endmacro
 
-#macro _LEA_HL_IX(off)
+;; LEA_HL_IX -- load effective address from ix into hl
+;; DESTROYS: (none, including flags)
+#macro LEA_HL_IX(off)
    push af
    ld a,off
-   call lea_hl_ix
+   call _lea_hl_ix
    pop af
 #endmacro
 
-#macro LD_HLL_FROM_IX(off)
+;; LEA_DE_IX -- load effective address from ix into de
+;; DESTROYS: (none, including flags)
+#macro LEA_DE_IX(off)
+  push af
+  ld a,off
+  call _lea_de_ix
+  pop af
+#endmacro
+
+#macro LD_HL_FROM_IX(off)
    ld l,(ix+off)         
    ld h,(ix+off+1)
 #endmacro
-#macro LD_DEL_FROM_IX(off)
+#macro LD_DE_FROM_IX(off)
    ld e,(ix+off)
    ld d,(ix+off+1)
 #endmacro
-#macro LD_BCL_FROM_IX(off)
+#macro LD_BC_FROM_IX(off)
    ld c,(ix+off)
    ld b,(ix+off+1)
 #endmacro
 
-#macro LD_HLL_TO_IX(off)
+#macro LD_HL_TO_IX(off)
   ld (ix+off),l
   ld (ix+off+1),h
 #endmacro
-#macro LD_DEL_TO_IX(off)
+#macro LD_DE_TO_IX(off)
   ld (ix+off),e
   ld (ix+off+1),d
 #endmacro
-#macro LD_BCL_TO_IX(off)
+#macro LD_BC_TO_IX(off)
   ld (ix+off),c
   ld (ix+off+1),b
 #endmacro
+
+#define LD_HL_FROM_IX_W(off) LD_HL_FROM_IX(off)
+#define LD_DE_FROM_IX_W(off) LD_DE_FROM_IX(off)
+#define LD_BC_FROM_IX_W(off) LD_BC_FROM_IX(off)
+
+
+#macro LD_HL_FROM_IY(off)
+   ld l,(iy+off)         
+   ld h,(iy+off+1)
+#endmacro
+#macro LD_DE_FROM_IY(off)
+   ld e,(iy+off)
+   ld d,(iy+off+1)
+#endmacro
+#macro LD_BC_FROM_IY(off)
+   ld c,(iy+off)
+   ld b,(iy+off+1)
+#endmacro
+
+#macro LD_HL_TO_IY(off)
+  ld (iy+off),l
+  ld (iy+off+1),h
+#endmacro
+#macro LD_DE_TO_IY(off)
+  ld (iy+off),e
+  ld (iy+off+1),d
+#endmacro
+#macro LD_BC_TO_IY(off)
+  ld (iy+off),c
+  ld (iy+off+1),b
+#endmacro
+
+#define LD_HL_FROM_IY_W(off) LD_HL_FROM_IY(off)
+#define LD_DE_FROM_IY_W(off) LD_DE_FROM_IY(off)
+#define LD_BC_FROM_IY_W(off) LD_BC_FROM_IY(off)
+
 
 #macro MLT_A(off, reg16) 
 #if reg16 == R_HL        

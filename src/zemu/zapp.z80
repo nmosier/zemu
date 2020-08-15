@@ -47,7 +47,7 @@ appvar_find:
    ld a,ZERR_NOVAR
    ret c
 #if TI84PCE
-   call _ChkInRAM
+   call _ChkInRam
 #elif TI83PLUS
    ld a,b
    or a,a

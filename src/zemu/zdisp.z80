@@ -25,7 +25,7 @@ sfont_width:
    push hl
    push de
    MLT_A(SFONT_TAB_ENTLEN, R_HL)
-   SYSCALL(_SFont_Len)
+   SYSCALL(_Sfont_Len)
    pop de
    pop hl
    pop af

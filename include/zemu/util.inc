@@ -165,4 +165,8 @@ _
 #endif
 #endmacro
 
+#if TI83PLUS
+#include "ti83plus/util.inc"
+#endif
+
 #endif

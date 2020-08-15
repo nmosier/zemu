@@ -34,7 +34,7 @@ fi
 
 if ! [ -n "${ZPAGE_SIZE}" ] || [ "${ZPAGE_SIZE}" -le 0 ]
 then
-    echo "$0: ZPAGE_SIZE must be defined as an environment variable or using the \`-n\' parameter"
+    echo "$0: ZPAGE_SIZE must be defined as an environment variable or using the '-n' parameter"
     exit 1
 fi
 

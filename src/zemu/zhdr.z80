@@ -5,15 +5,16 @@
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zhdr_defaults:
    ld ix,zhdr_defaults.tab
    jr zhdr_defaults.entry
 zhdr_defaults.loop:
    dec a
-   MLTA_A_TO_BC()
+   MLTA_A_TO_BC
    ld hl,zhdr_defaults.actions
    add hl,bc
-   ld hl,(hl)
+   LD_HL_FROM_HL
    ld a,(ix+ZHDR_DEFENT.OFF)
    UCAST_A_TO_DE
    jp (hl)
@@ -29,7 +30,7 @@ zhdr_defaults.setbit:
    ex de,hl
    call zaddr_set
    ret c
-   lea ix,ix+ZHDR_DEFENT_SETBIT_SIZE
+   LEA_IX_IX(ZHDR_DEFENT_SETBIT_SIZE)
    jr zhdr_defaults.entry
 
 zhdr_defaults.resbit:
@@ -37,7 +38,7 @@ zhdr_defaults.resbit:
    ex de,hl
    call zaddr_res
    ret c
-   lea ix,ix+ZHDR_DEFENT_RESBIT_SIZE
+   LEA_IX_IX(ZHDR_DEFENT_RESBIT_SIZE)
    jr zhdr_defaults.entry
 
 zhdr_defaults.byte:
@@ -45,15 +46,17 @@ zhdr_defaults.byte:
    ex de,hl
    call zaddr_store
    ret c
-   lea ix,ix+ZHDR_DEFENT_BYTE_SIZE
+   LEA_IX_IX(ZHDR_DEFENT_BYTE_SIZE)
    jr zhdr_defaults.entry
 
+;; TRANSFORM HERE
+
 zhdr_defaults.word:
-   ld hl,(ix+ZHDR_DEFENT_WORD.VAL)
+   LD_HL_FROM_IX_W(ZHDR_DEFENT_WORD.VAL)
    ex de,hl
    call zaddr_storew
    ret c
-   lea ix,ix+ZHDR_DEFENT_WORD_SIZE
+   LEA_IX_IX(ZHDR_DEFENT_WORD_SIZE)
    jr zhdr_defaults.entry
 
 
@@ -64,7 +67,7 @@ zhdr_defaults.tab:
    D_ZHDR_DEFENT_RESBIT(ZHDR_FLAGS2, ZHDR_FLAGS2_TRANS)
    D_ZHDR_DEFENT_RESBIT(ZHDR_FLAGS2, ZHDR_FLAGS2_FIXEDPITCH)
    D_ZHDR_DEFENT_WORD(ZHDR_STDREVNO, $0000)
-   D_ZHDR_DEFENT_NULL()
+   D_ZHDR_DEFENT_NULL
 
 
 zhdr_defaults.actions:

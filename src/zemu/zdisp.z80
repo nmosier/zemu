@@ -92,6 +92,6 @@ _  ld (ix+ZRECT.HEIGHT),a  ; save clear-rect.height
    pop af
    ret
 
-#include "zti.z80" ; for _LEA_HL_IX
+#include "zti.z80" ; for LEA_HL_IX
 
 #endif

@@ -170,7 +170,7 @@ for ((I = 0; I < NCRCS; ++I)); do
           "start": "vram_start",
           "size": "vram_16_size",
           "expected_CRCs": ["$CRC"],
-          "timeout": 3000
+          "timeout": 5000
        }$SEP
 EOF
 done
@@ -179,31 +179,3 @@ cat >> "$OUT" <<EOF
     }
 }
 EOF
-
-
-# cat > "$OUT" <<EOF
-# {
-#     "rom": "$ROM",
-#     "transfer_files": [ "$EXEC", $VARS ],
-#     "target": {
-#         "name": "$TARGET",
-#         "isASM": true
-#     },
-#     "delay_after_key": $KEYDELAY,
-#     "sequence": [
-#         "action|launch",
-#         "delay|2000",
-#         $KEYCMDS
-#         "hash|1"
-#     ],
-#     "hashes": {
-#         "1": {
-#             "description": "$DESC",
-#             "start": "vram_start",
-#             "size": "vram_16_size",
-#             "expected_CRCs": ["$CRC"]
-#         }
-#     }
-# }
-# EOF
-# 

@@ -27,5 +27,6 @@ ULONG_MAX .equ (1 << LONG_BITS) - 1
 #define LD_IX_HL push hl \\ pop ix
 #define LD_HL_IX push ix \\ pop hl
 #define LD_DE_IX push ix \\ pop de
+#define LD_BC_IX push ix \\ pop bc
 
 #endif

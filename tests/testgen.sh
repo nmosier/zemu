@@ -33,7 +33,7 @@ VARDIR=
 EXEC=
 OUT=/dev/fd/1
 STR2KEY=
-KEYDELAY=100 # default: 100 ms
+KEYDELAY=50 # default: 50 ms
 
 while getopts "hr:t:v:x:o:k:w:" OPTION; do
     case $OPTION in
@@ -158,7 +158,7 @@ EOF
 NCRCS=${#CRCS[@]}
 for ((I = 0; I < NCRCS; ++I)); do
     CRC="${CRCS[$I]}"
-    if [[ $1 -eq $(($NCRCS - 1)) ]]; then
+    if [[ $I -eq $(($NCRCS - 1)) ]]; then
         SEP=
     else
         SEP=","

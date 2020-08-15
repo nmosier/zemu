@@ -70,5 +70,7 @@ add_zemu_test(zork-open-mailbox ${zemu_8xp}
   COMMANDS "open mailbox\\n" "8F98BDAF"
   )
 
-add_zemu_test(zork-multiline-command ${zemu_8xp} JSON)
-
+add_zemu_test(zork-multiline-command ${zemu_8xp}
+  VARDIR "../vars/zork"
+  COMMANDS "this is a very long sentence which spans two" "17096A8B" " lines" "C9FDCD6C"
+  )

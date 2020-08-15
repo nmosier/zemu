@@ -2,7 +2,7 @@
 #include "zdisp.inc"
 
 .org userMem-2
-.db t2ByteTok,tAsmCmp
+.db t2ByteTok,tasmCmp
 
 start:
   ld a,$aa

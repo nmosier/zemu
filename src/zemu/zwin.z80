@@ -16,19 +16,6 @@
 ;; ERRORS: no.
 ;; *** portable ***
 zwin_clear:
-   call zwin_fill
-   jp zwin_org
-   
-
-;; zwin_fill -- fill window
-;; INPUTS:
-;;  hl = value to fill with
-;;  ix = pointer to window struct
-;; OUTPUTS: (none)
-;; DESTROYS: (all)
-;; ERRORS: no.
-;; *** portable ***
-zwin_fill:
    push ix
    LEA_IX_IX(ZWIN.RECT, R_DE)
    call zdisp_clearrect
@@ -229,7 +216,7 @@ zwin_redraw:
    ld de,ZWIN.BUF
    add hl,de
    ex de,hl
-   LD_HLL_FROM_IX(ZWIN.BUFPTR)
+   LD_HL_FROM_IX(ZWIN.BUFPTR)
    or a,a ; NC
    sbc hl,de
    LD_BC_HL
@@ -813,5 +800,7 @@ zwin_putcursor:
 #elif TI84PCE
 #include "ti84pce/zwin.z80"
 #endif
+
+#include "zdisp.z80"
 
 #endif

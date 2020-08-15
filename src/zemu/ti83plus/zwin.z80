@@ -90,7 +90,7 @@ zwin_unputcursor:
 
   ;; get buffer index
   push ix \ pop de
-  LD_HLL_FROM_IX(ZWIN.BUFPTR)
+  LD_HL_FROM_IX(ZWIN.BUFPTR)
   push hl
   ld de,ZWIN.BUF
   LD_BC_IX
@@ -104,7 +104,7 @@ zwin_unputcursor:
   pop hl
   dec hl
   ld a,(hl)
-  LD_HLL_TO_IX(ZWIN.BUFPTR)
+  LD_HL_TO_IX(ZWIN.BUFPTR)
 
   ;; get width of removed char
   call sfont_width
@@ -119,7 +119,7 @@ zwin_unputcursor:
   ;; clear char rectangle
   ld c,(ix+ZWIN.CURROW)
   push ix
-  ld ix,-ZRECT.SIZE
+  ld ix,-ZRECT_SIZE
   add ix,sp
   ld sp,ix
   ld (ix+ZRECT.ORGCOL),a
@@ -139,6 +139,8 @@ zwin_unputc.done:
 zwin_unputc.prevline:
   call zwin_redraw
   jr zwin_unputc.done
+
+
 
 
 

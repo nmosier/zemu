@@ -23,6 +23,6 @@ _lea_hl_ix:
 ;; DESTROYS: a,f
 _lea_de_ix:
   ex de,hl
-  call lea_hl_ix
+  call _lea_hl_ix
   ex de,hl
   ret

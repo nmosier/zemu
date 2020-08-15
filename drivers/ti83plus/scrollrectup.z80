@@ -5,12 +5,11 @@
 .db t2ByteTok,tasmCmp
 
 start:
-  ld a,$aa
   call fill
   bcall(_GrBufCpy)
   bcall(_GetKey)
   ld ix,rect
-  ld a,1
+  ld a,8
   call zdisp_scrollrect_up
   bcall(_GetKey)
   ret
@@ -21,12 +20,23 @@ start:
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 fill:
-   ld hl,DISP_VRAM
-   ld bc,DISP_WIDTH*DISP_HEIGHT/8
-   call memset
-   ret
+  ld a,0
+  ld bc,DISP_WIDTH*DISP_HEIGHT/8
+  ld hl,DISP_VRAM
+fill.loop:
+  ld (hl),a
+  inc a
+  dec bc
+  inc hl
+  push hl
+  ld hl,0
+  or a,a
+  sbc hl,bc
+  pop hl
+  jr c,fill.loop
+  ret  
 
 ;; GLOBAL VARS ;;
-rect: D_ZRECT(2, 2, 16, 4)
+rect: D_ZRECT(2, 2, 40, 40)
 
 #include "zdisp.z80"

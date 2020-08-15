@@ -65,15 +65,36 @@ zwin_putc.base.other:
   sbc a,(ix+ZWIN.WIDTH)
   ld a,c ; restore char
   call nc,zwin_newline_bare ; newline, no buffering
-  call zwin_select ; select window for writing
-  push ix
+  ; call zwin_select ; select window for writing
+  ; push ix
   ; a = char
-  bcall(_VPutMap)
-  pop ix
+  ;  bcall(_VPutMap)
+  call zwin_vputmap
+  ; pop ix
   pop af ; a <- sfont_len
   ; update current column
   add a,(ix+ZWIN.CURCOL)
   ld (ix+ZWIN.CURCOL),a
+  ret
+
+;; zwin_vputmap -- buffered vputmap
+;; INPUTS:
+;;  a = printable char
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+zwin_vputmap:
+  call zwin_select
+  ld b,a
+  push ix
+  res textWrite,(iy+sGrFlags)
+  bcall(_VPutMap)
+  pop ix
+  push ix
+  ld a,b
+  call zwin_select
+  set textWrite,(iy+sGrFlags)
+  bcall(_VPutMap)
+  pop ix
   ret
 
 

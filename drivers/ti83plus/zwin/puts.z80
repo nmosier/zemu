@@ -5,18 +5,16 @@
 .db t2ByteTok,tasmCmp
 
 start:
-  ld a,$aa
-  call fill
-  bcall(_GrBufCpy)
-  bcall(_GetKey)
+  call zdisp_init
 
   ld ix,win
   call zwin_clear
 
   call puts
-  
+
   ld ix,win
   call zwin_scroll
+
   bcall(_GetKey)
   
   ret

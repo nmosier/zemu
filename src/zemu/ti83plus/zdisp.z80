@@ -45,6 +45,16 @@ zdisp_clearrect:
 zdisp_init:
    res plotLoc,(iy+plotFlags)
    res indicRun,(iy+indicFlags)
+   push af
+   push bc
+   push de
+   push hl
+   bcall(_GrBufClr)
+   bcall(_GrBufCpy)
+   pop hl
+   pop de
+   pop bc
+   pop af
    ret
 
 ;; zdisp_scrollrect_up.copy.aligned
@@ -126,9 +136,13 @@ zdisp_get_src_dst:
 ;;  e = mask
 ;;  a = upward shift
 ;; OUTPUTS: (none)
-;; DESTROYS: (none)
+;; DESTROYS: e
 ;; OPTIM: unite with zdisp_scrollrect_up.copy.*
+;; NOTE: Safe to call if mask == $ff (nothing to do).
 zdisp_scrollrect_up.copy.column:
+  inc e
+  ret z
+  dec e
   push af
   push bc
   push de
@@ -139,7 +153,7 @@ zdisp_scrollrect_up.copy.column:
   neg
   ld b,a ; b = number of rows to copy (b > 0)
   ld a,c ; restore shift
-  ld c,e ; save width
+  ld c,e ; save mask
   call zdisp_get_src_dst ; preserves bc
 zdisp_scrollrect_up.copy.column.loop:
   push bc
@@ -221,9 +235,7 @@ _ ld c,a
   ;; scroll left overhang
   ld e,b
   srl d \ srl d \ srl d
-  inc e
-  dec e
-  call nc,zdisp_scrollrect_up.copy.column ; call if e != $ff
+  call zdisp_scrollrect_up.copy.column ; call if e != $ff
 
   ;; scroll right overhang
   pop de
@@ -235,9 +247,7 @@ _ ld c,a
   ld d,a
   ld e,c
   ld a,b
-  inc e
-  dec e
-  call nc,zdisp_scrollrect_up.copy.column ; call if e != $ff
+  call zdisp_scrollrect_up.copy.column ; call if e != $ff
 
   pop de
 
@@ -248,10 +258,7 @@ _ ld c,a
   call div_a_8
   ld e,a
   ld a,d
-  dec a
-  and a,%111
-  inc a
-  call div_a_8
+  call div_up_a_8
   ld d,a
   sub a,e
   neg

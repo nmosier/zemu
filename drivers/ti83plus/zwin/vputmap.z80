@@ -4,12 +4,12 @@
 .db t2ByteTok,tasmCmp
 
 start:
-  bcall(_ClrScrnFull)
+  bcall(_GrBufClr)
   ld a,0
   ld (penCol),a
   ld (penRow),a
 
-  res textWrite,(iy+sGrFlags)
+  set textWrite,(iy+sGrFlags)
 
   ld a,'A'
   bcall(_VPutMap)

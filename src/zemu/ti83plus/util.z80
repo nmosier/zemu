@@ -14,4 +14,20 @@ div_a_8:
   rra
   ret
 
+;; align_up_a_8 -- align %a up to 8
+;; INPUTS:
+;;  a
+;; OUTPUTS:
+;;  a <- ((a - 1) / 8) * 8
+div_up_a_8:
+  rra
+  rra
+  rra
+  cp a,%00100000
+  ccf
+  adc a,0
+  and a,%00011111
+  ret
+
+
 #endif

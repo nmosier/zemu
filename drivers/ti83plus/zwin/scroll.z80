@@ -5,16 +5,12 @@
 .db t2ByteTok,tasmCmp
 
 start:
-  ld a,$aa
-  call fill
-  bcall(_GrBufCpy)
-  bcall(_GetKey)
-
   ld ix,win
   call zwin_clear
 
   call puts
-  
+  bcall(_GetKey)
+
   ld ix,win
   call zwin_scroll
   bcall(_GetKey)
@@ -40,7 +36,7 @@ fill:
    ret
 
 ;; GLOBAL VARS ;;
-win: D_ZWIN(0, 0, 50, 50, 0, 0)
+win: D_ZWIN(0, 0, 50, 50, 0, 128)
 
 msg: .db "Hello, zwin! This message spans multiple lines.",ASCII_NEWLINE,0
 

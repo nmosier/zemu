@@ -21,8 +21,7 @@
 
 ZWIN.CURCOL .equ 0                       ; PENCOL_SIZE
 ZWIN.CURROW .equ ZWIN.CURCOL + COL_SIZE  ; PENROW_SIZE
-ZWIN.RECT   .equ ZWIN.CURROW + ROW_SIZE  ;
-ZWIN.ORGCOL .equ ZWIN.RECT               ; PENCOL_SIZE
+ZWIN.ORGCOL .equ ZWIN.CURROW + ROW_SIZE  ;
 ZWIN.ORGROW .equ ZWIN.ORGCOL + COL_SIZE  ; PENROW_SIZE
 ZWIN.WIDTH  .equ ZWIN.ORGROW + ROW_SIZE  ; PENCOL_SIZE
 ZWIN.HEIGHT .equ ZWIN.WIDTH + COL_SIZE   ; PENROW_SIZE
@@ -31,6 +30,8 @@ ZWIN.BUFLEN .equ ZWIN.FLAGS + BYTE_SIZE  ; LONG_SIZE
 ZWIN.BUFPTR .equ ZWIN.BUFLEN + LONG_SIZE ; LONG_SIZE
 ZWIN.BUFANC .equ ZWIN.BUFPTR + LONG_SIZE ; LONG_SIZE
 ZWIN.BUF    .equ ZWIN.BUFANC + LONG_SIZE ;
+
+ZWIN.RECT   .equ ZWIN.ORGCOL
 
 
 ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
@@ -48,7 +49,11 @@ ZWIN_CLEARCOLOR .equ $ff
   DROW orgrow ; orgrow
   DCOL width  ; width 
   DROW height ; height
+#if buflen > 0
+  DB flags|(1<<ZWIN.FLAGS.BUFD)
+#else
   DB flags  ; flags
+#endif
 #if buflen > 0     
   DL buflen ; buflen
   DL _      ; bufptr

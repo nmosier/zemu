@@ -31,7 +31,7 @@ function(add_8xp TARGET MAIN_SOURCE)
   else()
     set(SPASM_FLAGS ${TI_SPASM_FLAGS})
   endif()
-  list(APPEND SPASM_FLAGS -A) # case sensitive
+  list(APPEND SPASM_FLAGS -N) # no color
 
   if(DEFINED TI_PLATFORM)
     if(TI_PLATFORM STREQUAL "TI83PLUS")

@@ -1,0 +1,48 @@
+#include "zti.inc"
+#include "zwin.inc"
+
+.org userMem-2
+.db t2ByteTok,tasmCmp
+
+start:
+  ld a,$aa
+  call fill
+  bcall(_GrBufCpy)
+  bcall(_GetKey)
+
+  ld ix,win
+  call zwin_clear
+
+  call puts
+  
+  ld ix,win
+  call zwin_scroll
+  bcall(_GetKey)
+  
+  ret
+
+puts:
+  ld ix,win
+  ld hl,msg
+  call zwin_puts
+  bcall(_GetKey)
+  ret
+
+;; fill -- fill screen with 8-bit pattern
+;; INPUTS:
+;;  a = pattern
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+fill:
+   ld hl,DISP_VRAM
+   ld bc,DISP_WIDTH*DISP_HEIGHT/8
+   call memset
+   ret
+
+;; GLOBAL VARS ;;
+win: D_ZWIN(0, 0, 50, 50, 0, 0)
+
+msg: .db "Hello, zwin! This message spans multiple lines.",ASCII_NEWLINE,0
+
+#include "zwin.z80"
+#include "util.z80"

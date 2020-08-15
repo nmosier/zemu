@@ -1,0 +1,28 @@
+#include "zti.inc"
+
+.org userMem-2
+.db t2ByteTok,tasmCmp
+
+start:
+  bcall(_ClrScrnFull)
+  ld a,0
+  ld (penCol),a
+  ld (penRow),a
+
+  res textWrite,(iy+sGrFlags)
+
+  ld a,'A'
+  bcall(_VPutMap)
+  bcall(_GetKey)
+
+  ld a,'B'
+  bcall(_VPutMap)
+  bcall(_GetKey)
+
+  ld a,'C'
+  bcall(_VPutMap)
+  bcall(_GetKey)
+
+  bcall(_GrBufCpy)
+
+  ret

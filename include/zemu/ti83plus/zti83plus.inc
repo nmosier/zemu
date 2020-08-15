@@ -138,6 +138,10 @@ LONG_SIZE .equ WORD_SIZE
 #endif
 #endmacro
 
+
+#define LD_HL_FROM_HL call _ld_hl_from_hl
+
+
 ;; SYSTEM CALLS ;;
 #define SYSCALL(addr) bcall(addr)
 

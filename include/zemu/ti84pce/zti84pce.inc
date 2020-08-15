@@ -63,6 +63,8 @@ LONG_SIZE .equ 3
 #define LD_BC_TO_IY_W(off) ld.s (iy+off),bc
 
 
+#define LD_HL_FROM_HL ld hl,(hl)
+
 
 #macro MLT_A(off, reg16)
 #if reg16 == R_HL       

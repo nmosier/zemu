@@ -15,7 +15,6 @@ ROW_SIZE .equ 1
 #include "ti83plus/zdisp.inc"
 #endif
 
-SFONT_HEIGHT .equ $0e ; TODO: adjust this?
 
 ;; struct zrect
 ;; C orgcol

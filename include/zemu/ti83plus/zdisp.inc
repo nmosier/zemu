@@ -3,6 +3,8 @@
 
 #include "zti.inc"
 
+SFONT_HEIGHT .equ $07
+
 SFONT_TAB_ENTLEN .equ $08
 
 DISP_WIDTH .equ 96

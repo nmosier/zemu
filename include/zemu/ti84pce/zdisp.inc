@@ -3,6 +3,8 @@
 
 #include "zti.inc"
 
+SFONT_HEIGHT .equ $0e ; TODO: adjust this?
+
 SFONT_TAB_ENTLEN .equ $19
 
 DISP_WIDTH .equ lcdWidth

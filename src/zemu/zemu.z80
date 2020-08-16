@@ -42,7 +42,7 @@ start:
    ld hl,zork_zmap
    call zemu_open
 #endif
-   ret c
+   ; ret c
    ld hl,zemu_open_str
    jp c,zemu_perror
    call zmem_init ; initialize memory

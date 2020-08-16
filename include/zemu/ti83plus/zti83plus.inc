@@ -24,6 +24,9 @@ LONG_SIZE .equ WORD_SIZE
 #define UCAST_A_TO_DE   ld d,0 \\ ld e,a
 #define UCAST_A_TO_BC   ld b,0 \\ ld c,a
 
+#define UCAST_B_TO_HL   ld h,0 \\ ld l,b
+#define UCAST_B_TO_DE   ld d,0 \\ ld e,b
+
 #define LD_BC_HL ld b,h \\ ld c,l
 #define LD_BC_DE ld b,d \\ ld c,e
 #define LD_HL_BC ld h,b \\ ld l,c

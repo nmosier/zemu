@@ -1,15 +1,11 @@
 ; zstr.z80 -- routines for printing ZSCII codes
 
+#include "zti.inc"
 #include "zstr.inc"
 
 zstr_flags: .db 0
-zstr_wchar: .dl 0    ; for 10-bit ASCII chars
-zstr_abbrtab: .dl 0  ; for abbreviation mode
-
-zstr_abbraddr:
-   ld ix,(zmap_header)
-   lea ix,ix+ZHDR_ABBR
-   ret
+zstr_wchar: DWC 0    ; for 10-bit ASCII chars
+zstr_abbrtab: DL 0  ; for abbreviation mode
 
 ;; zstr_putc -- print single Z-char of z-string
 ;; INPUTS:
@@ -18,6 +14,7 @@ zstr_abbraddr:
 ;;  updates zstr_{shiftmode,abbrtab}
 ;; DESTROYS:
 ;; ERRORS:
+;; *** portable ***
 zstr_putc:
    ld hl,zstr_flags
    ; 1. Interpet as abbreviation code?
@@ -78,8 +75,7 @@ zstr_putc.char.A2:
    ret
 
 zstr_putc.char.print:
-   ld de,0
-   ld e,a
+   UCAST_A_TO_DE
    add hl,de
    ld a,(hl)
    call zstr_putc_raw
@@ -97,8 +93,7 @@ zstr_putc.abbr_apply:
    res ZSTR_FLAGS_ABBR,(hl)
    ld hl,(zstr_abbrtab)
    rla ; a <- a * WORD_SIZE == a * 2 == a << 1
-   ld de,0
-   ld e,a
+   UCAST_A_TO_DE
    add hl,de
    push ix
    call zaddr_fetchwu ; get word address to expanded string
@@ -127,8 +122,7 @@ zstr_putc.abbr_select:
    pop ix
    pop bc
    ex de,hl
-   ld de,0
-   ld e,b
+   UCAST_B_TO_DE
    add hl,de
    ld (zstr_abbrtab),hl
    or a,a
@@ -188,6 +182,7 @@ zstr_putc_raw:
 ;;  zstr_shiftmode updated
 ;; DESTROYS:
 ;; ERRORS: yes.
+;; *** portable ***
 zstr_putw:
    ld a,h
    rrca
@@ -229,6 +224,7 @@ zstr_putw:
 ;;  zstr_shiftmode updated
 ;; DESTROYS:
 ;; ERRORS: yes.
+;; *** portable ***
 zstr_puts:
    ;; enable paging for window
    call zwin_page
@@ -249,6 +245,7 @@ zstr_puts.loop:
 zstr_puts.end:
    ret
 
+#if 0
 zstr_puts_phys:
    ld a,(zstr_flags)
    res ZSTR_FLAGS_SHIFT,a
@@ -267,6 +264,7 @@ zstr_puts_phys.loop:
    jr z,zstr_puts_phys.loop ; not end of string
 zstr_puts_phys.end:
    ret
+#endif
 
 zstr_A0.tab:
    .db "abcdefghijklmnopqrstuvwxyz"
@@ -282,13 +280,14 @@ zstr_A2.tab:
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: no.
+;; *** portable ***
 zstr_putn:
    ; 0. Enable paging for window.
    call zwin_page
    ; 1. Check sign
    ex de,hl
-   ld hl,0
-   or a,a ; reset CF
+   or a,a
+   sbc hl,hl
    sbc hl,de
    ; hl = negated val, de = original val
    or a,a ; reset CF
@@ -318,6 +317,7 @@ zstr_putn.loop:
    jr nz,zstr_putn.loop
 
    ld hl,zstr_putn.buf_end
+   ; NC
    sbc hl,bc ; hl holds string length
    push bc
    ld b,l    ; length < 256, so safe downcast
@@ -335,7 +335,6 @@ zstr_putn.buf:
 zstr_putn.buf_end:
 
 
-
 ;; zstr_encode.c -- encode character as unpacked string of Z-codes in zstr_encode.buf
 ;; INPUTS:
 ;;  a = ASCII character
@@ -344,6 +343,7 @@ zstr_putn.buf_end:
 ;;  b = number of codes written
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zstr_encode.c:
    ; NOTE: checks most likely character class first.
    ; 1. Check character classes.
@@ -441,12 +441,12 @@ zstr_encode.c.tab_body_end:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: 0 <= hl - de < 3 upon invokation.
+;; *** portable ***
 zstr_encode.w:
    push bc
    push hl
    push de
-   ld de,0
-   ld e,b
+   UCAST_B_TO_DE
    add hl,de
    call zstr_encode.c
    ld a,b
@@ -466,10 +466,9 @@ zstr_encode.w.done:
    ld a,b
    sub a,3
    jr z,zstr_encode.w.after_cpy
-   lea hl,ix+3
-   lea de,ix+0
-   ld bc,0
-   ld c,a
+   LEA_HL_IX(3)
+   LD_DE_IX
+   UCAST_A_TO_BC
    ldir
 zstr_encode.w.after_cpy:   
    pop bc
@@ -488,6 +487,7 @@ zstr_encode.w.after_cpy:
 ;;  de <- de + 2
 ;; DESTROYS: hl, a
 ;; ERRORS: no.
+;; *** portable ***
 zstr_encode.pack:
    ld h,(ix+0)
    rlc h
@@ -521,6 +521,7 @@ zstr_encode.pack:
 ;; ERRORS: yes.
 ;; TODO: this does NOT handle ASCII codes -> ZSCII codes yet and will
 ;        cause undefined behavior.
+;; *** portable ***
 zstr_encode:
    ld b,0 ; none in buffer initially
    xor a,a
@@ -604,6 +605,7 @@ zstr_encode.buf_end:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: terminates string if not enough space to encode in entirety.
+;; *** portable ***
 zstr_encode_pad:
    call zstr_encode
    ret c
@@ -643,6 +645,7 @@ zstr_encode_pad.done:
 ;; OUTPUTS: (none)
 ;; ERRORS: yes.
 ;; DESTROYS: ???
+;; *** portable ***
 zstr_putln:
    call zwin_newline
    or a,a
@@ -654,6 +657,7 @@ zstr_putln:
 ;; OUTPUTS: (none)
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 zstr_reset:
    push af
    xor a,a ; no flags
@@ -669,34 +673,34 @@ zstr_reset:
 ;;  a = TI char
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zstr_wchartoch:
    call zstr_wchartab_zfind
    ret c
-   ld de,(ix+WCHAR_ENT_ZSCII)
+   LD_DE_FROM_IX(WCHAR_ENT_ZSCII)
    or a,a
    sbc hl,de ; index in l
    ld a,l
    add a,(ix+WCHAR_ENT_ASCII)
    or a,a ; NC
-   ret   
+   ret
 
-;; zstr_ach2zch -- convert 
 
 #macro WCHAR_ENT_RANGE(in_first, in_last, out_first, ioflags)
    .db ioflags                                               
-   .dl in_first
+   DWC in_first
    .db out_first
    .db in_last - in_first + 1
 #endmacro
 
 #macro WCHAR_ENT_SINGLE(in_ch, out_ch, ioflags)
    .db ioflags | 1                             
-   .dl in_ch                                   
+   DWC in_ch
    .db out_ch                                  
    .db 1
 #endmacro
 
-#define WCHAR_ENT_END() .db 0
+#define WCHAR_ENT_END .db 0
 
 zstr_wchartab:
    WCHAR_ENT_SINGLE(ZSCII_NUL, ASCII_NUL, WCHAR_OUTM)
@@ -706,7 +710,7 @@ zstr_wchartab:
    WCHAR_ENT_RANGE(32, 126, ' ', WCHAR_IOM)
    WCHAR_ENT_RANGE(ZSCII_UP, ZSCII_RIGHT, ASCII_UP, WCHAR_INM)
    WCHAR_ENT_RANGE(ZSCII_FN1, ZSCII_FN5, ASCII_FN1, WCHAR_INM)
-   WCHAR_ENT_END()
+   WCHAR_ENT_END
 
 ;; zstr_wchartab_.find -- find entry in ZSCII and TI char interchange table
 ;;   zstr_wchartab_zfind -- ... given ZSCII char
@@ -718,13 +722,13 @@ zstr_wchartab:
 ;;  ix = pointer to entry
 ;; ERRORS: yes.
 ;; DESTROYS: all but hl
+;; *** portable ***
 zstr_wchartab_zfind:
    ld de,zstr_wchartab_find.zcmp
    jr zstr_wchartab_find.base
 
 zstr_wchartab_afind:
-   ld hl,0
-   ld l,a ; uextend TI char for symmetry
+   UCAST_A_TO_HL
    ld de,zstr_wchartab_find.acmp
    jr zstr_wchartab_find.base
 
@@ -748,7 +752,7 @@ zstr_wchartab_find.reentry:
    call cp_hl_bc
    jr c,zstr_wchartab_find.found
 zstr_wchartab_find.continue:
-   lea ix,ix+WCHAR_ENTSIZE
+   LEA_IX_IX(WCHAR_ENTSIZE)
 zstr_wchartab_find.entry:
    ld a,(ix+WCHAR_ENT_FLAGS)
    or a,a
@@ -763,16 +767,17 @@ zstr_wchartab_find.found:
    ret
 
 zstr_wchartab_find.zcmp:
-   ld bc,(ix+WCHAR_ENT_ZSCII)
+   LD_BC_FROM_IX_WC(WCHAR_ENT_ZSCII)
    jr zstr_wchartab_find.reentry
 
 zstr_wchartab_find.acmp:
+#if TI83PLUS
+   ld b,0
+#elif TI84PCE
    ld bc,0
+#endif
    ld c,(ix+WCHAR_ENT_ASCII)
    jr zstr_wchartab_find.reentry
-
-
-
 
 
 
@@ -784,6 +789,7 @@ zstr_wchartab_find.acmp:
 ;;  a is lowercase char if input uppercase; otherwise unchanged
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 tolower:
    cp a,'A'
    ret c
@@ -799,6 +805,7 @@ tolower:
 ;;  hl = pointer to lowercase string
 ;; ERRORS: no.
 ;; DESTROYS: %a
+;; *** portable ***
 tolowers:
    push hl
    jr tolowers.entry
@@ -822,6 +829,7 @@ tolowers.done:
 ;; OUTPUTS: (none)
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zstr_putcode:
    call zwin_page    ; enable paging
    ;; TODO -- special conversion & checks for ZSCII codes

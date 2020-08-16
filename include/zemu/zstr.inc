@@ -53,6 +53,9 @@ ZSCII_FN3         .equ 135
 ZSCII_FN4         .equ 136
 ZSCII_FN5         .equ 137
 
+
+WCHAR_SIZE .equ LONG_SIZE
+
 ;; equates for WCHAR table
 WCHAR_IN   .equ 0
 WCHAR_OUT  .equ 1
@@ -62,10 +65,10 @@ WCHAR_OUTM .equ MASK(WCHAR_OUT)
 WCHAR_IOM  .equ WCHAR_INM|WCHAR_OUTM
 
 WCHAR_ENT_FLAGS .equ 0
-WCHAR_ENT_ZSCII .equ 1
-WCHAR_ENT_ASCII .equ 4
-WCHAR_ENT_COUNT .equ 5
-WCHAR_ENTSIZE .equ 6
+WCHAR_ENT_ZSCII .equ WCHAR_ENT_FLAGS + BYTE_SIZE
+WCHAR_ENT_ASCII .equ WCHAR_ENT_ZSCII + WCHAR_SIZE
+WCHAR_ENT_COUNT .equ WCHAR_ENT_ASCII + BYTE_SIZE
+WCHAR_ENTSIZE   .equ WCHAR_ENT_COUNT + BYTE_SIZE
 
 ZSTR_NCODES .equ 32
 ZSTR_CODEMASK .equ $1f
@@ -119,5 +122,10 @@ ZSTR_EMPTYSTR .equ ($1 << (5*3)) | (ZSTR_A2 << (5*2)) | (ZSTR_A2 << (5*1)) | (ZS
 sysputs      .equ _VPutS
 syscurrow    .equ penRow
 syscurcol    .equ penCol
+
+#define DWC DL
+#define LD_HL_FROM_IX_WC(off) LD_HL_FROM_IX(off)
+#define LD_DE_FROM_IX_WC(off) LD_DE_FROM_IX(off)
+#define LD_BC_FROM_IX_WC(off) LD_BC_FROM_IX(off)
 
 #endif

@@ -40,9 +40,6 @@ zwin_org:
 #endif
    ld a,(ix+ZWIN.ORGROW)
    ld (ix+ZWIN.CURROW),a
-#if 0
-   call zwin_flush
-#endif
    ret
 
 

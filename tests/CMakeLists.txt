@@ -54,17 +54,17 @@ get_target_property(zemu_8xp zemu 8XP)
 
 add_zemu_test(zork-welcome ${zemu_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "''" "E3E88479"
+  COMMANDS "''" "E2744735"
   )
 
 add_zemu_test(zork-north ${zemu_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "n\\n" "830BA2CD"
+  COMMANDS "n\\n" "ED9E7D49"
   )
 
 add_zemu_test(zork-open-mailbox ${zemu_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "open mailbox\\n" "8F98BDAF"
+  COMMANDS "open mailbox\\n" "E10D622B"
   )
 
 add_zemu_test(zork-multiline-command ${zemu_8xp}
@@ -75,10 +75,10 @@ add_zemu_test(zork-multiline-command ${zemu_8xp}
 add_zemu_test(zork-forest ${zemu_8xp}
   VARDIR "../vars/zork"
   COMMANDS
-  "north\\n" 5355D174
-  "north\\n" D9E56563
+  "north\\n"      3DC00EF0
+  "north\\n"      B770BAE7
   "climb tree\\n" 10938693
-  "\\d" 64CE9399
-  "take egg\\n" 3F938585
-  "inventory\\n" E1FBBCB7
+  "\\d"           A5B4C1D
+  "take egg\\n"   51065A01
+  "inventory\\n"  8F6E6333
   )

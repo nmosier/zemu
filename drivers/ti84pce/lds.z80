@@ -1,0 +1,14 @@
+#include "zti.inc"
+
+.assume ADL=1
+.org userMem-2
+
+.db tExtTok, tAsm84CeCmp
+
+start:
+  ld ix,word
+  ld.s de,(ix+0)
+  ret
+
+
+word: .dw $4242

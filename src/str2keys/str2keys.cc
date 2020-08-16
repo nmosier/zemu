@@ -76,6 +76,11 @@ Keys ascii2key(char c) {
 Keys escape2key(char c) {
    switch (c) {
    case 'n': return {"enter"};
+   case 'd': return {"down"};
+   case 'u': return {"up"};
+   case 'l': return {"left"};
+   case 'r': return {"right"};
+   case 'b': return {"del"};
    default:
       return ascii2key(c);
    }

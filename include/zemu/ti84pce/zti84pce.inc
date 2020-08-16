@@ -41,14 +41,6 @@ LONG_SIZE .equ 3
 #define LD_DE_TO_IX(off) ld (ix+off),de
 #define LD_BC_TO_IX(off) ld (ix+off),bc
 
-#define LD_HL_FROM_IX_W(off) ld.s hl,(ix+off)
-#define LD_DE_FROM_IX_W(off) ld.s de,(ix+off)
-#define LD_BC_FROM_IX_W(off) ld.s bc,(ix+off)
-
-#define LD_HL_TO_IX_W(off) ld.s (ix+off),hl
-#define LD_DE_TO_IX_W(off) ld.s (ix+off),de
-#define LD_BC_TO_IX_W(off) ld.s (ix+off),bc
-
 
 #define LD_HL_FROM_IY(off) ld hl,(iy+off)
 #define LD_DE_FROM_IY(off) ld de,(iy+off)
@@ -58,17 +50,27 @@ LONG_SIZE .equ 3
 #define LD_DE_TO_IY(off) ld (iy+off),de
 #define LD_BC_TO_IY(off) ld (iy+off),bc
 
-#define LD_HL_FROM_IY_W(off) ld.s hl,(iy+off)
-#define LD_DE_FROM_IY_W(off) ld.s de,(iy+off)
-#define LD_BC_FROM_IY_W(off) ld.s bc,(iy+off)
-
-#define LD_HL_TO_IY_W(off) ld.s (iy+off),hl
-#define LD_DE_TO_IY_W(off) ld.s (iy+off),de
-#define LD_BC_TO_IY_W(off) ld.s (iy+off),bc
-
-
 #define LD_HL_FROM_HL ld hl,(hl)
 
+#define LD_HL_FROM_IX_W(off) ld l,(ix+off) \\ ld h,(ix+off+1)
+#define LD_DE_FROM_IX_W(off) ld e,(ix+off) \\ ld d,(ix+off+1)
+#define LD_BC_FROM_IX_W(off) ld c,(ix+off) \\ ld b,(ix+off+1)
+
+#macro LD_ZX_W2L_HL_FROM_IX(off)
+  ld hl,0
+  ld l,(ix+off)
+  ld h,(ix+off+1)
+#endmacro
+#macro LD_ZX_W2L_DE_FROM_IX(off)
+  ld de,0
+  ld e,(ix+off)
+  ld d,(ix+off+1)
+#endmacro
+#macro LD_ZX_W2L_BC_FROM_IX(off)
+  ld bc,0
+  ld c,(ix+off)
+  ld b,(ix+off+1)
+#endmacro
 
 #macro MLT_A(off, reg16)
 #if reg16 == R_HL       

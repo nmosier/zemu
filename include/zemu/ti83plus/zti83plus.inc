@@ -85,6 +85,10 @@ LONG_SIZE .equ WORD_SIZE
 #define LD_DE_FROM_IX_W(off) LD_DE_FROM_IX(off)
 #define LD_BC_FROM_IX_W(off) LD_BC_FROM_IX(off)
 
+#define LD_ZX_W2L_HL_FROM_IX(off) LD_HL_FROM_IX_W(off)
+#define LD_ZX_W2L_DE_FROM_IX(off) LD_DE_FROM_IX_W(off)
+#define LD_ZX_W2L_BC_FROM_IX(off) LD_BC_FROM_IX_W(off)
+
 
 #macro LD_HL_FROM_IY(off)
    ld l,(iy+off)         

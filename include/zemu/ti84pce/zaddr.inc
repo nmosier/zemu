@@ -39,4 +39,9 @@
 
 #define ADD_BHL_CDE_ZA add hl,de
 
+#define LD_BHL_FROM_ABS_ZA(addr) ld hl,(addr)
+#define LD_CDE_FROM_ABS_ZA(addr) ld de,(addr)
+#define LD_BHL_TO_ABS_ZA(addr) ld (addr),hl
+#define LD_CDE_TO_ABS_ZA(addr) ld (addr),de
+
 #endif

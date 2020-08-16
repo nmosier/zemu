@@ -1,4 +1,4 @@
-set(DRIVERS)
+set(DRIVERS lds)
 
 foreach(DRIVER ${DRIVERS})
   add_8xp(${DRIVER} ${DRIVER}.z80

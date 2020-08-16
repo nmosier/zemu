@@ -383,7 +383,7 @@ negl:
 ;; INPUTS:
 ;;  hl[15:0] = 16-bit word, signed
 ;; OUTPUTS:
-;;  de = 24-bit long, sign-extended from hl[15:0]
+;;  hl = sign-extended from hl[15:0]
 ;; DESTROYS: (none)
 ;; *** portable ***
 wtols:
@@ -402,7 +402,6 @@ wtols.done:
    ret
 #elif TI83PLUS
 wtols:
-   push hl \ pop de
    ret
 #endif
 
@@ -410,7 +409,7 @@ wtols:
 ;; INPUTS:
 ;;  hl[15:0] = 16-bit word, unsigned
 ;; OUTPUTS:
-;;  de = 24-bit unsigned long from hl[15:0]
+;;  hl = 24-bit unsigned long from hl[15:0]
 ;; DESTROYS: (none)
 ;; *** portable ***
 #if TI84PCE
@@ -1081,26 +1080,6 @@ sys_getkey:
    scf
    ret
 
-;; upperbyte -- get upper byte of long
-;; INPUTS:
-;;  hl = long value
-;; OUTPUTS:
-;;  a = upper byte
-;; ERRORS: no.
-;; DESTROYS: (none)
-;; TODO: Shouldn't use global mem.
-;; *** portable ***
-upperbyte:
-#if TI84PCE
-   ld (upperbyte.long),hl
-   ld a,(upperbyte.long+2)
-   ret
-upperbyte.long: .dl 0
-#elif TI83PLUS
-   ld a,0
-   ret
-#endif   
-
 ;; ldw_bc_from_hl -- load word at (hl) into bc
 ;; INPUTS:
 ;;  hl = pointer to word
@@ -1126,7 +1105,8 @@ emptystr: .db 0
 
 #if TI83PLUS
 #include "ti83plus/util.z80"
+#elif TI84PCE
+#include "ti84pce/util.z80"
 #endif
-
 
 #endif

@@ -1,0 +1,22 @@
+#ifndef TI84PCE_UTIL_Z80
+#define TI84PCE_UTIL_Z80
+
+#include "util.inc"
+
+;; upperbyte -- get upper byte of long
+;; INPUTS:
+;;  hl = long value
+;; OUTPUTS:
+;;  a = upper byte
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; TODO: Shouldn't use global mem.
+;; *** portable ***
+upperbyte:
+   ld (upperbyte.long),hl
+   ld a,(upperbyte.long+2)
+   ret
+upperbyte.long: .dl 0
+
+
+#endif

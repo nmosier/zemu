@@ -17,6 +17,9 @@
 ;; DESTROYS: de
 zaddr_valid:
    bit ZADDR_WRITE,a
+#if TI84PCE
+   ld de,0
+#endif
    jr nz,zaddr_valid.write
 zaddr_valid.read:
    ld de,(ix+ZMAP_HDR_STORYSIZE)
@@ -28,7 +31,7 @@ zaddr_valid.cmp:
    ret
 
 zaddr_valid.write:
-   ld de,(ix+ZMAP_HDR_STATIC)
+   LD_DE_FROM_IX_W(ZMAP_HDR_STATIC)
    jr zaddr_valid.cmp
 
 ;; zaddr_page -- get page number of Z-address

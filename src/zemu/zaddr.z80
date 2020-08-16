@@ -7,49 +7,65 @@
 #include "zutil.inc"
 #include "zaddr.inc"
 
+; Note on zaddrs:
+; Z-machine V3 story files are at most 128 KB in size. This means that high mem addresses must be
+; represented in 17 bits. The Z80 has a word size of 16 bits and the eZ80 has a word size of 24
+; bits, so the TI-84+ CE can represent the size in a multibyte register while the TI-83+ family
+; can't.
+;
+; In the future, it'd be nice to support versions above v3, so the most forward-compatible approach
+; would be to use another register as the upper address byte on the TI-83+. For symmetry in the ABI,
+; all TI-84+ CE zaddr_* routines should also accept the same parameter; however, they should ignore
+; it and continue to use the 24-bit long registers for addresses.
+
 ;; zaddr_valid -- check whether address is valid
 ;; INPUTS:
-;;  hl = Z-address
+;;  [b:hl] = Z-address
 ;;  a = access mask
 ;;  ix = pointer to zmap header
 ;; OUTPUTS: (none)
 ;; ERRORS: yes (ZERR_BADADDR).
 ;; DESTROYS: de
+;; *** portable ***
 zaddr_valid:
+   push bc
    bit ZADDR_WRITE,a
-#if TI84PCE
-   ld de,0
-#endif
    jr nz,zaddr_valid.write
 zaddr_valid.read:
-   ld de,(ix+ZMAP_HDR_STORYSIZE)
+   LD_CDE_FROM_IX_ZA(ZMAP_HDR_STORYSIZE)
 zaddr_valid.cmp:
-   call cp_hl_de
+   call zaddr_cp
+   pop bc
    ccf
    ret nc
    ld a,ZERR_BADADDR
    ret
-
 zaddr_valid.write:
-   LD_DE_FROM_IX_W(ZMAP_HDR_STATIC)
+   LD_CDE_FROM_IX_ZAW(ZMAP_HDR_STATIC)
    jr zaddr_valid.cmp
 
 ;; zaddr_page -- get page number of Z-address
 ;; INPUTS:
-;;  hl = Z-address
+;;  [b:hl] = Z-address
 ;;  ix = pointer to zmap header
 ;; OUTPUTS:
 ;;  a = page number
 ;; ERRORS: yes.
-;; DESTROYS: a, bc
+;; DESTROYS: (none)
+;; *** portable ***
 zaddr_pageno:
+   push bc
    ;; get mask of page number (only high byte)
    ld a,(ix+ZMAP_HDR_PAGEMASK)
    cpl
    and a,h
    ld c,a
    ;; get upper byte of address -> a
+#if TI83PLUS
+   ld a,b
+#elif TI84PCE
    call upperbyte
+#endif
    ;; rotate byte
    ld b,(ix+ZMAP_HDR_PAGEBITS)
    inc b
@@ -65,19 +81,20 @@ zaddr_pageno.entry:
    ld a,c
 zaddr_pageno.done:
    ;; NOTE: due to previous loop, always NC, so SUCCESS.
+   pop bc
    ret
 
 ;; zaddr_offset -- get offset of address within page
 ;; INPUTS:
-;;  hl = Z-address
+;;  [h:l] = Z-address, lower 16 bits
 ;;  ix = pointer to zmap header
 ;; OUTPUTS:
 ;;  de = offset
 ;; DESTROYS: a
 ;; ERRORS: no, but always NC.
+;; *** portable ***
 zaddr_offset:
-   ld de,0
-   ld e,l   ; pages are always multiples of lower bit
+   UCAST_L_TO_DE ; pages are always multiples of lower bit
    ld a,(ix+ZMAP_HDR_PAGEMASK)
    and a,h
    ld d,a
@@ -90,6 +107,7 @@ zaddr_offset:
 ;;  ix = pointer to page entry
 ;; DESTROYS: de
 ;; ERRORS: no (but always NC)
+;; *** portable ***
 zaddr_pageent:
    MLT_A(ZMAP_TABENTLEN, R_DE)
    ld ix,(zmap_table)
@@ -118,18 +136,20 @@ zaddr_accesspage.write:
 
 ;; zaddr_to_paddr -- get physical byte address of Z-machine byte address
 ;; INPUTS:
-;;  hl = Z-address
+;;  [b:hl] = Z-address
 ;;  a = access mode
 ;; OUTPUTS:
 ;;  hl = physical address
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 ;; NOTE: Only access the single byte pointed to by the physical address.
+;; OPTIM: preserve registers to minimize code size.
+;; *** portable ***
 zaddr_to_paddr:
    push ix
    ld ix,(zmap_header)
    call zaddr_valid           ; check if Z-address is valid, given access mode
-   push hl                    ; preserve Z-address
+   push hl                    ; preserve Z-address, lower 16 bits
    ld d,a                     ; access mode
    call nc,zaddr_pageno       ; get page number -> a
    ld b,d                     ; access mode
@@ -145,22 +165,23 @@ zaddr_to_paddr:
 
 ;; zaddr_fetch -- fetch byte at logical address
 ;; INPUTS:
-;;  hl = zaddr (logical address)
+;;  [b:hl] = zaddr (logical address)
 ;; OUTPUTS:
 ;;  a = byte at zaddr
-;;  hl <- hl + 1
+;;  [b:hl] <- [b:hl] + 1
 ;; ERROR: yes.
-;; DESTROYS: everything but de
+;; DESTROYS: (none)
+;; *** portable ***
 zaddr_fetch:
    push de
-   push hl
+   PUSH_BHL_ZA
    ld a,MASK(ZADDR_READ)
    call zaddr_to_paddr
    ex de,hl
-   pop hl
+   POP_BHL_ZA
    jr c,zaddr_fetch.cleanup
    ld a,(de) ; load byte
-   inc hl  ; update ptr
+   INC_BHL_ZA ; inc z-addr in [b:hl]
    ; C reset (nc)
 zaddr_fetch.cleanup:
    pop de
@@ -172,6 +193,7 @@ zaddr_fetch.cleanup:
 ;; RETV: uint8_t byte = *address
 ;; ERRORS: no.
 ;; DESTROYS: (all)
+;; TODO: make portable.
 zaddr_fetch_c:
    ; push ix
    push iy
@@ -193,12 +215,13 @@ _  ld hl,0
 
 ;; zaddr_fetchw -- fetch big-endian word at logical address
 ;; INPUTS:
-;;  hl = logical address
+;;  [b:hl] = logical address
 ;; OUTPUTS:
-;;  hl <- hl + 2
+;;  [b:hl] <- [b:hl] + 2
 ;;  de = word, sign-extended
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zaddr_fetchw:
    call zaddr_fetch
    ret c
@@ -206,15 +229,21 @@ zaddr_fetchw:
    call zaddr_fetch
    ret c
    ld e,a
-   push hl
    ex de,hl
    call wtols ; upcast
    ex de,hl
-   pop hl
-   scf \ ccf
+   or a,a ; NC
    ret
 
 ;; zaddr_fetchwu -- fetch unsigned word at logical address
+;; INPUTS:
+;;  [b:hl] = Z-addr
+;; OUTPUTS:
+;;  [b:hl] <- [b:hl] + 2
+;;  de = word, zero-extended
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; *** portable ***
 zaddr_fetchwu:
    call zaddr_fetch
    ret c
@@ -222,66 +251,65 @@ zaddr_fetchwu:
    call zaddr_fetch
    ret c
    ld e,a
-   push hl
    ex de,hl
    call wtolu ; upcast
    ex de,hl
-   pop hl
-   scf \ ccf
+   or a,a ; NC
    ret
 
 ;; zaddr_fetchb -- fetch byte at logical address and sign-extend
 ;; INPUTS:
-;;  hl = logical address
+;;  [b:hl] = Z-addr
 ;; OUTPUTS:
-;;  hl <- hl + 1
+;;  [b:hl] <- [b:hl] + 1
 ;;  de = byte, sign-extended
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zaddr_fetchb:
    call zaddr_fetch
    ret c
    ex de,hl
    call btols
    ex de,hl
-   scf \ ccf
+   or a,a ; NC
    ret
 
 ;; zaddr_store -- store byte at logical address
 ;; INPUTS:
-;;  hl = zaddr (logical address)
+;;  [b:hl] = zaddr (logical address)
 ;;  a = byte to store at zaddr
 ;; OUTPUTS:
-;;  hl <- hl + 1
+;;  [b:hl] <- [b:hl] + 1
 ;; ERROR: yes.
-;; DESTROYS: everything but de
+;; DESTROYS: a
+;; *** portable ***
 zaddr_store:
+   PUSH_BHL_ZA ; save zaddr
    push de
-   push hl
    push af
    ld a,MASK(ZADDR_WRITE)
    call zaddr_to_paddr
    pop bc ; restore byte to store (in b)
-   ex de,hl
-   pop hl
    jr c,zaddr_fetch.cleanup
-   ld a,b
-   ld (de),a ; store byte
-   inc hl ; update ptr
-   ; C reset (nc)
+   ld (hl),b ; store byte
+   ex de,hl
 zaddr_store.cleanup:
    pop de
+   POP_BHL_ZA
+   ret c
+   INC_BHL_ZA
    ret
 
 
 ;; zaddr_storew -- store word at logical address
 ;; INPUTS:
-;;  hl = logical address
+;;  [b:hl] = logical address
 ;;  de = word to store
 ;; OUTPUTS:
-;;  hl <- hl + 2
+;;  [b:hl] <- [b:hl] + 2
 ;; ERRORS: yes.
-;; DESTROYS: all but de
+;; DESTROYS: a
 zaddr_storew:
    ld a,d
    call zaddr_store
@@ -291,54 +319,63 @@ zaddr_storew:
 
 ;; zaddr_unpack -- convert packed address to byte address
 ;; INPUTS:
-;;  hl = packed address
+;;  [b:hl] = packed address
 ;; OUTPUTS:
-;;  hl = byte address
+;;  [b:hl] = byte address
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; *** portable ***
 zaddr_unpack:
+#if TI83PLUS
    add hl,hl
+   rlc b
+#elif TI84PCE
+   add hl,hl
+#endif
    ret
 
 
 ;; zaddr_fetchn -- fetch n bytes
 ;; INPUTS:
-;;  hl = logical address
+;;  [b:hl] = logical address
 ;;  de = destination buffer
-;;  b = count
+;;  a = count
 ;; OUTPUTS:
-;;  hl <- hl + b
+;;  [b:hl] <- [b:hl] + a
 ;;  de = destination buffer
-;; ERRORS:
-;; DESTROYS:
+;; ERRORS: yes.
+;; DESTROYS: ac
 zaddr_fetchn:
+   or a,a
+   ret z ; nothing to do
    push de
-   or a,a ; NC
-   inc b \ dec b
-   jr z,zaddr_fetchn.done ; nothing to do
 zaddr_fetchn.loop:
-   push bc
-   call zaddr_fetch ; fetch byte at logical address hl
-   pop bc
-   jr c,zaddr_fetchn.done
+   push af
+   call zaddr_fetch ; fetch byte at logical address [b:hl]
+   jr c,zaddr_fetchn.err
    ld (de),a
    inc de
-   djnz zaddr_fetchn.loop
-zaddr_fetchn.done:
+   pop af
+   dec a
+   jr nz,zaddr_fetchn.loop
    pop de
    ret
-
+zaddr_fetchn.err:
+   pop de
+   pop de
+   ret
 
 ;; zaddr_set -- set bit
 ;; zaddr_res -- reset bit
 ;; zaddr_bit -- test bit
 ;; INPUTS:
-;;  hl = address
+;;  [b:hl] = Z-address
 ;;  a = bit number
 ;; OUTPUTS:
 ;;  ZF set properly (zaddr_bit)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zaddr_set:
    call maskb
    push af
@@ -373,6 +410,12 @@ zaddr_bit:
    ret c
    and a,(hl)
    ret
+
+#if TI83PLUS
+#include "ti83plus/zaddr.z80"
+#elif TI84PCE
+#include "ti84pce/zaddr.z80"
+#endif
 
 #include "zmap.z80"
 

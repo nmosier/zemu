@@ -54,23 +54,20 @@ get_target_property(zemu_8xp zemu 8XP)
 
 add_zemu_test(zork-welcome ${zemu_8xp}
   VARDIR "../vars/zork"
-#   CRC "E3E88479"
   COMMANDS "''" "E3E88479"
   )
 
 add_zemu_test(zork-north ${zemu_8xp}
   VARDIR "../vars/zork"
-#   CRC "830BA2CD"
-  COMMANDS "n\\n" "830BA2CD"
+  COMMANDS "n\\n" "ED9E7D49"
   )
 
 add_zemu_test(zork-open-mailbox ${zemu_8xp}
   VARDIR "../vars/zork"
-#  CRC "8F98BDAF"
   COMMANDS "open mailbox\\n" "8F98BDAF"
   )
 
 add_zemu_test(zork-multiline-command ${zemu_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "this is a very long sentence which spans two" "17096A8B" " lines" "C9FDCD6C"
+  COMMANDS "this is a very long sentence which spans two" "5A6702D1" " lines" "8493A536"
   )

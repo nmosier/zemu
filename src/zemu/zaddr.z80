@@ -319,7 +319,7 @@ zaddr_storew:
 
 ;; zaddr_unpack -- convert packed address to byte address
 ;; INPUTS:
-;;  [b:hl] = packed address
+;;  hl = packed address
 ;; OUTPUTS:
 ;;  [b:hl] = byte address
 ;; ERRORS: no.
@@ -328,6 +328,7 @@ zaddr_storew:
 zaddr_unpack:
 #if TI83PLUS
    add hl,hl
+   ld b,0
    rlc b
 #elif TI84PCE
    add hl,hl
@@ -418,5 +419,6 @@ zaddr_bit:
 #endif
 
 #include "zmap.z80"
+#include "util.z80"
 
 #endif

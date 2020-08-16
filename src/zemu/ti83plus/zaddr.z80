@@ -33,4 +33,24 @@ zaddr_inc:
   inc b
   ret
 
+
+;; zaddr_add -- add Z-addresses
+;; INPUTS:
+;;  [b:hl] = lhs Z-address
+;;  [c:de] = rhs Z-address
+;; OUTPUTS:
+;;  [b:hl] <- [b:hl] + [c:de]
+;; ERRORS: no.
+;; DESTROYS: (none)
+zaddr_add:
+  push de
+  add hl,de
+  ld d,a
+  ld a,b
+  adc a,c
+  ld b,a
+  ld a,d
+  pop de
+  ret
+
 #endif

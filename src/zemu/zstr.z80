@@ -2,10 +2,11 @@
 
 #include "zti.inc"
 #include "zstr.inc"
+#include "zaddr.inc"
 
 zstr_flags: .db 0
 zstr_wchar: DWC 0    ; for 10-bit ASCII chars
-zstr_abbrtab: DL 0  ; for abbreviation mode
+zstr_abbrtab: DZA(0) ; for abbreviation mode
 
 ;; zstr_putc -- print single Z-char of z-string
 ;; INPUTS:
@@ -28,7 +29,7 @@ zstr_putc:
    jr z,zstr_putc.space
    ; 4. Is it an abbreviation prefix?
    cp a,ZSTR_ABBRMAX+1
-   jr c,zstr_putc.abbr_select
+   jp c,zstr_putc.abbr_select
    ; 5. Is it a shift code?
    cp a,ZSTR_A1
    jr z,zstr_putc.shift_A1
@@ -91,17 +92,22 @@ zstr_putc.space:
 zstr_putc.abbr_apply:
    ; NOTE: %a still holds unmodified 5-bit code.
    res ZSTR_FLAGS_ABBR,(hl)
-   ld hl,(zstr_abbrtab)
+   LD_BHL_FROM_ABS_ZA(zstr_abbrtab)
    rla ; a <- a * WORD_SIZE == a * 2 == a << 1
    UCAST_A_TO_DE
    add hl,de
+#if TI83PLUS
+   jr z,_
+   inc b
+_
+#endif
    push ix
    call zaddr_fetchwu ; get word address to expanded string
    pop ix
    ret c
    ex de,hl
    ; convert to byte address
-   add hl,hl
+   call zaddr_unpack
    call zstr_puts
    ret c
    ld a,(zstr_flags)
@@ -115,17 +121,22 @@ zstr_putc.abbr_select:
    sub a,ZSTR_ABBRMIN
    rrca
    rrca ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
-   ld hl,ZHDR_ABBR
+   LD_BHL_IMM(ZHDR_ABBR)
    push af
    push ix
    call zaddr_fetchwu
    pop ix
-   pop bc
-   ex de,hl
-   UCAST_B_TO_DE
-   add hl,de
-   ld (zstr_abbrtab),hl
+   jr c,zstr_putc.abbr_select.err
+   pop af
+   ex de,hl ; hl = zword ptr, 16-bit
+   UCAST_HL_TO_BHL_ZA
+   UCAST_A_TO_CDE_ZA
+   ADD_BHL_CDE_ZA
+   LD_BHL_TO_ABS_ZA(zstr_abbrtab)
    or a,a
+   ret
+zstr_putc.abbr_select.err:
+   pop bc
    ret
 
 zstr_putc.wchar_select:
@@ -180,7 +191,7 @@ zstr_putc_raw:
 ;; OUTPUTS:
 ;;  Z if end-of-string, NZ otherwise
 ;;  zstr_shiftmode updated
-;; DESTROYS:
+;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; *** portable ***
 zstr_putw:
@@ -217,10 +228,10 @@ zstr_putw:
 
 ;; zstr_puts -- print Z-string
 ;; INPUTS:
-;;  hl points to Z-string
+;;  [b:hl] points to Z-string
 ;;  zstr_shiftmode set
 ;; OUTPUTS:
-;;  hl points to word after Z-string
+;;  [b:hl] points to word after Z-string
 ;;  zstr_shiftmode updated
 ;; DESTROYS:
 ;; ERRORS: yes.
@@ -236,10 +247,10 @@ zstr_puts.loop:
    call zaddr_fetchwu
    pop ix
    ret c
+   PUSH_BHL_ZA
    ex de,hl
-   push de
    call zstr_putw
-   pop hl
+   POP_BHL_ZA
    ret c
    jr z,zstr_puts.loop ; not end of string
 zstr_puts.end:

@@ -22,6 +22,8 @@ LONG_SIZE .equ 3
 #define UCAST_B_TO_HL   ld hl,0 \\ ld l,b
 #define UCAST_B_TO_DE   ld de,0 \\ ld e,b
 
+#define UCAST_L_TO_DE   ld de,0 \\ ld e,l
+
 
 #define LD_BC_HL push hl \\ pop bc
 #define LD_BC_DE push de \\ pop bc

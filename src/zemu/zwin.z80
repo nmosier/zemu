@@ -40,8 +40,11 @@ zwin_org:
 #endif
    ld a,(ix+ZWIN.ORGROW)
    ld (ix+ZWIN.CURROW),a
-   ;; flush buffer
-   jp zwin_flush
+#if 0
+   call zwin_flush
+#endif
+   ret
+
 
 
 ;; zwin_flush -- flush buffer of window
@@ -56,7 +59,7 @@ zwin_flush:
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z
    LEA_HL_IX(ZWIN.BUF)
-   LD_HL_TO_IX(ZWIN.BUF)
+   LD_HL_TO_IX(ZWIN.BUFPTR)
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret z
    LD_HL_TO_IX(ZWIN.BUFANC)

@@ -16,18 +16,23 @@
 #define ZHDR_MAXSIZE 56
 #define ZPAGE_SIZE_ENV "ZPAGE_SIZE"
 #define VARNAMELEN 8
-#define EZ80_WORDSIZE 3
 
 #define ZMAP_ENT_FLAGS_COPY 1
 
 #define ZHDR_STATIC 0xe
 
+#define ZMAP_STORYSIZE_LEN 3
+
 #define MASK(bit) (1 << bit)
+
+struct zmap_storysize {
+   
+};
 
 struct zmap_header {
    uint8_t zmh_pagemask; // high byte page mask
    uint8_t zmh_pagebits;
-   unsigned int zmh_storysize: 24;
+   uint32_t zmh_storysize; // actually treated as uint24_t
    uint8_t zmh_npages;
    uint16_t zmh_staticaddr; // start address of static Z-memory
 };
@@ -255,22 +260,13 @@ int main(int argc, char *argv[]) {
 #define BYTE(val,n) ((uint8_t) (((val) >> ((n) * 8)) & 0xff))
 
 void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
-   /* write page mask */
-   fputc(hdr->zmh_pagemask, outf);
-   
-   /* write page bits */
-   fputc(hdr->zmh_pagebits, outf);
-   
-   /* write story size */
-   for (int i = 0; i < 3; ++i) {
-      fputc(BYTE(hdr->zmh_storysize, i), outf);
+   fputc(hdr->zmh_pagemask, outf); // zmh_pagemask
+   fputc(hdr->zmh_pagebits, outf); // zmh_pagebits
+   for (int i = 0; i < ZMAP_STORYSIZE_LEN; ++i) {   // zmh_storysize
+      fputc(BYTE(hdr->zmh_storysize, i), outf); 
    }
-
-   /* write npages */
-   fputc(hdr->zmh_npages, outf);
-
-   /* write static address */
-   for (int i = 0; i < 2; ++i) {
+   fputc(hdr->zmh_npages, outf);   // zmh_npages
+   for (int i = 0; i < 2; ++i) {   // zmh_staticaddr
       fputc(BYTE(hdr->zmh_staticaddr, i), outf);
    }
 }

@@ -1,8 +1,10 @@
 #!/bin/sh
 
 USAGE="usage: $0 [-n zpage_size] [-v] story_file [outdir]"
-ZMAP_BIN="./zmap"
-ZPAGES_SH="./zpages.sh"
+
+EXECDIR="$(dirname "$0")"
+ZMAP_BIN="$EXECDIR/zmap"
+ZPAGES_SH="$EXECDIR/zpages.sh"
 VERBOSE=""
 
 while getopts "n:hv" optchar

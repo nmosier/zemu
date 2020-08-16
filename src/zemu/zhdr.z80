@@ -1,5 +1,7 @@
 #include "zhdr.inc"
 
+;; TODO: [PORTABILITY] Need to use 24-bit Z-addr
+
 ;; zhdr_defaults -- initialize story file header
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
@@ -16,7 +18,7 @@ zhdr_defaults.loop:
    add hl,bc
    LD_HL_FROM_HL
    ld a,(ix+ZHDR_DEFENT.OFF)
-   UCAST_A_TO_DE
+   UCAST_A_TO_CDE_ZA
    jp (hl)
 zhdr_defaults.entry:
    ld a,(ix+ZHDR_DEFENT.TYPE)
@@ -28,6 +30,9 @@ zhdr_defaults.done:
 zhdr_defaults.setbit:
    ld a,(ix+ZHDR_DEFENT_SETBIT.BIT)
    ex de,hl
+#if TI83PLUS
+   ld b,c
+#endif
    call zaddr_set
    ret c
    LEA_IX_IX(ZHDR_DEFENT_SETBIT_SIZE)
@@ -36,6 +41,9 @@ zhdr_defaults.setbit:
 zhdr_defaults.resbit:
    ld a,(ix+ZHDR_DEFENT_RESBIT.BIT)
    ex de,hl
+#if TI83PLUS
+   ld b,c
+#endif
    call zaddr_res
    ret c
    LEA_IX_IX(ZHDR_DEFENT_RESBIT_SIZE)
@@ -44,6 +52,9 @@ zhdr_defaults.resbit:
 zhdr_defaults.byte:
    ld a,(ix+ZHDR_DEFENT_BYTE.VAL)
    ex de,hl
+#if TI83PLUS
+   ld b,c
+#endif
    call zaddr_store
    ret c
    LEA_IX_IX(ZHDR_DEFENT_BYTE_SIZE)
@@ -54,6 +65,9 @@ zhdr_defaults.byte:
 zhdr_defaults.word:
    LD_HL_FROM_IX_W(ZHDR_DEFENT_WORD.VAL)
    ex de,hl
+#if TI83PLUS
+   ld b,c
+#endif
    call zaddr_storew
    ret c
    LEA_IX_IX(ZHDR_DEFENT_WORD_SIZE)
@@ -71,8 +85,7 @@ zhdr_defaults.tab:
 
 
 zhdr_defaults.actions:
-   .dl zhdr_defaults.setbit
-   .dl zhdr_defaults.resbit
-   .dl zhdr_defaults.byte
-   .dl zhdr_defaults.word
-
+   DL zhdr_defaults.setbit
+   DL zhdr_defaults.resbit
+   DL zhdr_defaults.byte
+   DL zhdr_defaults.word

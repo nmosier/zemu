@@ -1,0 +1,36 @@
+#ifndef TI83PLUS_ZADDR_Z80
+#define TI83PLUS_ZADDR_Z80
+
+;; zaddr_cp -- compare Z-addresses
+;; INPUTS:
+;;  [b:hl] = lhs
+;;  [c:de] = rhs
+;; OUTPUTS: flags
+;; ERRORS: no.
+;; DESTROYS: (none)
+zaddr_cp:
+  push af ; save a
+  ld a,b
+  cp a,c
+  ret nz
+  ex (sp),hl
+  ld a,h ; restore a
+  pop hl
+  jp cp_hl_de
+
+;; zaddr_inc -- increment Z-address
+;; INPUTS:
+;;  [b:hl] = Z-address
+;; OUTPUTS:
+;;  [b:hl] <- [b:hl] + 1
+;; ERRORS: no.
+;; DESTROYS: (none)
+zaddr_inc:
+  inc l
+  ret z
+  inc h
+  ret z
+  inc b
+  ret
+
+#endif

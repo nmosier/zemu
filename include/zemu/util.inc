@@ -56,8 +56,8 @@ R_IYH .equ R_HIGH_OFF + R_IY
 #define MASK(n) 1 << n         
 
 #define LOW_IMM(i) i & $ff
-
 #define HIGH_IMM(i) LOW_IMM((i >> 8))
+#define UPPER_IMM(i) HIGH_IMM((i >> 8))
 
 ;; ADDRESS SIZE SCALING ;;
 #macro MLTA_A_TO_HL()
@@ -167,6 +167,8 @@ _
 
 #if TI83PLUS
 #include "ti83plus/util.inc"
+#elif TI84PCE
+#include "ti84pce/util.inc"
 #endif
 
 #endif

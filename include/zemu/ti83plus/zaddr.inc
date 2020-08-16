@@ -1,6 +1,10 @@
 #ifndef TI83PLUS_ZADDR_INC
 #define TI83PLUS_ZADDR_INC
 
+#include "util.inc"
+
+#define DZA(zaddr) .db LOW_IMM(zaddr), HIGH_IMM(zaddr), UPPER_IMM(zaddr)
+
 #macro LD_BHL_FROM_IX_ZA(off)
   ld l,(ix+off+0)
   ld h,(ix+off+1)
@@ -21,6 +25,42 @@
   ld c,0  
 #endmacro
 
+#macro LD_BHL_FROM_ABS_ZA(addr)
+  ld l,a
+  ld a,(addr+2)
+  ld b,a
+  ld a,l
+  ld hl,(addr)
+#endmacro
+#macro LD_CDE_FROM_ABS_ZA(addr)
+  ld e,a
+  ld a,(addr+2)
+  ld c,a
+  ld a,e
+  ld de,(addr)
+#endmacro
+
+#macro LD_BHL_TO_ABS_ZA(addr)
+  ld (addr+1),bc
+  ld (addr),hl
+#endmacro
+#macro LD_CDE_TO_ABS_ZA(addr)
+  push af
+  ld (addr),de
+  ld a,c
+  ld (addr+2),a
+  pop af
+#endmacro
+
+#macro LD_BHL_IMM(imm)
+  ld hl, imm & $ffff
+  ld b, UPPER_IMM(imm)
+#endmacro
+#macro LD_CDE_IMM(imm)
+  ld de, imm & $ffff
+  ld c, UPPER_IMM(imm)
+#endmacro
+
 #define INC_BHL_ZA call zaddr_inc
 
 #define PUSH_BHL_ZA push hl \\ push bc
@@ -28,5 +68,10 @@
 
 #define UCAST_A_TO_BHL_ZA UCAST_A_TO_HL \\ ld b,0
 #define UCAST_A_TO_CDE_ZA UCAST_A_TO_DE \\ ld c,0
+
+#define UCAST_HL_TO_BHL_ZA ld b,0
+#define UCAST_DE_TO_CDE_ZA ld c,0
+
+#define ADD_BHL_CDE_ZA call zaddr_add
 
 #endif

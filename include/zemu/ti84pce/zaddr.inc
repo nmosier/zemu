@@ -3,6 +3,8 @@
 
 #include "zti.inc"
 
+#define DZA(zaddr) .dl zaddr
+
 #define zaddr_cp cp_hl_de
 
 #define LD_BHL_FROM_IX_ZA(off) LD_HL_FROM_IX(off)
@@ -19,6 +21,9 @@
   ld d,(ix+off+1)
 #endmacro
 
+#define LD_BHL_IMM(imm) ld hl,imm
+#define LD_CDE_IMM(imm) ld de,imm
+
 #define INC_BHL_ZA inc hl
 
 #define PUSH_BHL_ZA push hl
@@ -26,5 +31,12 @@
 
 #define UCAST_A_TO_BHL_ZA UCAST_A_TO_HL
 #define UCAST_A_TO_CDE_ZA UCAST_A_TO_DE
+
+#macro UCAST_HL_TO_BHL_ZA
+#endmacro
+#macro UCAST_DE_TO_CDE_ZA
+#endmacro
+
+#define ADD_BHL_CDE_ZA add hl,de
 
 #endif

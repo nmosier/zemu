@@ -64,7 +64,7 @@ add_zemu_test(zork-north ${zemu_8xp}
 
 add_zemu_test(zork-open-mailbox ${zemu_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "open mailbox\\n" "E10D622B"
+  COMMANDS "open mailbox\\n" 8F98BDAF
   )
 
 add_zemu_test(zork-multiline-command ${zemu_8xp}

@@ -2,13 +2,13 @@
 
 #include "zrand.inc"
 
-zrand_reg: .dl 0
+zrand_reg: DRAND(0)
 
 
 ;; zrand_init -- initialize random number generator
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
-;; DESTROYS: bc
+;; DESTROYS: b,hl
 ;; ERRORS: no.
 zrand_init:
   call zrand_newseed
@@ -16,52 +16,44 @@ zrand_init:
 
 ;; zrand_seed -- seed random value generator
 ;; INPUTS:
-;;  hl = seed (long)
+;;  [b:hl] = seed (long)
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
 ;; ERRORS: no.
 zrand_seed:
-   ld (zrand_reg),hl
-   ret
+  LD_BHL_TO_ABS_RAND(zrand_reg)
+  ret
 
 ;; zrand_newseed -- obtain new seed for random value generator
 ;; INPUTS: (none)
 ;; OUTPUTS:
-;;  hl = new seed value to use
-;; DESTROYS: bc
+;;  [b:hl] = new seed value to use
+;; DESTROYS: c,de
 ;; ERRORS: no.
 zrand_newseed:
-#if 1
    call _RandInit
-   ld hl,(seed1)
-#else
-   ld hl,0
-   ld bc,$8000
-   in h,(bc)
-   ld bc,$8004
-   in l,(bc)
-#endif
+   LD_BHL_FROM_ABS_RAND(seed1)
    ret
 
 ;; zrand_gen_raw -- generate raw random value with 23-bits of entropy
 ;; INPUTS: (none)
 ;; OUTPUTS:
-;;  hl[22:0] = pseudorandom value
+;;  [b:hl][22:0] = pseudorandom value
 ;; ERRORS: no.
-;; DESTROYS: de
+;; DESTROYS: (none)
 zrand_gen_raw:
-   ld hl,(zrand_reg)
-   push hl
-   add hl,hl
-   add hl,hl ; push 22nd bit into CF
-   bit ZRAND_XORBIT+2,l
-   jr z,_
-   ccf ; addition mod 2 of 22nd and XORBIT
-_  ld hl,(zrand_reg)
-   adc hl,hl ; shift right and put carry in bit 0
-   ld (zrand_reg),hl
-   pop hl
-   ret
+  LD_BHL_FROM_ABS_RAND(zrand_reg)
+  PUSH_BHL_RAND
+  SLA_BHL_RAND
+  SLA_BHL_RAND ; push 22nd bit into CF
+  bit ZRAND_XORBIT+2,l
+  jr z,_
+  ccf ; addition mod 2 of 22nd and XORBIT
+_ POP_BHL_RAND
+  RL_BHL_RAND
+  LD_BHL_TO_ABS_RAND(zrand_reg)
+  ret
+
 
 ;; zrand_gen -- generate random value in given range
 ;; INPUTS:
@@ -71,11 +63,9 @@ _  ld hl,(zrand_reg)
 ;; ERRORS: no.
 ;; DESTROYS: (all)
 zrand_gen:
+#if 0
    ex de,hl
    call zrand_gen_raw
-#if 0
-   call absl
-#else
    push de
    ld de,LONG_MIN
    call cp_hl_de
@@ -83,9 +73,22 @@ zrand_gen:
    or a,a
    sbc hl,de
 _  pop de
-#endif
    call div_hl_de
    ex de,hl
    inc hl
    ret
+#else
+  ex de,hl
+  call zrand_gen_raw
+  inc de
+  ex de,hl
+  call cp_hl_0
+  ex de,hl
+  ret z ; if range == UNSIGNED_MAX, return full value
+  call div_hl_de
+  ex de,hl  ; rand % (range + 1) -> hl
+  inc hl
+  ret
 
+
+#endif

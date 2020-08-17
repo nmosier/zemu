@@ -3,8 +3,6 @@
 #ifndef __ZERR_INC
 #define __ZERR_INC
 
-ZERRCNT .equ 8
-
 ZERR_SUCCESS     .equ 0
 ZERR_NOVAR       .equ 1
 ZERR_NOMEM       .equ 2
@@ -29,5 +27,6 @@ ZERR_TOOLONG     .equ 20
 ZERR_BADNAME     .equ 21
 ZERR_RDONLY      .equ 22
 ZERR_STACKOVER   .equ 23
+ZERR_INTERNAL    .equ 24
 
 #endif

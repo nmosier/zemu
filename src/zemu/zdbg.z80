@@ -2,6 +2,9 @@
 
 #ifdef ZDBG
 
+#ifndef ZDBG_Z80
+#define ZDBG_Z80
+
 #include "zdbg.inc"
 #include "zlog.inc"
 #include "zobj.inc"
@@ -31,7 +34,7 @@ zdbg_puts:
    push ix \ push de \ push bc
    push hl
    ld ix,win_dbgout
-   call zwin_clear
+   call zwin_reset
    pop hl
    push hl
    call zwin_puts
@@ -230,7 +233,7 @@ zdbg_cmd.print.obj:
    ret c
    lea hl,ix
    ld de,zdbg_cmd.print.obj.dat
-   ld b,ZOBJSIZE
+   ld a,ZOBJSIZE
    call zaddr_fetchn
    ret c ; error
    ld ix,zdbg_cmd.print.obj.dat
@@ -295,20 +298,32 @@ zdbg_cmd.print.obj:
    ld a,'\"'
    call zwin_putc
 
+   ; check protector
+   ld a,(zdbg_cmd.print.obj.protector)
+   cp a,$42
+   jr z,_
+   scf
+   ld a,ZERR_INTERNAL
+   ret
+_
+
    ; print object properties
    call zdbg_cmd.print.obj.props
    or a,a
    ret
-   
+
 zdbg_cmd.print.obj.buf: RESB(32)
 zdbg_cmd.print.obj.fmt: .db "A%04x%04x/P%02x/S%02x/C%02x/T%04x",0
-zdbg_cmd.print.obj.dat: RESB(9)
+zdbg_cmd.print.obj.dat: RESB(128)
+zdbg_cmd.print.obj.protector: .db $42
+
 
 ;; ix = pointer to object
 ;; a = object
 zdbg_cmd.print.obj.props:
    ld ix,win_dbg1
-   call zwin_clear
+   call zwin_reset
+   ; call zwin_clear
    ld ix,zdbg_cmd.print.obj.dat
    ld hl,0
    ld h,(ix+ZOBJ_O_PROPS+0)
@@ -333,7 +348,7 @@ zdbg_cmd.print.obj.props.loop:
    ; transfer prop data into buf
    ld a,(zdbg_cmd.print.obj.props.propid)
    call zobj_propid_to_size
-   ld b,a
+   ; ld b,a
    ex (sp),hl ; swap LBA into hl
    ld de,zdbg_cmd.print.obj.props.buf_bytes
    push bc
@@ -754,7 +769,7 @@ zdbg_getsn:
    push ix
    ld ix,win_dbgin
    push hl \ push bc
-   call zwin_clear
+   call zwin_reset
    pop bc \ pop hl
    call zwin_getsn
    pop ix
@@ -876,7 +891,7 @@ zdbg_disp_stack_bare:
    ld (iy-9),bc ; index
    ;; clear display
    ld ix,win_dbg1
-   call zwin_clear
+   call zwin_reset
    jr zdbg_disp_stack.entry
 zdbg_disp_stack.loop:
    ld (iy-15),hl  ; arg3 -- index
@@ -929,7 +944,7 @@ zdbg_disp_stack.fmt: .db "%02x: %04x",0
 zdbg_disp_backtrace:
    push ix
    ld ix,win_dbg2
-   call zwin_clear
+   call zwin_reset
    ld ix,zframe_end
    jr zdbg_disp_backtrace.entry
 zdbg_disp_backtrace.loop:
@@ -1104,4 +1119,4 @@ zdbg_str: .db "zdbg",0
 #include "zhex.z80"
 
 #endif
-
+#endif

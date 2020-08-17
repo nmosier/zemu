@@ -27,6 +27,7 @@ zerrmsg_toolong:    .db "name is too long",0
 zerrmsg_badname:    .db "name contains invalid character",0
 zerrmsg_rdonly:     .db "write attempt to read-only memory",0
 zerrmsg_stackover:  .db "stack overflow",0
+zerrmsg_internal:   .db "internal error",0
 
 zerrtab:
    DL zerrmsg_success
@@ -53,6 +54,7 @@ zerrtab:
    DL zerrmsg_badname
    DL zerrmsg_rdonly
    DL zerrmsg_stackover
+   DL zerrmsg_internal
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:

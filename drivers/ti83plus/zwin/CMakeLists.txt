@@ -1,4 +1,4 @@
-add_drivers(DRIVERS putc puts vputmap scroll
-  PLATFORM TI83PLUS
-  )
+foreach(DRIVER putc puts vputmap scroll)
+  add_8xp(${DRIVER} ${DRIVER}.z80)
+endforeach()
 

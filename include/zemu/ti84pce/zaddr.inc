@@ -27,7 +27,9 @@
 #define INC_BHL_ZA inc hl
 
 #define PUSH_BHL_ZA push hl
+#define PUSH_CDE_ZA push de
 #define POP_BHL_ZA  pop hl
+#define POP_CDE_ZA  pop de
 
 #define UCAST_A_TO_BHL_ZA UCAST_A_TO_HL
 #define UCAST_A_TO_CDE_ZA UCAST_A_TO_DE
@@ -43,5 +45,7 @@
 #define LD_CDE_FROM_ABS_ZA(addr) ld de,(addr)
 #define LD_BHL_TO_ABS_ZA(addr) ld (addr),hl
 #define LD_CDE_TO_ABS_ZA(addr) ld (addr),de
+
+#define EX_CDE_BHL_ZA ex de,hl
 
 #endif

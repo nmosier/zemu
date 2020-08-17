@@ -173,6 +173,7 @@ zaddr_to_paddr:
 ;; DESTROYS: (none)
 ;; *** portable ***
 zaddr_fetch:
+   push bc
    push de
    PUSH_BHL_ZA
    ld a,MASK(ZADDR_READ)
@@ -185,6 +186,10 @@ zaddr_fetch:
    ; C reset (nc)
 zaddr_fetch.cleanup:
    pop de
+   ;; restore %c
+   ex (sp),hl
+   ld c,l
+   pop hl
    ret
 
 ;; zaddr_fetch_c -- C wrapper for zaddr_fetch
@@ -285,18 +290,20 @@ zaddr_fetchb:
 ;; DESTROYS: a
 ;; *** portable ***
 zaddr_store:
-   PUSH_BHL_ZA ; save zaddr
+   push bc
+   push hl
    push de
    push af
    ld a,MASK(ZADDR_WRITE)
    call zaddr_to_paddr
    pop bc ; restore byte to store (in b)
-   jr c,zaddr_fetch.cleanup
+   jr c,zaddr_store.cleanup
    ld (hl),b ; store byte
    ex de,hl
 zaddr_store.cleanup:
    pop de
-   POP_BHL_ZA
+   pop hl
+   pop bc
    ret c
    INC_BHL_ZA
    ret

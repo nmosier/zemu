@@ -53,4 +53,22 @@ zaddr_add:
   pop de
   ret
 
+;; zaddr_ex -- exchange Z-addresses
+;; INPUTS:
+;;  [b:hl] = lhs Z-address
+;;  [c:de] = rhs Z-address
+;; OUTPUTS:
+;;  [b:hl] <- [c:de]
+;;  [c:de] <- [b:hl]
+;; ERRORS: no.
+;; DESTROYS: (none)
+zaddr_ex:
+  ex de,hl
+  push af
+  ld a,b
+  ld b,c
+  ld c,a
+  pop af
+  ret
+
 #endif

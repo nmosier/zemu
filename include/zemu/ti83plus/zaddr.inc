@@ -63,8 +63,30 @@
 
 #define INC_BHL_ZA call zaddr_inc
 
-#define PUSH_BHL_ZA push hl \\ push bc
-#define POP_BHL_ZA pop bc \\ pop hl
+#macro PUSH_BHL_ZA
+  push bc
+  inc sp
+  push hl
+#endmacro
+#macro POP_BHL_ZA
+  pop hl
+  dec sp
+  ex (sp),hl
+  ld b,h
+  pop hl
+#endmacro
+
+#macro PUSH_CDE_ZA
+  EX_CDE_BHL_ZA
+  PUSH_BHL_ZA  
+  EX_CDE_BHL_ZA
+#endmacro
+#macro POP_CDE_ZA
+  EX_CDE_BHL_ZA
+  POP_BHL_ZA
+  EX_CDE_BHL_ZA
+#endmacro
+
 
 #define UCAST_A_TO_BHL_ZA UCAST_A_TO_HL \\ ld b,0
 #define UCAST_A_TO_CDE_ZA UCAST_A_TO_DE \\ ld c,0
@@ -73,5 +95,7 @@
 #define UCAST_DE_TO_CDE_ZA ld c,0
 
 #define ADD_BHL_CDE_ZA call zaddr_add
+
+#define EX_CDE_BHL_ZA call zaddr_ex
 
 #endif

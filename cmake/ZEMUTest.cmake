@@ -1,11 +1,15 @@
 # Test Generator
-function(add_zemu_test NAME EXEC)
+function(add_zemu_test NAME)
   cmake_parse_arguments(ZT
     "JSON"
-    "VARDIR;KEY_DELAY"
+    "VARDIR;KEY_DELAY;EXEC;ROM"
     "COMMANDS"
     ${ARGN}
     )
+
+  if(NOT DEFINED TESTGEN)
+    message(FATAL_ERROR "specify test generator with variable 'TESTGEN'")
+  endif()
 
   if(NOT ${ZT_JSON})
     if(DEFINED ZT_UNPARSED_ARGUMENTS)
@@ -13,11 +17,31 @@ function(add_zemu_test NAME EXEC)
     endif()
 
     if(NOT DEFINED ZT_VARDIR)
-      message(FATAL_ERROR "add_zemu_test: VARDIR parameter required")
+      if(DEFINED VARDIR)
+        set(ZT_VARDIR ${VARDIR})
+      else()
+        message(FATAL_ERROR "add_zemu_test: VARDIR parameter required, or VARDIR variable set")
+      endif()
     endif()
 
     if(DEFINED ZT_KEY_DELAY)
       set(ZT_KEY_DELAY -w ${ZT_KEY_DELAY})
+    endif()
+
+    if(NOT DEFINED ZT_EXEC)
+      if(DEFINED EXEC)
+        set(ZT_EXEC ${EXEC})
+      else()
+        message(FATAL_ERROR "add_zemu_test: EXEC parameter required, or EXEC variable set")
+      endif()
+    endif()
+
+    if(NOT DEFINED ZT_ROM)
+      if(DEFINED ROM)
+        set(ZT_ROM ${ROM})
+      else()
+        message(FATAL_ERROR "add_zemu_test: must specify ROM parameter or ROM variable")
+      endif()
     endif()
 
     # Quote Commands (???)
@@ -26,13 +50,13 @@ function(add_zemu_test NAME EXEC)
       list(APPEND COMMANDS "'${COMMAND}'")
     endforeach()
 
-    get_filename_component(TARGET_NAME_LOWER ${EXEC} NAME_WLE)
+    get_filename_component(TARGET_NAME_LOWER ${ZT_EXEC} NAME_WLE)
     string(TOUPPER ${TARGET_NAME_LOWER} TARGET_NAME)
     
 
     # Generate test command
     add_custom_command(OUTPUT ${NAME}.json
-      COMMAND ${TESTGEN} -r ../misc/ce.rom -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${EXEC} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
+      COMMAND ${TESTGEN} -r ${ZT_ROM} -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${ZT_EXEC} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
       DEPENDS ${TESTGEN} str2keys
       )
     

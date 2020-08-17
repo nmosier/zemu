@@ -10,11 +10,11 @@ WORD_SIZE .equ 2
 #define DW .dw
 
 #ifdef TI84PCE
-#include "ti84pce/zti84pce.inc"
+#include "ti84pce/zti.inc"
 #endif
 
 #ifdef TI83PLUS
-#include "ti83plus/zti83plus.inc"
+#include "ti83plus/zti.inc"
 #endif
 
 LONG_BITS .equ LONG_SIZE * 8

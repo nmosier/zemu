@@ -10,8 +10,80 @@
 using Key = std::string;
 using Keys = std::list<Key>;
 
-bool alpha_lock = false;
 constexpr char ESCAPE = '\\';
+
+enum class Mode {ALOCK, ALPHA, SECOND, NORMAL};
+Mode mode = Mode::NORMAL;
+
+Keys set_mode_normal() {
+   switch (mode) {
+   case Mode::NORMAL: return Keys();
+   case Mode::SECOND: return {"2nd"};
+   case Mode::ALPHA:
+   case Mode::ALOCK:
+      return {"alpha"};
+   default: abort();
+   }
+}
+
+void decay_mode() {
+   switch (mode) {
+   case Mode::SECOND:
+   case Mode::ALPHA:
+      mode = Mode::NORMAL;
+      break;
+   case Mode::NORMAL:
+   case Mode::ALOCK:
+      break;
+   default: abort();
+   }
+}
+
+Keys set_mode(Mode new_mode) {
+   if (mode == new_mode) { return Keys(); }
+
+   Keys keys = set_mode_normal();
+
+   switch (new_mode) {
+   case Mode::SECOND:
+      keys.push_back("2nd");
+      break;
+   case Mode::NORMAL:
+      break;
+   case Mode::ALOCK:
+      keys.push_back("2nd");
+   case Mode::ALPHA:
+      keys.push_back("alpha");
+      break;
+   default: abort();
+   }
+
+   mode = new_mode;
+
+   return keys;
+}
+
+
+Mode ascii2mode(char c) {
+   if (isalpha(c)) {
+      return Mode::ALOCK;
+   }
+   
+   if (isdigit(c)) {
+      return Mode::NORMAL;
+   }
+
+   switch (c) {
+   case '"': 
+   case '?':
+   case ':':
+   case ' ':
+      return Mode::ALOCK;
+   }
+   
+   return Mode::NORMAL;
+}
+
 
 Key alpha2key(char c) {
    assert(isalpha(c));
@@ -47,30 +119,49 @@ Key alpha2key(char c) {
    }
 }
 
+
 Keys ascii2key(char c) {
-   Keys keys;
    if (isalpha(c)) {
-      if (!alpha_lock) {
-         keys.push_back("2nd");
-         keys.push_back("alpha");
-         alpha_lock = true;
-      }
-      keys.push_back(alpha2key(c));
-   } else if (c == ' ') {
-      if (!alpha_lock) {
-         keys.push_back("2nd");
-         keys.push_back("alpha");
-         alpha_lock = true;
-      }
-      keys.push_back("0");
-   } else if (c == '\n') {
-      keys.push_back("enter");
-   } else {
-      fprintf(stderr, "don't know how to translate '%c' into keypresses\n", c);
-      exit(1);
+      return {alpha2key(c)};
    }
-   
-   return keys;
+
+   if (isdigit(c)) {
+      return {std::string(&c, &c + 1)};
+   }
+
+   switch (c) {
+   case ' ': return {"0"};
+   case ':': return {"."};
+   case '.': return {"."};
+   case '"': return {"+"};
+   case '+': return {"+"};
+   case '-': return {"-"};
+   case '*': return {"*"};
+   case '/': return {"/"};
+   case '^': return {"^"};
+   case '(': return {"("};
+   case ')': return {")"};
+   case ',': return {","};
+   case '?': return {"(-)"};
+   }
+
+   fprintf(stderr, "don't know how to translate '%c' into keypresses\n", c);
+   exit(1);
+}
+
+Mode escape2mode(char c) {
+   switch (c) {
+   case 'n':
+      return Mode::ALOCK;
+   case 'd': 
+   case 'u': 
+   case 'l': 
+   case 'r': 
+   case 'b': 
+      return Mode::NORMAL;
+   default:
+      return ascii2mode(c);
+   }
 }
 
 Keys escape2key(char c) {
@@ -90,18 +181,15 @@ int main(int argc, char *argv[]) {
    const auto usage =
       [&] (FILE *f) {
          const char *usage =
-            "usage: %s [-ah] <string>\n"        \
+            "usage: %s [-h] <string>\n"         \
             "";
          fprintf(f, usage, argv[0]);
       };
 
-   const char *optstring = "ah";
+   const char *optstring = "h";
    int optchar;
    while ((optchar = getopt(argc, argv, optstring)) >= 0) {
       switch (optchar) {
-      case 'a':
-         alpha_lock = true;
-         break;
       case 'h':
          usage(stdout);
          return 0;
@@ -121,12 +209,17 @@ int main(int argc, char *argv[]) {
    for (; *s; ++s) {
       switch (*s) {
       case ESCAPE:
-         keys.splice(keys.end(), escape2key(*++s));
+         ++s;
+         keys.splice(keys.end(), set_mode(escape2mode(*s)));
+         keys.splice(keys.end(), escape2key(*s));
          break;
       default:
+         keys.splice(keys.end(), set_mode(ascii2mode(*s)));
          keys.splice(keys.end(), ascii2key(*s));
          break;
       }
+
+      decay_mode();
    }
 
    for (auto it = keys.begin(); it != keys.end(); ++it) {

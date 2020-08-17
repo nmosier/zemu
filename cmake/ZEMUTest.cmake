@@ -26,9 +26,13 @@ function(add_zemu_test NAME EXEC)
       list(APPEND COMMANDS "'${COMMAND}'")
     endforeach()
 
+    get_filename_component(TARGET_NAME_LOWER ${EXEC} NAME_WLE)
+    string(TOUPPER ${TARGET_NAME_LOWER} TARGET_NAME)
+    
+
     # Generate test command
     add_custom_command(OUTPUT ${NAME}.json
-      COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
+      COMMAND ${TESTGEN} -r ../misc/ce.rom -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${EXEC} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
       DEPENDS ${TESTGEN} str2keys
       )
     

@@ -1,54 +1,8 @@
+include(${CMAKE_SOURCE_DIR}/cmake/ZEMUTest.cmake)
+
 set(TESTS zork-welcome)
 
 set(TESTGEN ${CMAKE_CURRENT_SOURCE_DIR}/testgen.sh)
-
-# Test Generator
-function(add_zemu_test NAME EXEC)
-  cmake_parse_arguments(ZT
-    "JSON"
-    "VARDIR;KEY_DELAY"
-    "COMMANDS"
-    ${ARGN}
-    )
-
-  if(NOT ${ZT_JSON})
-    if(DEFINED ZT_UNPARSED_ARGUMENTS)
-      message(FATAL_ERROR "add_zemu_test: invalid arguments: ${ZT_UNPARSED_ARGUMENTS}")
-    endif()
-
-    if(NOT DEFINED ZT_VARDIR)
-      message(FATAL_ERROR "add_zemu_test: VARDIR parameter required")
-    endif()
-
-    if(DEFINED ZT_KEY_DELAY)
-      set(ZT_KEY_DELAY -w ${ZT_KEY_DELAY})
-    endif()
-
-    # Quote Commands (???)
-    set(COMMANDS)
-    foreach(COMMAND ${ZT_COMMANDS})
-      list(APPEND COMMANDS "'${COMMAND}'")
-    endforeach()
-
-    # Generate test command
-    add_custom_command(OUTPUT ${NAME}.json
-      COMMAND ${TESTGEN} -r ../misc/ce.rom -t ZEMU -v ${ZT_VARDIR} -x ${EXEC} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
-      DEPENDS ${TESTGEN} str2keys
-      )
-    
-    # Generate test target
-    add_custom_target(${NAME}_tgt ALL
-      DEPENDS ${NAME}.json
-      )
-    
-    endif()
-    
-    # Add CTest
-    add_test(NAME ${NAME}
-      COMMAND cemu-autotester ./${NAME}.json
-      )
-
-  endfunction()
 
 get_target_property(zemu_8xp zemu 8XP)
 
@@ -77,8 +31,26 @@ add_zemu_test(zork-forest ${zemu_8xp}
   COMMANDS
   "north\\n"      5355D174
   "north\\n"      D9E56563
-  "climb tree\\n" 10938693
-  "\\d"           64CE9399
-  "take egg\\n"   3F938585
-  "inventory\\n"  E1FBBCB7
+  "climb tree\\n" AF367190
+  "\\d"           6C4AF6B6
+  "\\d"           B5F66B0
+  "\\d"           1B3E02BB
+  "take egg\\n"   B3368F6A
+  "inventory\\n"  F3875276
+  )
+
+
+get_target_property(zemu_dbg_8xp zemudbg 8XP)
+
+add_zemu_test(zork-dbg-init ${zemu_dbg_8xp}
+  VARDIR "../vars/zork"
+  COMMANDS "''" 7DAEC812
+  )
+add_zemu_test(zork-dbg-step ${zemu_dbg_8xp}
+  VARDIR "../vars/zork"
+  COMMANDS "\\r" 1C745B7E
+  )
+add_zemu_test(zork-dbg-run ${zemu_dbg_8xp}
+  VARDIR "../vars/zork"
+  COMMANDS "\\n" 1A2AC000
   )

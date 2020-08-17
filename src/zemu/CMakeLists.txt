@@ -4,3 +4,6 @@ add_compile_definitions(ZCURSOR=1 ZSELECT_GAME=0 ZOFFSET=1)
 add_compile_options(-L)
 
 add_8xp(zemu zemu.z80)
+add_8xp(zemudbg zemu.z80
+  DEFINITIONS ZDBG=1
+  )

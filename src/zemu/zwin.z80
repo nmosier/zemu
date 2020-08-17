@@ -62,6 +62,18 @@ zwin_flush:
    LD_HL_TO_IX(ZWIN.BUFANC)
    ret
 
+
+;; zwin_reset -- clear, flush, and org window
+;; INPUTS:
+;;  ix = pointer to windows struct
+;; OUTPUTS: (none)
+;; DESTROYS: a, hl
+;; ERRORS: no.
+zwin_reset:
+  call zwin_clear
+  call zwin_flush
+  jp zwin_org
+
 ;; zwin_putc -- put character in window, buffered
 ;; zwin_putc_bare -- put character in window, unbuffered
 ;; INPUTS:

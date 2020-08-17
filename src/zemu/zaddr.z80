@@ -225,7 +225,7 @@ _  ld hl,0
 ;;  [b:hl] <- [b:hl] + 2
 ;;  de = word, sign-extended
 ;; ERRORS: yes.
-;; DESTROYS: (all)
+;; DESTROYS: a
 ;; *** portable ***
 zaddr_fetchw:
    call zaddr_fetch
@@ -247,7 +247,7 @@ zaddr_fetchw:
 ;;  [b:hl] <- [b:hl] + 2
 ;;  de = word, zero-extended
 ;; ERRORS: yes.
-;; DESTROYS: (all)
+;; DESTROYS: a
 ;; *** portable ***
 zaddr_fetchwu:
    call zaddr_fetch

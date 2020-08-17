@@ -1,7 +1,5 @@
 #include "zhdr.inc"
 
-;; TODO: [PORTABILITY] Need to use 24-bit Z-addr
-
 ;; zhdr_defaults -- initialize story file header
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
@@ -59,8 +57,6 @@ zhdr_defaults.byte:
    ret c
    LEA_IX_IX(ZHDR_DEFENT_BYTE_SIZE)
    jr zhdr_defaults.entry
-
-;; TRANSFORM HERE
 
 zhdr_defaults.word:
    LD_HL_FROM_IX_W(ZHDR_DEFENT_WORD.VAL)

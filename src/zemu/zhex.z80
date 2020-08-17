@@ -1,3 +1,6 @@
+#ifndef ZHEX_Z80
+#define ZHEX_Z80
+
 ;   15	#define HEXDUMP_IDX_SIZE 0
 ;   16	#define HEXDUMP_SIZE_MAX 8
 ;   17	#define HEXDUMP_CHARS_PER_BYTE 2
@@ -219,3 +222,4 @@ _0temp1:
 	.db	242
 	.db	0
 
+#endif

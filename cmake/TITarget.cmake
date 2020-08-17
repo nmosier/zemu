@@ -20,8 +20,8 @@ function(add_8xp TARGET MAIN_SOURCE)
   list(APPEND TI_DEFINITIONS ${DEFINITIONS})
   list(TRANSFORM TI_DEFINITIONS PREPEND "-D")
 
-  get_directory_property(FLAGS COMPILE_FLAGS)
-  list(APPEND TI_SPASM_FLAGS ${COMPILE_FLAGS})
+  get_directory_property(FLAGS COMPILE_OPTIONS)
+  list(APPEND TI_SPASM_FLAGS ${FLAGS})
   list(APPEND TI_SPASM_FLAGS -N) # no color
 
   if(DEFINED TI_PLATFORM)
@@ -50,5 +50,5 @@ function(add_8xp TARGET MAIN_SOURCE)
     )
 
   set_target_properties(${TARGET} PROPERTIES 8XP ${OUTPUT})
-  
+
 endfunction()

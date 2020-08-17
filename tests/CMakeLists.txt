@@ -44,13 +44,17 @@ get_target_property(zemu_dbg_8xp zemudbg 8XP)
 
 add_zemu_test(zork-dbg-init ${zemu_dbg_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "''" 7DAEC812
+  COMMANDS "''" EC5D4466
   )
 add_zemu_test(zork-dbg-step ${zemu_dbg_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "\\r" 1C745B7E
+  COMMANDS "\\r" 656B5DAF
   )
 add_zemu_test(zork-dbg-run ${zemu_dbg_8xp}
   VARDIR "../vars/zork"
-  COMMANDS "\\n" 1A2AC000
+  COMMANDS "\\n" 258FAA33
+  )
+add_zemu_test(zork-dbg-obj ${zemu_dbg_8xp}
+  VARDIR "../vars/zork"
+  COMMANDS "+PO1\\n" C3FEA6D
   )

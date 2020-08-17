@@ -125,6 +125,7 @@ zin_parse:
    ;; initialize word-sep buffer
    ;; hl = word-sep string pointer (ZA, src)
    ;; de = word-sep string pointer (PA, dst)
+   ld c,b ; TODO: b will actually be the upper byte of hl
    call zmemcpyp_b ; copy word-sep string into memory
    jr c,zin_parse.done  ; ERROR
    ld (iy-10),ZSCII_NUL ; NUL terminate string

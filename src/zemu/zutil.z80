@@ -9,12 +9,10 @@
 #include "zstr.inc"
 
 
-
-
 ;; pmemcmpz_b -- compare physical buffer with Z-addr buffer
 ;; INPUTS:
-;;  hl = buffer, physical (PA)
-;;  de = buffer, Z-addr   (ZA)
+;;  hl = buffer, physical   (PA)
+;;  [c:de] = buffer, Z-addr (ZA)
 ;;  b = number of bytes to compare
 ;; OUTPUTS:
 ;;  ZF, CF modified appropriately
@@ -22,102 +20,103 @@
 ;;  a != 0 on error
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 pmemcmpz_b:
    ex de,hl
-pmemcmpz_b.loop:
-   push bc
-   call zaddr_fetch
-   pop bc
-   ret c
+   ld a,b
+   ld b,c
    ld c,a
-   ld a,(de)
-   cp a,c
+pmemcmpz_b.loop:
+   call zaddr_fetch
+   ret c ; err
+   ;; compare byte
+   ex de,hl
+   push hl
+   ld h,(hl)
+   ld l,a
+   ld a,h
+   cp a,l
+   pop hl
+   ex de,hl
    ld a,ZERR_SUCCESS
    ret nz
    inc de
-   djnz pmemcmpz_b.loop
+   dec c
+   jr nz,pmemcmpz_b.loop
    or a,a ; NC
    ret
 
 ;; zmemcmpz -- compare Z-strings in memory
 ;; INPUTS:
-;;  hl = pointer to first Z-string
-;;  de = pointer to second Z-string
-;;  b = number of bytes to compare
+;;  [b:hl] = pointer to first Z-string
+;;  [c:de] = pointer to second Z-string
+;;  a = number of bytes to compare
 ;; OUTPUTS:
 ;;  ZF and CF modified appropriately
 ;;  a = 0 on success
 ;;  a != 0 on error
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zmemcmpz:
-   push bc
-   ex de,hl
-   call zaddr_fetch
-   ex de,hl
-   jr c,zmemcmpz.err   
-   push af
-   call zaddr_fetch
-   pop bc
-   jr c,zmemcmpz.err   
-   ; lhs val = a
-   ; rhs val = b
-   cp a,b
-   pop bc
-   ld a,ZERR_SUCCESS
-   ret nz ; if nonzero
-   djnz zmemcmpz
-   ; are equal
-   ret
-   
+  push af
+  EX_CDE_BHL_ZA
+  call zaddr_fetch ; a <- (src)
+  push af
+  EX_CDE_BHL_ZA
+  call nc,zaddr_fetch
+  jr c,zmemcmpz.err
+  ex (sp),hl
+  cp a,h
+  pop hl
+  jr nz,zmemcmpz.nz
+  pop af
+  dec a
+  jr nz,zmemcmpz
+  ret
 zmemcmpz.err:
-   pop bc ; discard
-   ret
-
+  pop bc
+zmemcmpz.nz:
+  pop bc
+  ret
 
 
 ;; pmemcpyz_b -- memcpy, physical address to Z-address, up to 256 bytes
 ;; INPUTS:
 ;;  hl = physical address pointer
-;;  de = Z-address pointer
+;;  [c:de] = Z-address pointer
 ;;  b = count (b == 0 => count == 256)
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 pmemcpyz_b:
    ld a,(hl)
    inc hl
-   ex de,hl
-   push bc
-   call zaddr_store ; preserves de
-   pop bc
+   EX_CDE_BHL_ZA
+   call zaddr_store ; preserves de, c
    ret c
-   ex de,hl
+   EX_CDE_BHL_ZA
    djnz pmemcpyz_b
    or a,a ; NC
    ret
 
+
 ;; zmemcpyp_b -- memcpy, Z-address to physical address, up to 256 bytes
 ;; INPUTS:
-;;  hl = Z-address pointer
+;;  [b:hl] = Z-address pointer
 ;;  de = physical address pointer
-;;  b = count
+;;  c = count
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zmemcpyp_b:
-   ld c,b
-zmemcpyp_b.loop:
-   push bc
    call zaddr_fetch ; preserves de
-   pop bc
    ret c
    ld (de),a
    inc de
-   djnz zmemcpyp_b.loop
-zmemcpyp_b.done:
-   ld b,c
-   or a,a
+   dec c
+   jr nz,zmemcpyp_b
    ret
 
 

@@ -60,6 +60,9 @@ zwin_flush:
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret z
    LD_HL_TO_IX(ZWIN.BUFANC)
+#if ZTEST
+   call zwin_cksum
+#endif
    ret
 
 
@@ -269,6 +272,9 @@ zwin_bufc:
    ld (hl),a
    inc hl
    LD_HL_TO_IX(ZWIN.BUFPTR)
+#if ZTEST
+   call zwin_cksum_putc
+#endif
    ret
 
 
@@ -399,6 +405,9 @@ zwin_trunc.move:
    push af
    call memmove
    pop af
+#if ZTEST
+   call zwin_cksum ; recompute cksum
+#endif   
    ret
 
 ;; zwin_puts -- put string in window, buffered, null-terminated

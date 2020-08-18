@@ -2,7 +2,7 @@
 function(add_zemu_test NAME)
   cmake_parse_arguments(ZT
     "JSON"
-    "VARDIR;KEY_DELAY;EXEC;ROM;START;SIZE"
+    "VARDIR;KEY_DELAY;EXEC;ROM;LOCATION"
     "COMMANDS"
     ${ARGN}
     )
@@ -47,22 +47,21 @@ function(add_zemu_test NAME)
       endif()
     endif()
 
-    if(NOT DEFINED ZT_SIZE)
-      if(DEFINED SIZE)
-        set(ZT_SIZE ${SIZE})
+    if(NOT DEFINED ZT_LOCATION)
+      if(DEFINED LOCATION)
+        set(ZT_LOCATION ${LOCATION})
+      else()
+        message(FATAL_ERROR "add_zemu_test: must specify LOCATION paramter or LOCATION variable")
       endif()
     endif()
-    if(NOT DEFINED ZT_START)
-      if(DEFINED START)
-        set(ZT_START ${START})
-      endif()
+    if(ZT_LOCATION STREQUAL "VRAM")
+      set(LOC -s vram_start,vram_16_size)
+    elseif(ZT_LOCATION STREQUAL "WIN_MAIN")
+      set(LOC -s "win_main.cksum,3,${ZT_LAB}")
+    else()
+      message(FATAL_ERROR "add_zemu_test: unrecognized LOCATION '${ZT_LOCATION}'")
     endif()
-    if(DEFINED ZT_START AND DEFINED ZT_SIZE)
-      set(LOC -s "${ZT_START},${ZT_SIZE},${ZT_LAB}")
-    elseif(DEFINED ZT_START OR DEFINED ZT_SIZE)
-      message(FATAL_ERROR "add_zemu_test: start or size not specified")
-    endif()
-
+    
     # Quote Commands (???)
     set(COMMANDS)
     foreach(COMMAND ${ZT_COMMANDS})
@@ -76,7 +75,7 @@ function(add_zemu_test NAME)
     # Generate test command
     add_custom_command(OUTPUT ${NAME}.json
       COMMAND ${TESTGEN} -r ${ZT_ROM} -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${ZT_8XP} -o ${NAME}.json -k $<TARGET_FILE:str2keys> -R $<TARGET_FILE:readlab> ${LOC} ${COMMANDS}
-      DEPENDS ${TESTGEN} str2keys
+      DEPENDS ${TESTGEN} str2keys ${ZT_8XP} ${ZT_LAB}
       )
     
     # Generate test target

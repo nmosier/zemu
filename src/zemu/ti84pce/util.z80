@@ -18,5 +18,49 @@ upperbyte:
    ret
 upperbyte.long: .dl 0
 
+;; djb2_putc -- add char to existing cksum
+;; INPUTS:
+;;  hl = cksum
+;;  a = new char
+;; OUTPUTS:
+;;  hl = new cksum
+;; DESTROYS: a
+djb2_putc:
+  push af
+   push bc
+    push de
+     ld de,33
+     push af
+     call mul_hl_de
+     pop af
+     ld de,0
+     ld e,a
+     add hl,de
+    pop de
+   pop bc
+  pop af
+  ret
+
+;; djb2_unputc -- remove char from existing cksum
+;; INPUTS:
+;;  hl = cksum
+;;  a = char to remove
+;; OUTPUTS:
+;;  hl = new cksum
+;; DESTROYS: ???
+djb2_unputc:
+  push af
+   push bc
+    push de
+     ld de,0
+     ld e,a
+     or a,a
+     sbc hl,de
+     ld de,33
+     call div_hl_de
+    pop de
+   pop bc
+  pop af
+  ret
 
 #endif

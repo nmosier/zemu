@@ -13,6 +13,10 @@ Options:
  -o <output>   output CEmu JSON autotester file
  -k <str2key>  path to str2key binary
  -w <ms>       delay after each keypress, in ms
+ -s <start>,<size>[,<lab>]
+               specify start address and size for checksum. If <lab> is provided,
+               it translates symbols <start> and <size> to values
+ -R <readlab>  path to readlab binary
 EOF
 }
 
@@ -27,6 +31,18 @@ join() {
     echo "$*"
 }
 
+# convert symbol to value using lab file
+sym2val() {
+    if ! [[ "$1" =~ [^[:digit:]] ]]; then
+        echo $1
+        return 0
+    fi
+        
+    # otherwise lookup in LAB file
+    DECIMAL=$("$READLAB" -e "$2" "$1") || exit 1
+    printf '0x%x\n' "$DECIMAL"
+}
+
 ROM=
 TARGET=
 VARDIR=
@@ -34,8 +50,10 @@ EXEC=
 OUT=/dev/fd/1
 STR2KEY=
 KEYDELAY=50 # default: 50 ms
+LOCINFO=()
+READLAB=
 
-while getopts "hr:t:v:x:o:k:w:" OPTION; do
+while getopts "hr:t:v:x:o:k:w:s:R:" OPTION; do
     case $OPTION in
         h)
             usage
@@ -62,6 +80,12 @@ while getopts "hr:t:v:x:o:k:w:" OPTION; do
         w)
             KEYDELAY="$OPTARG"
             ;;
+        s)
+            IFS=',' read -ra LOCINFO <<< "$OPTARG"
+            ;;
+        R)
+            READLAB="$OPTARG"
+            ;;
         "?")
             usage >&2
             exit 1
@@ -76,6 +100,17 @@ shift $((OPTIND-1))
 [ -z "$VARDIR" ]  && error "$0: specify variable directory with '-v'"
 [ -z "$EXEC" ]    && error "$0: specify *.8xp executable with '-x'"
 [ -z "$STR2KEY" ] && error "$0: specify str2key binary with '-k'"
+
+case ${#LOCINFO[@]} in
+    0)
+        ;;
+    1)
+        error "$0: '-s': missing location size"
+        ;;
+    *)
+        [ -z "$READLAB" ] && error "$0: specify readlab binary with '-r'"
+        ;;
+esac
 
 # truncate file
 : > "$OUT"
@@ -155,6 +190,21 @@ cat >> "$OUT" <<EOF
     "hashes": {
 EOF
 
+# get start, size
+START="vram_start"
+SIZE="vram_16_size"
+
+NLOCINFO=${#LOCINFO[@]}
+if [[ $NLOCINFO -gt 0 ]]; then
+    START="${LOCINFO[0]}"
+    SIZE="${LOCINFO[1]}"
+    if [[ $NLOCINFO -eq 3 ]]; then
+        LAB="${LOCINFO[2]}"
+        START=$(sym2val "$START" "$LAB") || exit 1 
+        SIZE=$(sym2val "$SIZE" "$LAB") || exit 1
+    fi
+fi
+
 NCRCS=${#CRCS[@]}
 for ((I = 0; I < NCRCS; ++I)); do
     CRC="${CRCS[$I]}"
@@ -167,8 +217,8 @@ for ((I = 0; I < NCRCS; ++I)); do
     cat >> "$OUT" <<EOF
        "$I": {
           "description": "$I",
-          "start": "vram_start",
-          "size": "vram_16_size",
+          "start": "$START",
+          "size": "$SIZE",
           "expected_CRCs": ["$CRC"],
           "timeout": 5000
        }$SEP

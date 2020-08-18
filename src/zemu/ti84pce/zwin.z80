@@ -135,6 +135,9 @@ zwin_unputcursor:
    pop ix
 zwin_unputc.done:
    pop de \ pop hl
+#if ZTEST
+   call zwin_cksum
+#endif
    or a,a ; NC
    ret
 
@@ -166,6 +169,85 @@ zwin_puts_c:
    pop iy
    pop ix
    ret
+
+
+#if ZTEST
+;; zwin_cksum_putc -- put char to existing window buffer cksum
+;; INPUTS:
+;;  ix = window pointer
+;;  a = new char
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+zwin_cksum_putc:
+  jp zwin_cksum
+  push hl
+   ld hl,(ix+ZWIN.CKSUM)
+   call djb2_putc
+   ld (ix+ZWIN.CKSUM),hl
+  pop hl
+  ret
+
+;; zwin_cksum_unputc -- unput char from existing window buffer cksum
+;; INPUTS:
+;;  ix = window pointer
+;;  a = char to remove
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+zwin_cksum_unputc:
+  jp zwin_cksum
+
+;; zwin_cksum -- checksum window contents
+;; INPUTS:
+;;  ix = pointer to zwin
+;; OUTPUTS: (none)
+;; DESTROYS: (none)
+zwin_cksum:
+  push af
+  push hl
+  push de
+  push bc
+   ld hl,(ix+ZWIN.BUFPTR)
+   lea de,ix+ZWIN.BUF
+   or a,a
+   sbc hl,de
+   LD_BC_HL ; length 
+   ld hl,5381
+   jr zwin_cksum.entry
+zwin_cksum.loop:
+   push bc
+    push de
+     LD_DE_HL
+     add hl,hl
+     add hl,hl
+     add hl,hl
+     add hl,hl
+     add hl,hl
+     add hl,de ; hl <- hl * 33
+    pop de
+    ld a,(de)
+    inc de
+    ld bc,0
+    ld c,a
+    add hl,bc
+   pop bc
+   dec bc
+zwin_cksum.entry:
+   push hl
+    ld hl,0
+    or a,a
+    sbc hl,bc
+   pop hl
+   jr nz,zwin_cksum.loop
+   ld (ix+ZWIN.CKSUM),hl
+  pop bc
+  pop de
+  pop hl
+  pop af
+  ret
+
+#endif
+
+
 
 
 

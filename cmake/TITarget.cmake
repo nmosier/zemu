@@ -11,7 +11,7 @@ function(add_8xp TARGET MAIN_SOURCE)
   endif()
 
   set(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.8xp)
-
+  
   get_directory_property(INCLUDE_DIRS INCLUDE_DIRECTORIES)
   list(APPEND TI_INCLUDE_DIRS ${INCLUDE_DIRS})
   list(TRANSFORM TI_INCLUDE_DIRS PREPEND "-I")
@@ -38,16 +38,22 @@ function(add_8xp TARGET MAIN_SOURCE)
     endif()
   endif()
 
+  if(-L IN_LIST TI_SPASM_FLAGS)
+    set(LAB ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.lab)
+  else()
+    set(LAB)
+  endif()
+
 
   get_filename_component(MAIN_SOURCE ${MAIN_SOURCE} ABSOLUTE)
 
-  add_custom_command(OUTPUT ${OUTPUT}
+  add_custom_command(OUTPUT ${OUTPUT} ${LAB}
     COMMAND ${SPASM} ${TI_SPASM_FLAGS} ${TI_INCLUDE_DIRS} -I ${CMAKE_CURRENT_SOURCE_DIR} ${TI_DEFINITIONS} ${MAIN_SOURCE} ${OUTPUT}
     DEPENDS /dev/null # always remake
     )
   
   add_custom_target(${TARGET} ALL
-    DEPENDS ${OUTPUT}
+    DEPENDS ${OUTPUT} ${LAB}
     )
 
   set_target_properties(${TARGET} PROPERTIES 8XP ${OUTPUT})

@@ -29,7 +29,12 @@ ZWIN.FLAGS  .equ ZWIN.HEIGHT + ROW_SIZE  ; BYTE_SIZE
 ZWIN.BUFLEN .equ ZWIN.FLAGS + BYTE_SIZE  ; LONG_SIZE
 ZWIN.BUFPTR .equ ZWIN.BUFLEN + LONG_SIZE ; LONG_SIZE
 ZWIN.BUFANC .equ ZWIN.BUFPTR + LONG_SIZE ; LONG_SIZE
+#if ZTEST
+ZWIN.CKSUM  .equ ZWIN.BUFANC + LONG_SIZE
+ZWIN.BUF    .equ ZWIN.CKSUM  + LONG_SIZE
+#else
 ZWIN.BUF    .equ ZWIN.BUFANC + LONG_SIZE ;
+#endif
 
 ZWIN.RECT   .equ ZWIN.ORGCOL
 
@@ -58,6 +63,9 @@ ZWIN_CLEARCOLOR .equ $ff
   DL buflen ; buflen
   DL _      ; bufptr
   DL 0      ; bufanc
+#if ZTEST
+  DL 5381   ; cksum
+#endif
 _ RESB(buflen) ; buf
 #endif
 #endmacro

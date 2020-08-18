@@ -1,32 +1,34 @@
 set(EXEC zemu)
 
-set(START win_main.buf)
-set(SIZE win_main.buflen)
+set(LOCATION WIN_MAIN)
 
 add_zemu_test(zork-welcome
-  COMMANDS "''" AA57DDA7
+  COMMANDS "''" 1A7BB317
   )
 
 add_zemu_test(zork-north
-  COMMANDS "n\\n" 830BA2CD
+  COMMANDS "''" 1A7BB317 "n\\n" 3FD77B1C
   )
 
 add_zemu_test(zork-open-mailbox
-  COMMANDS "open mailbox\\n" 8F98BDAF
+  COMMANDS "''" 1A7BB317 "open mailbox\\n" 5FC0A09C
   )
 
 add_zemu_test(zork-multiline-command
-  COMMANDS "this is a very long sentence which spans two" "5A6702D1" " lines" "8493A536"
+  COMMANDS "''" 1A7BB317
+  "this is a very long sentence which spans two" FCC9AACC
+  " lines" 303A9207
   )
 
 add_zemu_test(zork-forest
   COMMANDS
-  "north\\n"      5355D174
-  "north\\n"      D9E56563
-  "climb tree\\n" AF367190
-  "\\d"           6C4AF6B6
-  "\\d"           B5F66B0
-  "\\d"           1B3E02BB
-  "take egg\\n"   B3368F6A
-  "inventory\\n"  F3875276
+  "''"            1A7BB317
+  "north\\n"      E732B934
+  "north\\n"      A749FFF1
+  "climb tree\\n" DCECCC81
+  "\\d"           C10500AA
+  "\\d"           E50A7BDD
+  "\\d"           4C377625
+  "take egg\\n"   11532993
+  "inventory\\n"  24AE30AC
   )

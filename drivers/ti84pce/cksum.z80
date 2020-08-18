@@ -1,0 +1,28 @@
+#include "zti.inc"
+#include "zdisp.inc"
+
+.assume ADL=1
+.org userMem-2
+
+.db tExtTok, tAsm84CeCmp
+
+start:
+   ld hl,5381
+   ld a,'a'
+   call djb2_putc
+   push hl
+   call _DispHL
+   call _NewLine
+   pop hl
+   ld a,'a'
+   call djb2_unputc
+   push hl
+   call _DispHL
+   call _NewLine
+   pop hl
+
+   call _GetKey
+   ret
+
+
+#include "util.z80"

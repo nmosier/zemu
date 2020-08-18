@@ -694,7 +694,10 @@ zexec.print_obj:
    call zop_readn
    ;; TODO -- obj downcast
    ld a,l
+   push bc
    call zobj_objaddr
+   LD_IX_HL
+   pop bc
    ret c
    lea hl,ix+ZOBJ_O_PROPS
    call zaddr_fetchwu

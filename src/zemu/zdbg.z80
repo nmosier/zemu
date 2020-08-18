@@ -230,6 +230,7 @@ zdbg_cmd.print.obj:
    call cp_hl_0
    ret nz
    call zobj_objaddr
+   LD_IX_HL
    ret c
    lea hl,ix
    ld de,zdbg_cmd.print.obj.dat

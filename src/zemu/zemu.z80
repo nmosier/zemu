@@ -58,6 +58,7 @@ start:
 #endif
    ld hl,zemu_str
    jp c,zemu_perror
+   ret
 
 zemu_str: .db "zemu",0
 
@@ -94,8 +95,14 @@ init_windows:
 #endif
    ret
 
-win_main: D_ZWIN(2, 2, DISP_WIDTH-4, DISP_HEIGHT-4, MASK(ZWIN.FLAGS.BUFD), 512)
+win_main.buflen .equ 512
+
+win_main: D_ZWIN(2, 2, DISP_WIDTH-4, DISP_HEIGHT-4, MASK(ZWIN.FLAGS.BUFD), win_main.buflen)
 win_main_protector: .db $42
+win_main.buf .equ win_main + ZWIN.BUF
+#if ZTEST
+win_main.cksum .equ win_main + ZWIN.CKSUM
+#endif
 
 #ifdef ZDBG
 win_dbgout: RES_ZWIN(0) ; not buffered

@@ -1,0 +1,26 @@
+[X] zaddr.z80
+[X] zapp.z80
+[ ] zbranch.z80
+[ ] zcall.z80
+[ ] zcode.z80
+[ ] zcpu.z80
+[ ] zdbg.z80
+[ ] zdict.z80
+[X] zdisp.z80
+[ ] zemu.z80
+[X] zerr.z80
+[ ] zexec.z80
+[X] zhdr.z80
+[ ] zhex.z80
+[ ] zin.z80
+[ ] zmap.z80
+[X] zmem.z80
+[X] zname.z80
+[X] zobj.z80
+[ ] zop.z80
+[X] zrand.z80
+[ ] zsave.z80
+[X] zstr.z80
+[X] zutil.z80
+[ ] zvar.z80
+[X] zwin.z80

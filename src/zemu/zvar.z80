@@ -1,23 +1,28 @@
 ;; zvar.z80 -- variable manip routines
 
 #include "zvar.inc"
-#include "zdbg.inc"
 
-;; localaddr -- get address of local variable
+#if ZDBG
+#include "zdbg.inc"
+#endif
+
+;; zvar_localaddr -- get address of local variable
 ;; INPUTS:
 ;;  a = variable number
 ;; OUTPUTS:
-;;  hl = pointer to local variable
+;;  hl = pointer to local variable (p-addr)
 ;; DESTROYS: a,de
 ;; ERRORS: yes. (Checks bounds of var num)
+;; *** portable ***
 zvar_localaddr:
    ; validate var num
    dec a
    ld hl,zframe_nl
    cp a,(hl)
-   jr nc,zvar_localaddr.error
-   ld hl,0
-   ld l,a
+   ccf
+   UCAST_A_TO_HL
+   ld a,ZERR_NOLOCL
+   ret c
    add hl,hl ; a * ZWORD_SIZE
    ld de,(zframe_fp)
    add hl,de
@@ -25,31 +30,32 @@ zvar_localaddr:
    add hl,de
    or a,a ; NC, success
    ret
-zvar_localaddr.error:
-   ld a,ZERR_NOLOCL
-   scf
-   ret
 
 ;; zvar_globaladdr -- get address of global variable
 ;; INPUTS:
 ;;  a = global variable number
 ;; OUTPUTS:
 ;;  hl = logical address of global variable
-;; ERRORS: (none)
+;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zvar_globaladdr:
-   sub a,ZVAR_GLOBALMIN
-   push af
-   ld hl,ZHDR_GLOBALS
-   call zaddr_fetchwu
-   ex de,hl
-   pop de
-   ret c
-   ld a,d
-   MLT_A(ZWORD_SIZE, R_BC)
-   add hl,bc
-   or a,a ; NC
-   ret
+  sub a,ZVAR_GLOBALMIN
+  push af
+  LD_BHL_IMM(ZHDR_GLOBALS)
+  call zaddr_fetchz
+  ex de,hl
+#if TI83PLUS
+  ld b,c
+#endif
+  pop de
+  ret c
+  ld a,d
+  MLT_A(ZWORD_SIZE, R_DE)
+  ADD_BHL_DE_ZA
+  or a,a ; NC
+  ret
+
 
 ;; zvar_fetch -- fetch variable value.
 ;; INPUTS:
@@ -58,6 +64,7 @@ zvar_globaladdr:
 ;;  hl = variable value (16-bit)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zvar_fetch:
    push af
    call zvar_fetch.switch
@@ -69,7 +76,7 @@ zvar_fetch:
    ld ix,ZDBG_FLAGS
    bit ZDBG_FLAGS_WATCH,(ix)
    ld a,b ; varnum
-   scf \ ccf ; NC -- read
+   or a,a  ; NC -- read
    call nz,zdbg_watch_hook
    pop hl
 #endif
@@ -113,12 +120,12 @@ zvar_fetch.local:
    call zvar_localaddr
    ret c ; error
    ; load var
-   ld de,0 ; zero-padding
+   CLEAR_UPPER_DE
    ld d,(hl)
    inc hl
    ld e,(hl)
    ex de,hl
-   scf \ ccf
+   or a,a
    ret
 
 zvar_fetch.global:
@@ -177,14 +184,15 @@ zvar_store.local:
    inc hl
    ld (hl),e
    or a,a
-   ret
+   ret ; NC
 
 zvar_store.global:
    push de
    call zvar_globaladdr
    pop de
    jp nc,zaddr_storew
-   ret
+   ret ; C
+
 
 ;; zvar_downcast -- cast unsigned value to 24 bits to 8 bits
 ;; INPUTS:
@@ -192,7 +200,8 @@ zvar_store.global:
 ;; OUTPUTS:
 ;;  a = 8-bit unsigned value
 ;; ERRORS: no.
-;; DESTROYS: a
+;; DESTROYS: (none)
+;; *** portable ***
 zvar_downcast:
    ld a,l
    ret
@@ -206,7 +215,8 @@ zvar_downcast:
 ;;  (a) updated
 ;;  hl = new value
 ;; ERRORS: yes.
-;; DESTROYS: (all)
+;; DESTROYS: (all), ix
+;; *** portable ***
 zvar_modify:
    push af
    push hl
@@ -234,5 +244,4 @@ zvar_modify.jump:
 zvar_write:
    call zcode_readvarnum
    jp nc,zvar_store
-   ret
-
+   ret ; C

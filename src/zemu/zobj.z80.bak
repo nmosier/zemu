@@ -1,0 +1,620 @@
+#include "zobj.inc"
+#include "zutil.inc"
+
+
+;; zobj_tabaddr -- return logical address of object table
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  [b:hl] = logical address of object table
+;; ERRORS: yes.
+;; DESTROYS: a, de
+zobj_tabaddr:
+  LD_BHL_IMM(ZHDR_OBJTAB)
+  call zaddr_fetchwu
+  ret c
+#if 0
+  ld ix,0
+  add ix,de ; ld ix,de
+#else
+  ex de,hl
+#if TI83PLUS
+  ld b,0
+#endif
+#endif
+  ret
+   
+;; zobj_objaddr -- return logical address of object
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  [b:hl] = logical address of object
+;;  TMP: ix 
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_objaddr:
+  ld c,a
+  cp a,1
+  ld a,ZERR_BADOBJ
+  ret c ; because the 1st object is the 0th entry
+  ld a,c
+  dec a
+  MLT_A(ZOBJSIZE, R_DE)
+  ld hl,ZOBJTAB_PROPDEFAULTS_SIZE
+  add hl,de
+  push hl ; save obj offset
+   call zobj_tabaddr
+  pop de ; restore obj offset
+  ret c
+#if TI83PLUS
+  ld c,0 ; extend de to Z-addr
+#endif
+  ;; get obj Z-addr
+  ADD_BHL_CDE_ZA
+  LD_IX_HL
+  ret
+
+
+;; zobj_attr -- find attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS:
+;;  hl = logical address of byte containing attribute
+;;  a = mask for extracting bit
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_attr:
+   push bc ; save attribute no.
+    call zobj_objaddr
+   pop bc ; restore attr no.
+   ret c
+   ; find bit offset within byte
+   ; boff <- 8 - (attrno % 8) == (8 - attrno) % 8
+   ld a,$07
+   xor a,c ; flip last 3 bits
+   and a,$07 ; only want last 3 bits
+   call maskb
+   ld b,a
+   ld a,c
+   cp a,32
+   ccf
+   ld a,ZERR_BADATTR
+   ret c
+   ; get logical address of byte containing attribute
+   srl c
+   srl c
+   srl c
+   ld de,0
+   ld e,c
+   lea hl,ix+ZOBJ_O_ATTRS
+   add hl,de ; logical address
+   ld a,b ; mask
+   scf \ ccf
+   ret
+
+;; zobj_attrtest -- test attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS:
+;;  zero flag reset (Z) if attribute is set, set (NZ) otherwise
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_attrtest:
+   call zobj_attr
+   ret c
+   ld d,a
+   call zaddr_fetch
+   ret c
+   and a,d
+   ret
+
+;; zobj_attrclear -- clear attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (All)
+zobj_attrclear:
+   call zobj_attr
+   ret c
+   cpl
+   push af
+   call zaddr_fetch
+   pop bc
+   ret c
+   and a,b
+   dec hl
+   jp zaddr_store
+
+;; zobj_attrset -- set attribute of object
+;; INPUTS:
+;;  a = object number
+;;  c = attribute number
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_attrset:
+   call zobj_attr
+   ret c
+   push af
+   call zaddr_fetch
+   pop bc
+   ret c
+   or a,b
+   dec hl
+   jp zaddr_store
+
+;; zobj_valid -- check whether object number is valid
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  NC if valid, C if valid
+;; ERRORS: see OUTPUTS.
+;; DESTROYS: (none)
+zobj_valid:
+   cp a,1
+   ret
+
+;; zobj_insert -- transfer childhood of object to another parent
+;; INPUTS:
+;;  a = object number
+;;  c = new parent object number
+;; OUTPUTS:
+;;  modifies object table
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_insert:
+   ; 0. Save params
+   ld hl,zobj_insert.data
+   ld (hl),a
+   inc hl
+   ld (hl),c
+   ; 1. Remove object from parent
+   ld b,a
+   call zobj_remove
+   ret c
+   ; 2.   Insert object as first child of new parent
+   ; 2.a  Get parent's address
+   ld a,(zobj_insert.parent)
+   call zobj_objaddr
+   ret c
+   ; 2.b  Fetch parent's current child
+   lea hl,ix+ZOBJ_O_CHILD
+   call zaddr_fetch
+   ret c
+   ld (zobj_insert.newsib),a
+   ; 2.c  Update parent's child
+   dec hl
+   ld a,(zobj_insert.obj)
+   call zaddr_store
+   ret c
+   ; 2.d  Update child's parent and sibling
+   ld a,(zobj_insert.obj)
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_FAMILY
+   ld a,(zobj_insert.parent)
+   call zaddr_store
+   ret c
+   ld a,(zobj_insert.newsib)
+   call zaddr_store
+   ret c
+zobj_insert.done:
+   scf \ ccf
+   ret
+
+zobj_insert.data:
+zobj_insert.obj:        .db 0
+zobj_insert.parent:     .db 0
+zobj_insert.newsib:     .db 0
+
+
+;; zobj_remove -- remove object from parent
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  object table modified
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_remove:
+   ; get object
+   call zobj_objaddr
+   ret c
+   ld (zobj_remove.obj),a ; save obj no
+   ; get parent and sibling
+   lea hl,ix+ZOBJ_O_FAMILY
+   call zaddr_fetch
+   ret c
+   or a,a
+   ret z ; object has no parent
+   ld (zobj_remove.parent),a ; save parent no
+   call zaddr_fetch
+   ret c
+   ld (zobj_remove.nextsib),a ; save next sibling of obj
+   ; find first child of parent
+   ld a,(zobj_remove.parent) ; parent no
+   call zobj_objaddr ; address of parent
+   ret c
+   lea hl,ix+ZOBJ_O_CHILD
+   call zaddr_fetch ; current first child
+   ret c
+   dec hl ; use this later for updating, points to first child
+   ; update parent & sibling list
+   ; 2 cases: (i) obj is first child; (ii) otherwise
+   ex de,hl ; de = pointer to child byte of parent object
+   ld hl,zobj_remove.obj
+   cp a,(hl) ; check if current first child == object being removed
+   jr nz,zobj_remove.caseii
+   ; case (i)
+   ex de,hl
+   ld a,(zobj_remove.nextsib)
+   call zaddr_store
+   ret c
+   jr zobj_remove.update_obj
+zobj_remove.caseii:
+   ; case (ii)
+   call zobj_objaddr ; address of first sibling object -> ix
+   ret c
+   ; don't care about a -- loop will overwrite it before using it
+   ; loop invariants at special label:
+   ;  - hl points to child entry of previous sibling of current object
+   ;  - a contains current sibling number
+   ; loop terminates when a == object being removed
+   ; error if a == 0
+zobj_remove.loop:
+   lea hl,ix+ZOBJ_O_SIBLING
+   call zaddr_fetch
+   ret c
+   ex de,hl
+   ld hl,zobj_remove.obj
+   cp a,(hl)
+   ex de,hl
+   jr z,zobj_remove.found
+   call zobj_objaddr ; handles case when a = 0
+   ret c
+   jr zobj_remove.loop
+
+zobj_remove.found:
+   dec hl
+   ld a,(zobj_remove.nextsib)
+   call zaddr_store
+   ret c
+
+zobj_remove.update_obj:
+   ld a,(zobj_remove.obj)
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_FAMILY
+   xor a
+   call zaddr_store ; no parent
+   ret c
+   xor a
+   call zaddr_store ; no siblings
+   ret c
+zobj_remove.done:
+   scf \ ccf
+   ret
+
+
+
+
+zobj_remove.data:
+zobj_remove.obj:     .db 0
+zobj_remove.parent:  .db 0
+zobj_remove.nextsib: .db 0
+
+
+;--------------------------------;
+;        PROPERTY FUNCTIONS      ;
+;--------------------------------;
+
+;; zobj_proptab -- get logical address of property table [header]
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  hl = logical address of object's property table
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_proptab:
+zobj_proptab_hdr:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_PROPS
+   call zaddr_fetchwu ; fetch word
+   ex de,hl
+   ret
+
+;; zobj_proptab_body -- get logical address of object's property table body
+;; zobj_proptab_body_alt -- alternate entry point if property table already computed in hl
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  hl = logical address of object's property table body
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_proptab_body:
+   call zobj_proptab
+   ret c
+zobj_proptab_body_alt:
+   call zaddr_fetch
+   ret c
+   ex de,hl
+   ld hl,0
+   ld l,a
+   add hl,hl
+   add hl,de
+zobj_proptab_body.done:
+   or a,a
+   ret
+
+;; zobj_propaddr -- get logical address of object property data
+;; INPUTS:
+;;  a = object number
+;;  c = property number
+;; OUTPUTS:
+;;  hl = logical address of object property data
+;;  a = property data size
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zobj_propaddr:
+   push bc
+   call zobj_proptab_body
+   pop de
+   ret c
+   ; loop invariants:
+   ;  - e holds target property number
+   ;  - hl holds address of next unexamined entry
+   ;  - hl may or may not point to 0
+   jr zobj_propaddr.entry
+zobj_propaddr.loop:
+   ld a,c
+   call zobj_propid_to_size
+   ld bc,0
+   ld c,a
+   add hl,bc
+zobj_propaddr.entry:
+   call zaddr_fetch
+   ret c
+   or a,a
+   jr z,zobj_propaddr.notfound
+   ld c,a
+   call zobj_propid_to_num
+   cp a,e ; are the property numbers equal?
+   jr z,zobj_propaddr.found
+   jr nc,zobj_propaddr.loop
+zobj_propaddr.notfound:
+   ; not found
+   ld hl,0
+zobj_propaddr.found:
+   ; found
+   ld a,c
+   call zobj_propid_to_size
+   or a,a
+   ret
+
+;; zobj_propid_to_size -- extract raw byte size from property ID byte
+;; INPUTS:
+;;  a = property ID byte
+;; OUTPUTS:
+;;  a = byte size
+;; DESTROYS: a
+;; ERRORS: no.
+zobj_propid_to_size:
+   and a,$E0 ; 0b1110.0000
+   rlca
+   rlca
+   rlca
+   inc a
+   ret
+
+;; zobj_propid_to_num -- extract property number from property ID byte
+;; INPUTS:
+;;  a = property ID byte
+;; OUTPUTS:
+;;  a = property number
+;; DESTROYS: a
+;; ERRORS: no.
+zobj_propid_to_num:
+   and a,$1F
+   ; dec a ;; TODO -- check whether this is correct
+         ;; would make sense b/c otherwise 0 would describe valid
+         ;; property of ID 0, length 8
+   ret
+
+;; zobj_propsize -- get size of object property data
+;; INPUTS:
+;;  a = object number
+;;  c = property number
+;; OUTPUTS:
+;;  a = size of object property data
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_propsize:
+   call zobj_propaddr
+   ret c
+   ld de,1
+   ; scf \ ccf
+   sbc hl,de ; dec hl with zero flag set
+   ld a,ZERR_NOPROP
+   ret c ; then hl = 0, so property wasn't found
+zobj_propsize.done:
+   scf \ ccf
+   ret
+
+;; zobj_propval -- retrieve object's property value
+;; INPUTS:
+;;  a = object number
+;;  c = property number
+;; OUTPUTS:
+;;  de = property data, sign-extended
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_propval:
+   push bc ; preserve property #
+   call zobj_propaddr
+   pop bc  ; restore property #
+   ret c
+   call cp_hl_0
+   jp z,zobj_propval.default
+   or a,a ; check if invalid size
+   jr z,zobj_propval.error
+   dec a
+   jp z,zaddr_fetchb
+   dec a
+   jp z,zaddr_fetchw
+zobj_propval.error:
+   ld a,ZERR_BADPROP
+   scf
+   ret
+
+zobj_propval.default:
+   ld a,c ; set property number parameter
+   jp zobj_propdefault
+
+;; zobj_nextprop -- fetch next prop number
+;; INPUTS:
+;;  a = object number
+;;  c = prop number (or 0 for 1st prop no)
+;; OUTPUTS:
+;;  a = next prop number (0 if none)
+;; DESTROYS: 
+;; ERRORS: yes.
+zobj_nextprop:
+   ld b,a
+   ld a,c
+   or a,a
+   ld a,b
+   jr nz,zobj_nextprop.next
+zobj_nextprop.first:
+   call zobj_proptab_body
+   ret c
+   jr zobj_nextprop.fetch
+zobj_nextprop.next:
+   call zobj_propaddr
+   ret c
+   ; %a contains current prop size
+   ld de,0
+   ld e,a
+   add hl,de
+zobj_nextprop.fetch:
+   call zaddr_fetch
+   ret c
+   call zobj_propid_to_num
+   scf \ ccf
+   ret
+
+
+;; zobj_propdefault -- lookup property default value
+;; INPUTS:
+;;  a = property number
+;; OUTPUTS:
+;;  de = (sign-extended) value, long
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; TODO: check if property is valid.
+zobj_propdefault:
+#if 0
+   push af
+   call zobj_tabaddr
+   pop bc
+   ret c
+   dec b
+   ld de,0
+   ld e,b
+   lea hl,ix
+   add hl,de
+   add hl,de ; hl <- ix + de*WORD_SIZE
+   jp zaddr_fetchw;u
+#endif
+  ld c,a
+  call zobj_tabaddr ; preserves c
+  ld a,c
+  ret c
+  dec a ; normalize obj index
+  ld de,0
+  ld e,a
+#if TI83PLUS
+  ld c,0
+#endif
+  ADD_BHL_CDE_ZA
+  ADD_BHL_CDE_ZA
+  jp zaddr_fetchw
+  
+
+;------------------------------;
+;        FAMILY FUNCTIONS      ;
+;------------------------------;
+
+;; zobj_parent -- get object's parent
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  a = object's parent (0 if no parent)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_parent:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_PARENT
+   jp zaddr_fetch
+
+;; zobj_sibling -- get object's sibling
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  a = object's first sibling (0 if no sibling)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_sibling:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_SIBLING
+   jp zaddr_fetch
+
+
+;; zobj_child -- get object's first child
+;; INPUTS:
+;;  a = object number
+;; OUTPUTS:
+;;  a = object's first child
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zobj_child:
+   call zobj_objaddr
+   ret c
+   lea hl,ix+ZOBJ_O_CHILD
+   jp zaddr_fetch
+
+;---------------;
+;    OTHER      ;
+;---------------;
+
+;; zobj_downcast -- downcast from word size to object id
+;; INPUTS:
+;;  hl = value
+;; OUTPUTS:
+;;  a = object ID
+;; ERRORS: yes.
+;; DESTROYS: (none)
+zobj_downcast:
+   push de
+   ld de,$100
+   call cp_hl_de
+   pop de
+   ccf
+   ld a,l
+   ret nc
+   ld a,ZERR_BADOBJ
+   ret
+
+;---------------------------;
+;    DEBUGGING FUNCTIONS    ;
+;---------------------------;
+
+
+
+;; zobj_validate -- validate tree rooted at object
+;; zobj_validate:
+

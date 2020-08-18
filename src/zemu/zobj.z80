@@ -66,37 +66,7 @@ zobj_objaddr.err:
 ;;  a = mask for extracting bit
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
-#if 0
-zobj_attr:
-   push bc
-   call zobj_objaddr
-   LD_IX_HL
-   pop bc
-   ret c
-   ; find bit offset within byte
-   ; boff <- 8 - (attrno % 8) == (8 - attrno) % 8
-   ld a,$07
-   xor a,c ; flip last 3 bits
-   and a,$07 ; only want last 3 bits
-   call maskb
-   ld b,a
-   ld a,c
-   cp a,32
-   ccf
-   ld a,ZERR_BADATTR
-   ret c
-   ; get logical address of byte containing attribute
-   srl c
-   srl c
-   srl c
-   ld de,0
-   ld e,c
-   lea hl,ix+ZOBJ_O_ATTRS
-   add hl,de ; logical address
-   ld a,b ; mask
-   ; or a,a
-   ret
-#else
+;; *** portable ***
 zobj_attr:
   ld b,a ; save obj no
   ;; check params
@@ -127,8 +97,6 @@ zobj_attr:
   ; or a,a
   ret
 
-#endif
-
 ;; zobj_attrtest -- test attribute of object
 ;; INPUTS:
 ;;  a = object number
@@ -137,6 +105,7 @@ zobj_attr:
 ;;  zero flag reset (Z) if attribute is set, set (NZ) otherwise
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zobj_attrtest:
    call zobj_attr
    ret c
@@ -152,17 +121,18 @@ zobj_attrtest:
 ;;  c = attribute number
 ;; OUTPUTS: (none)
 ;; ERRORS: yes.
-;; DESTROYS: (All)
+;; DESTROYS: (all)
+;; *** portable ***
 zobj_attrclear:
    call zobj_attr
    ret c
    cpl
    push af
    call zaddr_fetch
-   pop bc
+   pop de
    ret c
-   and a,b
-   dec hl
+   and a,d
+   DEC_BHL_ZA
    jp zaddr_store
 
 ;; zobj_attrset -- set attribute of object
@@ -172,27 +142,18 @@ zobj_attrclear:
 ;; OUTPUTS: (none)
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zobj_attrset:
    call zobj_attr
    ret c
    push af
    call zaddr_fetch
-   pop bc
+   pop de
    ret c
-   or a,b
-   dec hl
+   or a,d
+   DEC_BHL_ZA
    jp zaddr_store
 
-;; zobj_valid -- check whether object number is valid
-;; INPUTS:
-;;  a = object number
-;; OUTPUTS:
-;;  NC if valid, C if valid
-;; ERRORS: see OUTPUTS.
-;; DESTROYS: (none)
-zobj_valid:
-   cp a,1
-   ret
 
 ;; zobj_insert -- transfer childhood of object to another parent
 ;; INPUTS:
@@ -202,6 +163,7 @@ zobj_valid:
 ;;  modifies object table
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; TODO: use stack, not global data.
 zobj_insert:
    ; 0. Save params
    ld hl,zobj_insert.data
@@ -262,91 +224,81 @@ zobj_insert.newsib:     .db 0
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zobj_remove:
-   ; get object
-   call zobj_objaddr
-   LD_IX_HL
-   ret c
-   ld (zobj_remove.obj),a ; save obj no
-   ; get parent and sibling
-   lea hl,ix+ZOBJ_O_FAMILY
-   call zaddr_fetch
-   ret c
-   or a,a
-   ret z ; object has no parent
-   ld (zobj_remove.parent),a ; save parent no
-   call zaddr_fetch
-   ret c
-   ld (zobj_remove.nextsib),a ; save next sibling of obj
-   ; find first child of parent
-   ld a,(zobj_remove.parent) ; parent no
-   call zobj_objaddr ; address of parent
-   LD_IX_HL
-   ret c
-   lea hl,ix+ZOBJ_O_CHILD
-   call zaddr_fetch ; current first child
-   ret c
-   dec hl ; use this later for updating, points to first child
-   ; update parent & sibling list
-   ; 2 cases: (i) obj is first child; (ii) otherwise
-   ex de,hl ; de = pointer to child byte of parent object
-   ld hl,zobj_remove.obj
-   cp a,(hl) ; check if current first child == object being removed
-   jr nz,zobj_remove.caseii
-   ; case (i)
-   ex de,hl
-   ld a,(zobj_remove.nextsib)
-   call zaddr_store
-   ret c
-   jr zobj_remove.update_obj
+  ;; get object address
+  call zobj_objaddr
+  ret c
+  ld (zobj_remove.obj),a ; save obj no
+  ;; get parent and sibling
+  ld de,ZOBJ_O_FAMILY
+  ADD_BHL_DE_ZA
+  call zaddr_fetch ; fetch parent no
+  ret c
+  or a,a
+  ret z                  ; object has no parent
+  ld (zobj_remove.parent),a ; save parent no
+  call zaddr_fetch ; fetch sibling no
+  ret c
+  ld (zobj_remove.nextsib),a ; save next sibling no
+  ;; find first child of parent
+  ld a,(zobj_remove.parent)
+  call zobj_objaddr ; addr of parent
+  ret c
+  ld de,ZOBJ_O_CHILD
+  ADD_BHL_DE_ZA
+  call zaddr_fetch ; a <- current first child
+  ret c
+  DEC_BHL_ZA ; z-addr to current first child no
+  ;; check cases for current first child;
+  ;; case (i)  -- first child is object being removed
+  ;; case (ii) -- otherwise
+  ld c,a
+  ld a,(zobj_remove.obj)
+  cp a,c
+  jr nz,zobj_remove.caseii
+zobj_remove.casei:
+  ;; case (i)
+  ld a,(zobj_remove.nextsib)
+  call zaddr_store
+  ret c
+  jr zobj_remove.update_obj
 zobj_remove.caseii:
-   ; case (ii)
-   call zobj_objaddr ; address of first sibling object -> ix
-   LD_IX_HL
-   ret c
-   ; don't care about a -- loop will overwrite it before using it
-   ; loop invariants at special label:
-   ;  - hl points to child entry of previous sibling of current object
-   ;  - a contains current sibling number
-   ; loop terminates when a == object being removed
-   ; error if a == 0
+  ;; case (ii)
+  ld a,c ; a <- current first child
+  call zobj_objaddr  
+  ret c
+  ld a,(zobj_remove.obj) ; use for comparison
+  ld c,a
 zobj_remove.loop:
-   lea hl,ix+ZOBJ_O_SIBLING
-   call zaddr_fetch
-   ret c
-   ex de,hl
-   ld hl,zobj_remove.obj
-   cp a,(hl)
-   ex de,hl
-   jr z,zobj_remove.found
-   call zobj_objaddr ; handles case when a = 0
-   LD_IX_HL
-   ret c
-   jr zobj_remove.loop
+  ld de,ZOBJ_O_SIBLING
+  ADD_BHL_DE_ZA
+  call zaddr_fetch
+  ret c
+  cp a,c
+  jr z,zobj_remove.found
+  call zobj_objaddr ; handles case when a == 0
+  jr nc,zobj_remove.loop
+  ret ; error
 
 zobj_remove.found:
-   dec hl
-   ld a,(zobj_remove.nextsib)
-   call zaddr_store
-   ret c
-
+  DEC_BHL_ZA
+  ld a,(zobj_remove.nextsib)
+  call zaddr_store
+  ret c
 zobj_remove.update_obj:
-   ld a,(zobj_remove.obj)
-   call zobj_objaddr
-   LD_IX_HL
-   ret c
-   lea hl,ix+ZOBJ_O_FAMILY
-   xor a
-   call zaddr_store ; no parent
-   ret c
-   xor a
-   call zaddr_store ; no siblings
-   ret c
+  ld a,(zobj_remove.obj)
+  call zobj_objaddr
+  ret c
+  ld de,ZOBJ_O_FAMILY
+  ADD_BHL_DE_ZA
+  xor a,a
+  call zaddr_store ; no parent
+  ret c
+  xor a,a
+  call zaddr_store ; no siblings
+  ret c
 zobj_remove.done:
-   scf \ ccf
-   ret
-
-
-
+  or a,a
+  ret
 
 zobj_remove.data:
 zobj_remove.obj:     .db 0

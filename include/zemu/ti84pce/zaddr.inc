@@ -25,6 +25,7 @@
 #define LD_CDE_IMM(imm) ld de,imm
 
 #define INC_BHL_ZA inc hl
+#define DEC_BHL_ZA dec hl
 
 #define PUSH_BHL_ZA push hl
 #define PUSH_CDE_ZA push de

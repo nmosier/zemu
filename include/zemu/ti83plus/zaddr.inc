@@ -62,6 +62,7 @@
 #endmacro
 
 #define INC_BHL_ZA call zaddr_inc
+#define DEC_BHL_ZA call zaddr_dec
 
 #macro PUSH_BHL_ZA
   push bc

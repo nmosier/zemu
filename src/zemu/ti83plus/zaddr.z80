@@ -33,6 +33,20 @@ zaddr_inc:
   inc b
   ret
 
+;; zaddr_dec -- decrement Z-addr
+;; INPUTS:
+;;  [b:hl] = Z-addr
+;; OUTPUTS:
+;;  [b:hl] <- [b:hl] - 1
+;; ERRORS: no.
+;; DESTROYS: (none)
+zaddr_dec:
+  call cp_hl_0
+  jr nz,_
+  dec b
+_ dec hl
+  ret
+  
 
 ;; zaddr_add -- add Z-addresses
 ;; INPUTS:

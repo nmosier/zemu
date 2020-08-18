@@ -2,7 +2,7 @@
 function(add_zemu_test NAME)
   cmake_parse_arguments(ZT
     "JSON"
-    "VARDIR;KEY_DELAY;EXEC;ROM"
+    "VARDIR;KEY_DELAY;EXEC;ROM;START;SIZE"
     "COMMANDS"
     ${ARGN}
     )
@@ -36,12 +36,31 @@ function(add_zemu_test NAME)
       endif()
     endif()
 
+    get_target_property(ZT_8XP ${ZT_EXEC} 8XP)
+    get_target_property(ZT_LAB ${ZT_EXEC} LAB)
+
     if(NOT DEFINED ZT_ROM)
       if(DEFINED ROM)
         set(ZT_ROM ${ROM})
       else()
         message(FATAL_ERROR "add_zemu_test: must specify ROM parameter or ROM variable")
       endif()
+    endif()
+
+    if(NOT DEFINED ZT_SIZE)
+      if(DEFINED SIZE)
+        set(ZT_SIZE ${SIZE})
+      endif()
+    endif()
+    if(NOT DEFINED ZT_START)
+      if(DEFINED START)
+        set(ZT_START ${START})
+      endif()
+    endif()
+    if(DEFINED ZT_START AND DEFINED ZT_SIZE)
+      set(LOC -s "${ZT_START},${ZT_SIZE},${ZT_LAB}")
+    elseif(DEFINED ZT_START OR DEFINED ZT_SIZE)
+      message(FATAL_ERROR "add_zemu_test: start or size not specified")
     endif()
 
     # Quote Commands (???)
@@ -56,7 +75,7 @@ function(add_zemu_test NAME)
 
     # Generate test command
     add_custom_command(OUTPUT ${NAME}.json
-      COMMAND ${TESTGEN} -r ${ZT_ROM} -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${ZT_EXEC} -o ${NAME}.json -k $<TARGET_FILE:str2keys> ${COMMANDS}
+      COMMAND ${TESTGEN} -r ${ZT_ROM} -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${ZT_8XP} -o ${NAME}.json -k $<TARGET_FILE:str2keys> -R $<TARGET_FILE:readlab> ${LOC} ${COMMANDS}
       DEPENDS ${TESTGEN} str2keys
       )
     
@@ -66,6 +85,7 @@ function(add_zemu_test NAME)
       )
     
   endif()
+
   
   # Add CTest
   add_test(NAME ${NAME}

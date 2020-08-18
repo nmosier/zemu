@@ -1,4 +1,4 @@
-get_target_property(EXEC zemudbg 8XP)
+set(EXEC zemudbg)
 
 add_zemu_test(zork-dbg-init
   COMMANDS "''" EC5D4466

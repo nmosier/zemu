@@ -6,4 +6,3 @@ set(ROM ${CMAKE_SOURCE_DIR}/misc/ce.rom)
 
 add_subdirectory(zemu)  # zemu
 add_subdirectory(debug) # zemu w/ debugger
-

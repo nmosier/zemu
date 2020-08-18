@@ -38,6 +38,7 @@ function(add_8xp TARGET MAIN_SOURCE)
     endif()
   endif()
 
+
   get_filename_component(MAIN_SOURCE ${MAIN_SOURCE} ABSOLUTE)
 
   add_custom_command(OUTPUT ${OUTPUT}
@@ -50,5 +51,9 @@ function(add_8xp TARGET MAIN_SOURCE)
     )
 
   set_target_properties(${TARGET} PROPERTIES 8XP ${OUTPUT})
+
+  if(-L IN_LIST TI_SPASM_FLAGS)
+    set_target_properties(${TARGET} PROPERTIES LAB ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.lab)
+  endif()
 
 endfunction()

@@ -14,7 +14,11 @@ Map parse_file(FILE *f) {
    char sym[128];
    char val[128];
    while (fscanf(f, "%128s = %128s\n", sym, val) == 2) {
-      map.insert({sym, val});
+      std::string sym_(sym);
+      for (char& c : sym_) {
+         c = toupper(c);
+      }
+      map.insert({sym_, val});
    }
 
    return map;
@@ -75,7 +79,11 @@ int main(int argc, char *argv[]) {
    bool good = true;
    unsigned found = 0;
    for (; optind != argc; ++optind) {
-      auto it = map.find(argv[optind]);
+      std::string sym(argv[optind]);
+      for (char& c : sym) {
+         c = toupper(c);
+      }
+      auto it = map.find(sym);
       if (it != map.end()) {
          if (eval) {
             std::cout << evaluate(it->second);

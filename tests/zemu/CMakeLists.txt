@@ -1,7 +1,10 @@
-get_target_property(EXEC zemu 8XP)
+set(EXEC zemu)
+
+set(START win_main.buf)
+set(SIZE win_main.buflen)
 
 add_zemu_test(zork-welcome
-  COMMANDS "''" E3E88479
+  COMMANDS "''" AA57DDA7
   )
 
 add_zemu_test(zork-north

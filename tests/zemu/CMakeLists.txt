@@ -32,3 +32,11 @@ add_zemu_test(zork-forest
   "take egg\\n"   11532993
   "inventory\\n"  24AE30AC
   )
+
+add_zemu_test(zork-leaflet
+  COMMANDS
+  "''"              1A7BB317
+  "open mailbox\\n" 5FC0A09C
+  "take leaflet\\n" AC617D04
+  "read leaflet\\n" 1D5A1C5F
+  )  

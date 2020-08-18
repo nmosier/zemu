@@ -263,8 +263,7 @@ zin_parse_word.encode:
    jr c,zin_parse_word.leave ; ERROR
    ; search for word in dictionary
 zin_parse_word.search:
-   ld hl,0
-   add hl,sp
+   LD_HL_SP
    call zdict_search
    jr c,zin_parse_word.leave ; ERROR
    ;; write entry into parse table

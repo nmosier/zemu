@@ -245,3 +245,4 @@ zvar_write:
    call zcode_readvarnum
    jp nc,zvar_store
    ret ; C
+

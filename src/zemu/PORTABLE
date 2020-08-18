@@ -22,5 +22,5 @@
 [ ] zsave.z80
 [X] zstr.z80
 [X] zutil.z80
-[ ] zvar.z80
+[X] zvar.z80
 [X] zwin.z80

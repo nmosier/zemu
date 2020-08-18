@@ -23,3 +23,6 @@ DEBUG
 [ ] zaddr_fetch_c ???
 [ ] zaddr_fetchn (new param %b, old param %b -> new param %a)
 
+
+
+[ ] ZADDR_FETCHW[U] should preserve %a

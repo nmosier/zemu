@@ -1,67 +1,79 @@
 ;; zdict.z80 -- Z-machine dictionary utility functions
+#ifndef ZDICT_Z80
+#define ZDICT_Z80
 
 #include "zdict.inc"
 
-;; zdict_addr -- get pointer to dictionary
-;; zdict_hdraddr -- get pointer to dictionary header
+;; zdict_addr -- get z-addr of dictionary
+;; zdict_hdraddr -- get z-addr of dictionary header
 ;; INPUTS: (none)
 ;; OUTPUTS:
-;;  hl = logical address of dictionary
+;;  [b:hl] = static z-addr of dictionary
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zdict_addr:
 zdict_hdraddr:
-   ld hl,ZHDR_DICT
-   call zaddr_fetchwu
-   ex de,hl
-   ret
+  LD_BHL_IMM(ZHDR_DICT)
+  call zaddr_fetchwu
+  ex de,hl
+#if TI83PLUS
+  ld b,0
+#endif
+  ret
 
 ;; zdict_tab -- get info about dictionary table
 ;; INPUTS: (none)
 ;; OUTPUTS:
-;;  hl = logical address of dictionary table (points to first entry)
+;;  [b:hl] = static z-addr of dictionary table (points to first entry)
 ;;  a = entry size
 ;;  de = number of entries
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zdict_tab:
    call zdict_addr
+   call nc,zaddr_fetch ; number of separators
    ret c
-   call zaddr_fetch ; number of separators
-   ret c
-   ld de,0
-   ld e,a
+   UCAST_A_TO_DE
    add hl,de
+   UCAST_HL_TO_BHL_ZA
    call zaddr_fetch ; entry size
    ret c
    push af
    call zaddr_fetchwu ; number of entries
-   pop bc
-   ret c
-   ld a,b
-   ret   
+   jr c,zdict_tab.err
+   pop af
+   ret
+zdict_tab.err:
+   pop de
+   ret
+
 
 ;; zdict_search -- search for Z-string in dictionary
 ;; INPUTS:
-;;  hl = pointer to (4-byte / 2-word) Z-string in memory
+;;  hl = p-addr to (4-byte / 2-word) Z-string
 ;; OUTPUTS:
 ;;  a = 0 on success; a != 0 if error
-;;  hl = pointer to entry, if found
+;;  [b:hl] = static Z-addr of entry, if found
 ;;  C if not found -- check for error in this case
 ;;  NC if found -- don't need to check for error
-;; DESTROYS: 
+;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zdict_search:
-   push hl ; key
-   call zdict_tab
-   pop bc  ; key
-   ;; hl = base
-   ;; de = number of elements
-   ;; a = element size
-   ld ix,zdict_search.cmp ; comp
-   jp nc,bsearch
-   ;; ERROR
-   ret
+  push hl ; save key
+  call zdict_tab
+  pop bc  ; restore key
+  ;; hl = base
+  ;; de = number of elements
+  ;; bc = key
+  ;; a = element size
+  ;; ix = compare
+  ld ix,zdict_search.cmp ; comp
+  call nc,bsearch
+  UCAST_DE_TO_CDE_ZA
+  ret
 
 
 ;; hl = key
@@ -71,6 +83,7 @@ zdict_search.cmp:
    push ix
    push hl
    push de
+   UCAST_DE_TO_CDE_ZA
    call pmemcmpz_b
    pop de
    pop hl
@@ -78,3 +91,4 @@ zdict_search.cmp:
    ld a,0
    ret
 
+#endif

@@ -43,6 +43,4 @@ STORY_NAME_MAXLEN .equ 4
 
 ZADDR_NULL .equ ULONG_MAX
 
-#define ZFRAME_SIZE zframe_end-zframe_begin
-
 #endif

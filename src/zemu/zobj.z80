@@ -314,38 +314,41 @@ zobj_remove.nextsib: .db 0
 ;; INPUTS:
 ;;  a = object number
 ;; OUTPUTS:
-;;  hl = logical address of object's property table
+;;  [b:hl] = logical address of object's property table
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zobj_proptab:
 zobj_proptab_hdr:
    call zobj_objaddr
-   LD_IX_HL
    ret c
-   lea hl,ix+ZOBJ_O_PROPS
-   call zaddr_fetchwu ; fetch word
+   ld de,ZOBJ_O_PROPS
+   ADD_BHL_DE_ZA
+   call zaddr_fetchz
    ex de,hl
+#if TI83PLUS
+   ld b,c
+#endif
    ret
 
 ;; zobj_proptab_body -- get logical address of object's property table body
-;; zobj_proptab_body_alt -- alternate entry point if property table already computed in hl
+;; zobj_proptab_body_alt -- alternate entry point if property table already computed in [b:hl]
 ;; INPUTS:
 ;;  a = object number
 ;; OUTPUTS:
-;;  hl = logical address of object's property table body
+;;  [b:hl] = logical address of object's property table body
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_proptab_body:
    call zobj_proptab
    ret c
 zobj_proptab_body_alt:
-   call zaddr_fetch
+   call zaddr_fetch ; get text-length, in words
    ret c
-   ex de,hl
-   ld hl,0
-   ld l,a
-   add hl,hl
-   add hl,de
+   UCAST_A_TO_DE
+   ADD_BHL_DE_ZA
+   ADD_BHL_DE_ZA
 zobj_proptab_body.done:
    or a,a
    ret
@@ -355,13 +358,14 @@ zobj_proptab_body.done:
 ;;  a = object number
 ;;  c = property number
 ;; OUTPUTS:
-;;  hl = logical address of object property data
+;;  [b:hl] = logical address of object property data
 ;;  a = property data size
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zobj_propaddr:
    push bc
-   call zobj_proptab_body
+    call zobj_proptab_body
    pop de
    ret c
    ; loop invariants:
@@ -370,19 +374,20 @@ zobj_propaddr:
    ;  - hl may or may not point to 0
    jr zobj_propaddr.entry
 zobj_propaddr.loop:
-   ld a,c
+   push de
    call zobj_propid_to_size
-   ld bc,0
-   ld c,a
-   add hl,bc
+   UCAST_A_TO_DE
+   ADD_BHL_DE_ZA
+   pop de
 zobj_propaddr.entry:
    call zaddr_fetch
    ret c
    or a,a
    jr z,zobj_propaddr.notfound
-   ld c,a
+   ld c,a ; save propid
    call zobj_propid_to_num
    cp a,e ; are the property numbers equal?
+   ld a,c ; restore propid
    jr z,zobj_propaddr.found
    jr nc,zobj_propaddr.loop
 zobj_propaddr.notfound:
@@ -390,10 +395,10 @@ zobj_propaddr.notfound:
    ld hl,0
 zobj_propaddr.found:
    ; found
-   ld a,c
    call zobj_propid_to_size
    or a,a
    ret
+
 
 ;; zobj_propid_to_size -- extract raw byte size from property ID byte
 ;; INPUTS:
@@ -402,6 +407,7 @@ zobj_propaddr.found:
 ;;  a = byte size
 ;; DESTROYS: a
 ;; ERRORS: no.
+;; *** portable ***
 zobj_propid_to_size:
    and a,$E0 ; 0b1110.0000
    rlca
@@ -417,6 +423,7 @@ zobj_propid_to_size:
 ;;  a = property number
 ;; DESTROYS: a
 ;; ERRORS: no.
+;; *** portable ***
 zobj_propid_to_num:
    and a,$1F
    ; dec a ;; TODO -- check whether this is correct
@@ -432,16 +439,16 @@ zobj_propid_to_num:
 ;;  a = size of object property data
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_propsize:
    call zobj_propaddr
    ret c
    ld de,1
-   ; scf \ ccf
    sbc hl,de ; dec hl with zero flag set
    ld a,ZERR_NOPROP
    ret c ; then hl = 0, so property wasn't found
 zobj_propsize.done:
-   scf \ ccf
+   or a,a
    ret
 
 ;; zobj_propval -- retrieve object's property value
@@ -452,10 +459,12 @@ zobj_propsize.done:
 ;;  de = property data, sign-extended
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_propval:
-   push bc ; preserve property #
+   ld e,c
+   push de ; preserve property #
    call zobj_propaddr
-   pop bc  ; restore property #
+   pop de  ; restore property #
    ret c
    call cp_hl_0
    jp z,zobj_propval.default
@@ -471,7 +480,7 @@ zobj_propval.error:
    ret
 
 zobj_propval.default:
-   ld a,c ; set property number parameter
+   ld a,e ; set property number parameter
    jp zobj_propdefault
 
 ;; zobj_nextprop -- fetch next prop number
@@ -482,6 +491,7 @@ zobj_propval.default:
 ;;  a = next prop number (0 if none)
 ;; DESTROYS: 
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_nextprop:
    ld b,a
    ld a,c
@@ -496,14 +506,13 @@ zobj_nextprop.next:
    call zobj_propaddr
    ret c
    ; %a contains current prop size
-   ld de,0
-   ld e,a
-   add hl,de
+   UCAST_A_TO_DE
+   ADD_BHL_DE_ZA
 zobj_nextprop.fetch:
    call zaddr_fetch
    ret c
    call zobj_propid_to_num
-   scf \ ccf
+   or a,a
    ret
 
 
@@ -515,19 +524,17 @@ zobj_nextprop.fetch:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; TODO: check if property is valid.
+;; *** portable ***
 zobj_propdefault:
-   push af
-   call zobj_tabaddr
-   LD_IX_HL
-   pop bc
-   ret c
-   dec b
-   ld de,0
-   ld e,b
-   lea hl,ix
-   add hl,de
-   add hl,de ; hl <- ix + de*WORD_SIZE
-   jp zaddr_fetchw;u
+  UCAST_A_TO_DE
+  push de
+  call zobj_tabaddr
+  pop de
+  ret c
+  dec e
+  ADD_BHL_DE_ZA
+  ADD_BHL_DE_ZA ; [b:hl] <- ix + de*WORD_SIZE
+  jp zaddr_fetchw
    
 
 ;------------------------------;
@@ -541,11 +548,12 @@ zobj_propdefault:
 ;;  a = object's parent (0 if no parent)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_parent:
    call zobj_objaddr
-   LD_IX_HL
    ret c
-   lea hl,ix+ZOBJ_O_PARENT
+   ld de,ZOBJ_O_PARENT
+   ADD_BHL_DE_ZA
    jp zaddr_fetch
 
 ;; zobj_sibling -- get object's sibling
@@ -555,11 +563,12 @@ zobj_parent:
 ;;  a = object's first sibling (0 if no sibling)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_sibling:
    call zobj_objaddr
-   LD_IX_HL
    ret c
-   lea hl,ix+ZOBJ_O_SIBLING
+   ld de,ZOBJ_O_SIBLING
+   ADD_BHL_DE_ZA
    jp zaddr_fetch
 
 
@@ -570,11 +579,12 @@ zobj_sibling:
 ;;  a = object's first child
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zobj_child:
    call zobj_objaddr
-   LD_IX_HL
    ret c
-   lea hl,ix+ZOBJ_O_CHILD
+   ld de,ZOBJ_O_CHILD
+   ADD_BHL_DE_ZA
    jp zaddr_fetch
 
 ;---------------;
@@ -588,6 +598,7 @@ zobj_child:
 ;;  a = object ID
 ;; ERRORS: yes.
 ;; DESTROYS: (none)
+;; *** portable ***
 zobj_downcast:
    push de
    ld de,$100

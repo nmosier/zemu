@@ -262,6 +262,24 @@ zaddr_fetchwu:
    or a,a ; NC
    ret
 
+;; zaddr_fetchz -- fetch byte Z-address at Z-address
+;; INPUTS:
+;;  [b:hl] = Z-addr
+;; OUTPUTS:
+;;  [b:hl] <- [b:hl] + 2
+;;  [c:de] = Z-addr at [b:hl]
+;; ERRORS: yes.
+;; DESTROYS: a
+#if TI83PLUS
+zaddr_fetchz:
+  call zaddr_fetchwu
+  ld c,0
+  ret
+#elif TI84PCE
+zaddr_fetchz .equ zaddr_fetchwu
+#endif
+
+
 ;; zaddr_fetchb -- fetch byte at logical address and sign-extend
 ;; INPUTS:
 ;;  [b:hl] = Z-addr

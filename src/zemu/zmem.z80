@@ -7,12 +7,12 @@ ZMEM_SIZE .equ $2000
 ;; GLOBAL VARIABLES ;;
 
 ;; NOTE: stack grows up.
-zstack_begin: .dl 0
+zstack_begin: DL 0
 
 zframe_begin:
-zframe_fp: .dl 0
-zframe_sp: .dl 0
-zframe_pc: .dl 0
+zframe_fp: DL 0   ; p-addr
+zframe_sp: DL 0   ; p-addr
+zframe_pc: DZA(0) ; z-addr
 zframe_nl: .db 0
 zframe_rv: .db 0
 zframe_end:
@@ -26,6 +26,7 @@ zframe_end:
 ;; ERROR: a = error code, CF set
 ;; DESTROYS: (all), OP1
 ;; TODO: check size bytes of appvar.
+;; *** portable ***
 zmem_init:
    ; get appvar in RAM
    ld hl,zmem_name
@@ -41,8 +42,8 @@ zmem_init:
    ld (zframe_sp),hl
    xor a,a
    ld (zframe_nl),a
-   ld hl,ZADDR_NULL
-   ld (zframe_pc),hl
+   LD_BHL_IMM(ZADDR_NULL)
+   LD_BHL_TO_ABS_ZA(ZFRAME_PC)
    ret
    
 
@@ -52,8 +53,9 @@ zmem_name: .db "ZEMUMEM",0
 ;; INPUTS:
 ;;  a = number of local variables
 ;; OUTPUTS: (none)
-;; DESTROYS: hl,de,ix
+;; DESTROYS: hl,de
 ;; ERRORS: (none)
+;; *** portable ***
 zstack_enter:
    push bc ; save variable number
    ; push new stack frame onto stack
@@ -77,23 +79,23 @@ zstack_enter:
    ld (zframe_nl),a
    ; update return variable
    pop bc ; restore variable number
-   ret   
+   ret
 
 
 ;; zstack_leave -- leave current stack frame
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
-;; DESTROYS: hl,bc,de,ix
+;; DESTROYS: (all),ix
 ;; ERRORS: yes.
+;; *** portable ***
 zstack_leave:
    ; restore stack frame
    ld ix,(zframe_fp)
    ld de,(zstack_begin)
    add ix,de
-   lea hl,ix-ZFRAME_SIZE
+   LEA_HL_IX(-ZFRAME_SIZE)
    ld de,zframe_begin
    ld bc,ZFRAME_SIZE
    ldir
    or a,a
    ret
-

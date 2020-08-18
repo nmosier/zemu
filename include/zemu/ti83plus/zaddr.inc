@@ -95,6 +95,12 @@
 #define UCAST_DE_TO_CDE_ZA ld c,0
 
 #define ADD_BHL_CDE_ZA call zaddr_add
+#macro ADD_BHL_DE_ZA
+  add hl,de
+  jr nc,_
+  inc b
+_
+#endmacro
 
 #define EX_CDE_BHL_ZA call zaddr_ex
 

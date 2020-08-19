@@ -1,29 +1,34 @@
 ;; zcall.z80 -- routine calling functions
 
+#ifndef ZCALL_Z80
+#define ZCALL_Z80
+
 #include "zcall.inc"
 
 ;; zcall0 -- call Z-routine without setting any arguments or return value
 ;; zcall0_unpacked -- same, but don't unpack address
 ;; INPUTS:
-;;  hl = packed address of routine
+;;  hl = packed address of routine  - or -  [b:hl] = unpacked address of routine
 ;; OUTPUTS:
-;;  hl = new PC value
+;;  [b:hl] = new PC value
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: it is safe to assign arguments directly after calling this function.
 ;; NOTE: doesn't actaully write to zframe_pc b/c arguments may need to be assigned.
+;; TODO: use stack, not global mem.
+;; *** portable ***
 zcall0:
    call zaddr_unpack
 zcall0.unpacked:
    call zaddr_fetch
    ret c
-   push hl
+   push hl ; save PC (b also preserved)
    call zstack_enter ; a = # of locals
    pop hl ; restore PC
    ret c
    ; initialize locals
    or a,a
-   jr z,zcall0.jump ; no locals to initalize
+   jr z,zcall0.jump ; no locals to initialize
    ld ix,zcall0.index
    ld (ix+0),1
    ld (ix+1),a
@@ -34,10 +39,10 @@ zcall0.loop:
    ret c
    ld a,(ix+0)
    push ix
-   push hl ; preserve new pc
+   PUSH_BHL_ZA ; preserve new PC
    ex de,hl
    call zvar_store ; store val in local
-   pop hl
+   POP_BHL_ZA  ; restore new PC
    pop ix
    ret c
    inc (ix+0)
@@ -124,4 +129,6 @@ zcall_ext.err:
    ld a,ZERR_ARGC
    jr zcall_ext.exit
    
+#endif
+
 #endif

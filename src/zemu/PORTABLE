@@ -1,7 +1,7 @@
 [X] zaddr.z80
 [X] zapp.z80
-[ ] zbranch.z80
-[ ] zcall.z80
+[X] zbranch.z80
+[X] zcall.z80
 [ ] zcode.z80
 [ ] zcpu.z80
 [ ] zdbg.z80

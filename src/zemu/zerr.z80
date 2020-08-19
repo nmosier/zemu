@@ -3,65 +3,18 @@
 
 #include "zerr.inc"
 
-zerrmsg_success:    .db "success",0
-zerrmsg_novar:      .db "appvar not found",0
-zerrmsg_nomem:      .db "not enough free RAM",0
-zerrmsg_badaddr:    .db "bad address",0
-zerrmsg_notavail:   .db "opcode not supported",0
-zerrmsg_nolocl:     .db "invalid local variable",0
-zerrmsg_stackempty: .db "cannot pop from empty stack",0
-zerrmsg_badinstr:   .db "illegal instruction",0
-zerrmsg_badvarno:   .db "invalid variable number",0
-zerrmsg_divzero:    .db "divide by 0",0
-zerrmsg_badobj:     .db "invalid object",0
-zerrmsg_badattr:    .db "attribute number out of range",0
-zerrmsg_noprop:     .db "object missing property",0
-zerrmsg_badprop:    .db "invalid property length",0
-zerrmsg_badchar:    .db "bad character",0
-zerrmsg_argc:       .db "too many arguments",0
-zerrmsg_intr:       .db "interrupt",0
-zerrmsg_zchar:      .db "not a ZSCII character",0
-zerrmsg_txtbuf:     .db "text buffer too small",0
-zerrmsg_prsbuf:     .db "parse buffer too small",0
-zerrmsg_toolong:    .db "name is too long",0
-zerrmsg_badname:    .db "name contains invalid character",0
-zerrmsg_rdonly:     .db "write attempt to read-only memory",0
-zerrmsg_stackover:  .db "stack overflow",0
-zerrmsg_internal:   .db "internal error",0
-
-zerrtab:
-   DL zerrmsg_success
-   DL zerrmsg_novar
-   DL zerrmsg_nomem
-   DL zerrmsg_badaddr
-   DL zerrmsg_notavail
-   DL zerrmsg_nolocl
-   DL zerrmsg_stackempty
-   DL zerrmsg_badinstr
-   DL zerrmsg_badvarno
-   DL zerrmsg_divzero
-   DL zerrmsg_badobj
-   DL zerrmsg_badattr
-   DL zerrmsg_noprop
-   DL zerrmsg_badprop
-   DL zerrmsg_badchar
-   DL zerrmsg_argc
-   DL zerrmsg_intr
-   DL zerrmsg_zchar
-   DL zerrmsg_txtbuf
-   DL zerrmsg_prsbuf
-   DL zerrmsg_toolong
-   DL zerrmsg_badname
-   DL zerrmsg_rdonly
-   DL zerrmsg_stackover
-   DL zerrmsg_internal
+#if ZERREXTERN
+zerr_tabptr: DL 0
+#else
+#include "zerrtab.z80"
+#endif
 
 ;; zemu_perror -- print error message given zerror code.
 ;; INPUTS:
 ;;  a = zerror code
 ;;  hl = string
 ;; OUTPUTS: (none)
-;; DESTROYS: All
+;; DESTROYS: (all)
 ;; NOTE: zemu_perror always sets the carry flag to indicate
 ;;  error condition. This doesn't mean that zemu_perror failed
 ;;  (it can't fail), but it is rather for convenience so that
@@ -99,13 +52,84 @@ zemu_perror_sep: .db ": ",0
 ;; OUTPUTS:
 ;;  hl = error string (null-terminated)
 ;;  CF is set
-;; DESTROYS: de, ix
+;; DESTROYS: (all), ix
 ;; *** portable ***
 zemu_strerror:
+#if ZERREXTERN
+  ld hl,(zerr_tabptr)
+  call cp_hl_0
+  ld b,a
+  push bc
+  call z,zerr_fetchtab
+  pop bc
+  ld a,b
+  jr c,zerr_fallback
+  MLT_A(WORD_SIZE, R_DE)
+  ex de,hl
+  add hl,de
+  CLEAR_UPPER_BC
+  ld c,(hl)
+  inc hl
+  ld b,(hl)
+  ex de,hl
+  add hl,bc
+  scf
+  ret
+#else
    MLT_A(LONG_SIZE, R_DE)
    ld ix,zerrtab
    add ix,de
    LD_HL_FROM_IX(0)
    scf
    ret
+#endif
 
+
+#if ZERREXTERN
+
+;; zerr_fetchtab -- fetch error table appvar
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = pointer to error table
+;;  (zerr_tabptr) <- hl
+;;  CF = whether table was found (NC = found, C = not found)
+;; DESTROYS: (all)
+;; ERRORS: no.
+zerr_fetchtab:
+  ld hl,zerr_tabname
+  call appvar_to_RAM
+  ret c
+  ex de,hl
+  inc hl
+  inc hl ; skip size bytes
+  ld (zerr_tabptr),hl
+  ret
+
+;; zerr_fallback -- return string of numeric error code
+;; INPUTS:
+;;  a = error code
+;; OUTPUTS:
+;;  hl = temporary buffer containing error code string
+;; DESTROYS: (all)
+zerr_fallback:
+  ld hl,zerr_fallback.buf+1
+  ld b,a
+  and a,$0f
+  call xtoc
+  ld (hl),a
+  dec hl
+  ld a,b
+  rrca
+  rrca
+  rrca
+  rrca
+  and a,$0f
+  call xtoc
+  ld (hl),a
+  ret  
+
+zerr_fallback.buf: .db 0,0,0
+
+zerr_tabname: .db "ZEMUERR",0
+
+#endif

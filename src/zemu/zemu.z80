@@ -5,19 +5,21 @@
 #include "zwin.inc"
 #include "zhex.inc"
 
+#if TI84PCE
 .assume ADL=1
+#endif
+
 .org userMem-2
 
-#if TI84PCE
+#if TI83PLUS
+.db t2ByteTok, tAsmCmp
+#elif TI84PCE
 .db tExtTok, tAsm84CeCmp
-#elif TI83PLUS
-.db tAsmCmp
 #endif
 
 start:
    call zdisp_init
    call zrand_init
-
 #ifdef ZDBG
    call zdbg_init
 #endif
@@ -147,16 +149,16 @@ zemu_cleanup.table_loop:
    bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
    jr z,zemu_cleanup.table_loop.cond
    ; move varname into OP1
-   lea hl,ix+ZMAP_ENT_VARNAME
+   LEA_HL_IX(ZMAP_ENT_VARNAME)
    call appvar_to_OP1
    call _Arc_Unarc ; archive zpage
 zemu_cleanup.table_loop.cond:
-   lea ix,ix+ZMAP_TABENTLEN
+   LEA_IX_IX(ZMAP_TABENTLEN)
    djnz zemu_cleanup.table_loop
 zemu_cleanup.table_loop.end:
 zemu_cleanup.done:
 zemu_exit.done:
-   scf \ ccf ; success
+   or a,a ; success
    ret
 
 

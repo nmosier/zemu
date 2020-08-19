@@ -7,7 +7,7 @@
 [ ] zdbg.z80
 [X] zdict.z80
 [X] zdisp.z80
-[ ] zemu.z80
+[X] zemu.z80
 [X] zerr.z80
 [X] zexec.z80
 [X] zhdr.z80

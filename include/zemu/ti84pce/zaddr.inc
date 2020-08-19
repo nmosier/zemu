@@ -24,6 +24,8 @@
 #define LD_BHL_FROM_IY_ZA(off) LD_HL_FROM_IY(off)
 #define LD_CDE_FROM_IY_ZA(off) LD_DE_FROM_IY(off)
 
+#define LD_CDE_TO_IX_ZA(off) ld (ix+off),de
+
 #macro LD_BHL_FROM_IY_ZAW(off)
   ld hl,0
   ld l,(iy+off+0)

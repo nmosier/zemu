@@ -1,5 +1,7 @@
 #include "zutil.inc"
 
+;; TODO: create table for zexec.* to reduce code size
+
 ;; NOTE: each zexec.* function expects operands to be set properly
 ;;       and to have %a hold the relevant opcode.
 
@@ -17,7 +19,7 @@ zexec_cmp.eq:
    call cp_hl_de;_sgn
    ld a,$FF
    ret z
-   xor a
+   xor a,a
    ret
 
 ;; hl < de ?
@@ -93,8 +95,7 @@ zexec_cmp.attr:
 ;-----------------------;
 zexec_cmp.zero:
    xor a,a
-   ld de,0
-   sbc hl,de
+   call cp_hl_0
    ; NOTE: CF reset always
    ret nz
    cpl
@@ -127,18 +128,15 @@ zexec_unop.dec:
    ret
 
 zexec_unop.not:
-   ex de,hl
-   ld hl,$ffffff
-   sbc hl,de
-   scf \ ccf
-   ret
+  ex de,hl
+  scf
+  sbc hl,hl ; hl <- -1
+  sbc hl,de ; NC
+  ret
 
 ;---------------------------;
 ;     behavior functions    ;
 ;---------------------------;
-
-
-
 
 ;; zexec_binop.* -- binary operations
 ;; INPUTS:
@@ -149,68 +147,41 @@ zexec_unop.not:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 
-zexec_binop.lhs: .dl 0
-zexec_binop.rhs: .dl 0
-
 zexec_binop.or:
-   ld (zexec_binop.lhs),hl
-   ld (zexec_binop.rhs),de
-   ld hl,zexec_binop.lhs
-   ld de,zexec_binop.rhs
-   ld b,3
-zexec_binop.or.loop:
-   ld a,(de)
-   or (hl)
-   ld (de),a
-   inc hl
-   inc de
-   djnz zexec_binop.or.loop
-zexec_binop.or.done:
-   ld hl,(zexec_binop.rhs)
-   scf \ ccf
-   ret
+  call orl
+  or a,a
+  ret
 
 zexec_binop.and:
-   ld (zexec_binop.lhs),hl
-   ld (zexec_binop.rhs),de
-   ld hl,zexec_binop.lhs
-   ld de,zexec_binop.rhs
-   ld b,3
-zexec_binop.and.loop:
-   ld a,(de)
-   and (hl)
-   ld (de),a
-   inc hl
-   inc de
-   djnz zexec_binop.and.loop
-zexec_binop.and.done:
-   ld hl,(zexec_binop.rhs)
-   scf \ ccf
+   call andl
+   or a,a
    ret
 
 zexec_binop.add:
    add hl,de
-   scf \ ccf
+   or a,a
    ret
 
 zexec_binop.sub:
-   scf \ ccf
+   or a,a
    sbc hl,de
-   scf \ ccf
+   or a,a
    ret
 
 zexec_binop.mul:
    call mul_hl_de
-   scf \ ccf
+   or a,a
    ret
 
 zexec_binop.div:
-   call div_hl_de
+   call div_hl_de ; TODO: currently doesn't report div-by-zero error 
+   or a,a
    ret
 
 zexec_binop.mod:
    call div_hl_de
    ex de,hl
+   or a,a
    ret
 
 zexec_binop.loadw:
@@ -220,7 +191,8 @@ zexec_binop.loadw:
    add hl,de
    add hl,de ; hl <- hl + 2*de
    ;; NOTE: stored in big-endian order.
-   call ltowu ; downcast   
+   call ltowu ; downcast
+   UCAST_HL_TO_BHL_ZA
    call zaddr_fetchw
    ex de,hl
    ret
@@ -228,7 +200,9 @@ zexec_binop.loadw:
 zexec_binop.loadb:
    ;; hl = array
    ;; de = byte-index
-   add hl,de
+   UCAST_HL_TO_BHL_ZA
+   UCAST_DE_TO_CDE_ZA
+   ADD_BHL_CDE_ZA
    call zaddr_fetch
    ret c
    call btolu
@@ -267,8 +241,7 @@ zexec_binop.propsize:
    ld c,e
    call zobj_propaddr
    ret c
-   ld hl,0
-   ld l,a
+   UCAST_A_TO_HL
    ret
 
 zexec_binop.nextprop:
@@ -280,7 +253,7 @@ zexec_binop.nextprop:
    call zobj_nextprop
    ret c
    call btols
-   scf \ ccf
+   or a,a
    ret
 
 ;----------------------------------;
@@ -294,6 +267,7 @@ zexec_binop.nextprop:
 ;;  a = truth value of comparison
 ;; ERROR: yes.
 ;; DESTROYS: (all), ix
+;; TODO: Use stack, not global mem.
 zexec_repbcmp:
    ld (zexec_repcmp.cmp),hl ; save comparison function
    ld a,1
@@ -319,7 +293,7 @@ zexec_repbcmp.done:
    or a,a
    ret
    
-zexec_repbcmp.lhs: .dl 0
+zexec_repbcmp.lhs: DL 0
 
 ;; zexec_repucmp -- repeat unary comparison for variable number of arguments
 ;; INPUTS:
@@ -351,7 +325,7 @@ zexec_repcmp.call:
    ld ix,(zexec_repcmp.cmp)
    jp (ix)
 
-zexec_repcmp.cmp: .dl 0
+zexec_repcmp.cmp: DL 0
 
 
 ;------------------------------------;
@@ -415,12 +389,6 @@ zexec.inc_chk:
 zexec.jin:
    ld hl,zexec_cmp.in
    call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
-
-   ld a,2
-   call zop_readn
-   call nc,zexec_cmp.in
    jp nc,zexec_cjmp
    ret
 
@@ -582,12 +550,6 @@ zexec.jz:
    jp nc,zexec_cjmp
    ret
 
-   ld a,1
-   call zop_readn
-   call nc,zexec_cmp.zero
-   jp nc,zexec_cjmp
-   ret
-
 zexec.get_sibling:
    ld a,1
    call zop_readn
@@ -633,11 +595,13 @@ zexec.get_parent:
    ret
 
 zexec.get_prop_len:
+   ;; TODO -- does this handle case when addr = 0? (Should return 0.)
    ld a,1
    call zop_readn
    ret c
    ;; NOTE -- this is an address, not an obj/prop number.
-   dec hl
+   UCAST_HL_TO_BHL_ZA
+   DEC_BHL_ZA
    call zaddr_fetch
    ret c
    call zobj_propid_to_size
@@ -670,10 +634,8 @@ zexec.print_addr:
    ld a,1
    call zop_readn
    ;; cast op back to unsigned
-   ex de,hl
-   ld hl,0
-   ld h,d
-   ld l,e
+   call ltowu
+   UCAST_HL_TO_BHL_ZA
    ld ix,win_main
    jp zstr_puts
 
@@ -699,13 +661,16 @@ zexec.print_obj:
    LD_IX_HL
    pop bc
    ret c
-   lea hl,ix+ZOBJ_O_PROPS
-   call zaddr_fetchwu
+   LEA_HL_IX(ZOBJ_O_PROPS)
+   UCAST_HL_TO_BHL_ZA
+   call zaddr_fetchz
    ex de,hl
-   inc hl ; skip length byte
+#if TI83PLUS
+   ld b,c
+#endif
+   INC_BHL_ZA ; skip length byte
    ld ix,win_main
    jp zstr_puts
-
 
 zexec.ret:
    ld a,1
@@ -723,22 +688,20 @@ zexec.jump:
    call zop_readn
    ret c
    ;; NOTE -- this is encoded differently from a branch instruction.
-   ld de,(zframe_pc)
-   add hl,de
-   dec hl
-   dec hl
-   ld (zframe_pc),hl
-   scf \ ccf ; success
+   UCAST_HL_TO_BHL_ZA
+   LD_CDE_FROM_ABS_ZA(zframe_pc)
+   ADD_BHL_CDE_ZA
+   DEC_BHL_ZA
+   DEC_BHL_ZA
+   LD_BHL_TO_ABS_ZA(zframe_pc)
+   or a,a ; NC
    ret
 
 zexec.print_paddr:
    ld a,1
    call zop_readn
    ret c
-   ex de,hl
-   ld hl,0
-   ld h,d
-   ld l,e
+   call ltowu ; make unsigned
    call zaddr_unpack
    ld ix,win_main
    jp zstr_puts
@@ -782,10 +745,10 @@ zexec.rfalse:
 
 zexec.print:
    call zstr_reset
-   ld hl,(zframe_pc)
+   LD_BHL_FROM_ABS_ZA(zframe_pc)
    ld ix,win_main
    call zstr_puts
-   ld (zframe_pc),hl
+   LD_BHL_TO_ABS_ZA(zframe_pc)
    ret
 
 zexec.print_ret:
@@ -892,9 +855,9 @@ zexec.call.done:
    ld ix,(zframe_fp)
    ld de,(zstack_begin)
    add ix,de
-   ld de,(zframe_pc) ; end of CALL instruction
-   ld (ix+zframe_pc-zframe_end),de ; save return address
-   ld (zframe_pc),hl ; save new PC
+   LD_CDE_FROM_ABS_ZA(zframe_pc) ; end of CALL instruction
+   LD_CDE_TO_IX_ZA(zframe_pc-zframe_end) ; save return address
+   LD_BHL_TO_ABS_ZA(zframe_pc) ; save new PC
    or a,a
    ret
 
@@ -930,15 +893,14 @@ zexec.call.readvars.done:
 ;; b = # of vars
 zexec.call.storevars:
    ld hl,zexec.call.locals
-   ld de,0
-   ld e,b
+   UCAST_B_TO_DE
    add hl,de
    add hl,de
    ld a,b
    or a,a
    ret z ; no vars to store
 zexec.call.storevars.loop:
-   ld de,0
+   CLEAR_UPPER_DE
    dec hl
    ld e,(hl)
    dec hl
@@ -973,6 +935,7 @@ zexec.storew:
    ; move value into de
    ld d,b
    ld e,c
+   UCAST_HL_TO_BHL_ZA
    jp zaddr_storew
    
 zexec.storeb:
@@ -989,6 +952,7 @@ zexec.storeb:
    call wtolu
    add hl,de ; byte address
    ld a,c
+   UCAST_HL_TO_BHL_ZA
    jp zaddr_store
    
 zexec.put_prop:
@@ -1023,9 +987,11 @@ zexec.put_prop.err:
 zexec.read:
    ld a,2
    call zop_readn
+   UCAST_HL_TO_BHL_ZA
+   UCAST_DE_TO_CDE_ZA
    jp nc,zin_read ; read text into buffer
    ret
-   ;; TODO
+   ;; TODO ???
 
 zexec.print_char:
    ld a,1
@@ -1051,8 +1017,7 @@ zexec.random:
    ret c
    call sgnl
    jr c,zexec.random.seed
-   ld de,0
-   call cp_hl_de
+   call cp_hl_0
    jr z,zexec.random.newseed
 zexec.random.gen:
    call zrand_gen

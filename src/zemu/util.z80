@@ -458,6 +458,7 @@ btolu:
 #elif TI83PLUS
    ld h,0
    ld l,a
+   ret
 #endif
 
 ;; ltobu -- long to byte, unsigned
@@ -1096,6 +1097,56 @@ ldw_bc_from_hl:
   ld b,(hl)
   dec hl
   ret
+
+;; orl -- logical or of longs
+;; INPUTS:
+;;  hl, de
+;; OUTPUTS:
+;;  hl <- hl | de
+;; DESTROYS: (none)
+orl:
+#if TI83PLUS
+  push af
+  ld a,h
+  or a,d
+  ld h,a
+  ld a,l
+  or a,e
+  ld l,a
+  pop af
+  ret
+#elif TI84PCE
+  push bc
+  LD_BC_DE
+  call __ior
+  pop bc
+  ret
+#endif
+
+;; andl -- logical and of longs
+;; INPUTS:
+;;  hl, de
+;; OUTPUTS:
+;;  hl <- hl | de
+;; DESTROYS: (none)
+andl:
+#if TI83PLUS
+  push af
+  ld a,h
+  and a,d
+  ld h,a
+  ld a,l
+  and a,e
+  ld l,a
+  pop af
+  ret
+#elif TI84PCE
+  push bc
+  LD_BC_DE
+  call __iand
+  pop bc
+  ret
+#endif
 
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;

@@ -4,8 +4,8 @@
 
 ;; zin_read -- perform read operation (see online reference)
 ;; INPUTS:
-;;  hl = text-buf address (ZA)
-;;  de = parse-buf address (ZA)
+;;  [b:hl] = text-buf address (ZA)
+;;  [c:de] = parse-buf address (ZA)
 ;; OUTPUTS: (none)
 ;; ERRORS: yes
 ;; DESTROYS: (all)

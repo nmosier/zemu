@@ -9,7 +9,7 @@
 [X] zdisp.z80
 [ ] zemu.z80
 [X] zerr.z80
-[ ] zexec.z80
+[X] zexec.z80
 [X] zhdr.z80
 [ ] zhex.z80
 [X] zin.z80
@@ -19,7 +19,7 @@
 [X] zobj.z80
 [X] zop.z80
 [X] zrand.z80
-[ ] zsave.z80
+[X] zsave.z80
 [X] zstr.z80
 [X] zutil.z80
 [X] zvar.z80

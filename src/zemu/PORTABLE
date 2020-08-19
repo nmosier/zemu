@@ -17,7 +17,7 @@
 [X] zmem.z80
 [X] zname.z80
 [X] zobj.z80
-[ ] zop.z80
+[X] zop.z80
 [X] zrand.z80
 [ ] zsave.z80
 [X] zstr.z80

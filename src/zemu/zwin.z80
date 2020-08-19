@@ -17,7 +17,7 @@
 ;; *** portable ***
 zwin_clear:
    push ix
-   LEA_IX_IX(ZWIN.RECT, R_DE)
+   LEA_IX_IX_REG(ZWIN.RECT, R_DE)
    call zdisp_clearrect
    pop ix
    ret
@@ -198,7 +198,7 @@ zwin_scroll:
    call c,zwin_wait ; page if necessary
    ld a,SFONT_HEIGHT
    push ix
-   LEA_IX_IX(ZWIN.RECT, R_DE)
+   LEA_IX_IX_REG(ZWIN.RECT, R_DE)
    call zdisp_scrollrect_up
    pop ix
    ld a,(ix+ZWIN.CURROW)

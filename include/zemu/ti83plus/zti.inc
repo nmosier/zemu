@@ -36,9 +36,16 @@ LONG_SIZE .equ WORD_SIZE
 #define LD_HL_BC ld h,b \\ ld l,c
 #define LD_DE_BC ld d,b \\ ld e,c
 
-#macro LEA_IX_IX(off, reg) 
+#macro LEA_IX_IX_REG(off, reg) 
    LD_REG_IMM(reg, off)     
    ADD_IX_REG(reg)
+#endmacro
+
+#macro LEA_IX_IX(off)
+  push de
+  ld de,off
+  add ix,de
+  pop de
 #endmacro
 
 ;; LEA_HL_IX -- load effective address from ix into hl

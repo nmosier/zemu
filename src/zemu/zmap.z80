@@ -37,7 +37,7 @@ zmap_fetchpage.check_update:
    bit ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
    call nz,zmap_update_ent
 zmap_fetchpage.addr:
-   ld hl,(ix+ZMAP_ENT_PTR)
+   LD_HL_FROM_IX(ZMAP_ENT_PTR)
    or a,a
    ret
 
@@ -54,6 +54,7 @@ zmap_fetchpage.addr:
 ;; DESTROYS: (all) but ix
 ;; ERRORS: yes.
 ;; TODO: parameterize page naming.
+;; *** portable ***
 zmap_copypage:
    ;; get pointer to entry
    call zaddr_pageent
@@ -62,7 +63,7 @@ zmap_copypage_ent:
    ;; name page
    ld de,zmap_copypage.buf
    call zmap_namepage
-   lea de,ix+ZMAP_ENT_VARNAME
+   LEA_DE_IX(ZMAP_ENT_VARNAME)
    ex de,hl
    ;; copy appvar
    push ix
@@ -76,8 +77,8 @@ zmap_copypage_ent:
    ld a,MASK(ZMAP_ENT_FLAGS_INRAM)
    ld (ix+ZMAP_ENT_FLAGS),a
    push hl
-   ld hl,zmap_copypage.buf   
-   lea de,ix+ZMAP_ENT_VARNAME
+   ld hl,zmap_copypage.buf
+   LEA_DE_IX(ZMAP_ENT_VARNAME)
    ld bc,VARNAMELEN
    call strncpy
    pop hl
@@ -96,6 +97,7 @@ zemu_pagepfx: .db "ZEMUP",0
 ;;  hl = buffer
 ;; DESTROYS: a, bc, de
 ;; ERRORS: no.
+;; *** portable ***
 zmap_namepage:
    push de     ; buffer
    push af     ; ID
@@ -133,6 +135,7 @@ _  pop hl
 ;;  touches & resizes working zmap and copies contents of saved zmap into it
 ;; DESTROYS: (all, including ix)
 ;; ERRORS: yes.
+;; *** portable ***
 zmap_load:
    ;; copy canonical zmap into temporary zmap
    ld de,zmap_name_current
@@ -150,6 +153,7 @@ zmap_load:
 ;; OUTPUTS: (none)
 ;; ERRORS: no (but always NC)
 ;; DESTROYS: hl, de
+;; *** portable ***
 zmap_setptr:
    ;; set global zmap pointers
    ld (zmap_appvar),hl
@@ -169,10 +173,10 @@ zmap_setptr:
 ;; DESTROYS: b, ix
 zmap_markupdate:
    ld b,(ix+ZMAP_HDR_NPAGES)
-   lea ix,ix+ZMAP_HDRSIZE
+   LEA_IX_IX(ZMAP_HDRSIZE)
 zmap_markupdate.loop:
    set ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
-   lea ix,ix+ZMAP_TABENTLEN
+   LEA_IX_IX(ZMAP_TABENTLEN)
    djnz zmap_markupdate.loop
 zmap_markupdate.done:
    ret
@@ -184,8 +188,9 @@ zmap_markupdate.done:
 ;;  hl = pointer to page entry
 ;; ERRORS: yes.
 ;; DESTROYS: all but ix
+;; *** portable ***
 zmap_update_ent:
-   lea hl,ix+ZMAP_ENT_VARNAME
+   LEA_HL_IX(ZMAP_ENT_VARNAME)
    push ix
    call appvar_find
    pop ix
@@ -193,7 +198,7 @@ zmap_update_ent:
    ex de,hl
    inc hl
    inc hl
-   ld (ix+ZMAP_ENT_PTR),hl
+   LD_HL_TO_IX(ZMAP_ENT_PTR)
    res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
    ;; update INRAM flag
    and a,MASK(ZMAP_ENT_FLAGS_INRAM)
@@ -212,14 +217,15 @@ zmap_update_ent.done:
 ;;  entry flags also updated
 ;; ERRORS: yes.
 ;; DESTROYS: all but ix
+;; *** portable ***
 zmap_page_to_RAM:
    push ix
-   lea hl,ix+ZMAP_ENT_VARNAME
+   LEA_HL_IX(ZMAP_ENT_VARNAME)
    call appvar_to_RAM
    pop ix
    ex de,hl
    ret c
-   ld (ix+ZMAP_ENT_PTR),hl
+   LD_HL_TO_IX(ZMAP_ENT_PTR)
    set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
    res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
    or a,a
@@ -229,9 +235,9 @@ zmap_page_to_RAM:
 ;;;;; ZMAP GLOBALS ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-zmap_appvar: .dl 0
-zmap_header: .dl 0
-zmap_table:  .dl 0
+zmap_appvar: DL 0
+zmap_header: DL 0
+zmap_table:  DL 0
 zmap_name_canonical: RESB(VARNAMELEN)
 zmap_name_current:   .db "ZEMUMAP",0
 

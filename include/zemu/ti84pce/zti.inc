@@ -33,7 +33,8 @@ LONG_SIZE .equ 3
 #define LD_DE_BC push bc \\ pop de
 #define LD_DE_HL push hl \\ pop de
 
-#define LEA_IX_IX(off, reg) lea ix,ix+off
+#define LEA_IX_IX_REG(off, reg) lea ix,ix+off
+#define LEA_IX_IX(off) lea ix,ix+off
 #define LEA_HL_IX(off) lea hl,ix+off
 #define LEA_DE_IX(off) lea de,ix+off
 #define LEA_BC_IX(off) lea bc,ix+off

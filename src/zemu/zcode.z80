@@ -1,6 +1,10 @@
 ;; zcode.z80
 ;; Nicholas Mosier 2019
 
+#ifndef ZCODE_Z80
+#define ZCODE_Z80
+
+#include "zaddr.inc"
 #include "zcode.inc"
 
 ;; zcode_decode -- decode single instruction
@@ -9,14 +13,15 @@
 ;; OUTPUTS: (none)
 ;; ERROR: yes. set CF and nonzero %a indicates error.
 ;; DESTROYS: (all)
+;; TODO: use stack mem, not global mem.
 zcode_decode:
    ; fetch first byte
-   ld hl,(zframe_pc)
+   LD_BHL_FROM_ABS_ZA(zframe_pc)
    call zaddr_fetch
    ret c ; addr translation error
 zcode_decode.type:
    ; determine opcode type
-   cp ZOPCODE_EXTENDED
+   cp a,ZOPCODE_EXTENDED
    jp z,zcode_decode_extended
    bit ZOPCODE_TYPE_H,a
    jp z,zcode_decode_long ; $$0x -> long
@@ -31,7 +36,7 @@ zcode_decode.types: .db 0
 ;; decode and execute the instruction. Never called directly.
 ;; Upon entry, a = first byte of opcode.
 zcode_decode_short:
-   ld b,a ; save
+   ld c,a ; save
 zcode_decode_short.operand:
    ; 4.3.1 opcode type (& count) is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
    ; left-justify opcode type, then set `omitted' terminator
@@ -42,21 +47,14 @@ zcode_decode_short.operand:
    ld ix,zcode_LUT.1OP
    jr nz,_
    ld ix,zcode_LUT.0OP
-_
-   or a,$3f ; mask in 3 omitteds
+_  or a,$3f ; mask in 3 omitteds
    ld (zcode_decode.types),a
-   ld (zframe_pc),hl
+   LD_BHL_TO_ABS_ZA(zframe_pc)
 zcode_decode_short.opnum:
    ; 4.3.1 opcode number given in bottom 4 bits.
-   ld a,b
+   ld a,c
    and a,$0f ; opcode num
-#if 1
    MLT_A(LONG_SIZE, R_DE)
-#else
-   ld de,3
-   ld d,a
-   mlt de
-#endif
    add ix,de
 zcode_decode_short.exec:
    ld ix,(ix)
@@ -67,10 +65,10 @@ zcode_decode_long:
    ; 4.3.2 opcode count is always 2OP
    ; 4.4.2 In long form, bit 6 of the opcode gives the type of the first operand,
    ;       bit 5 of the second. A value of 0 means a small constant and 1 means a variable.
-   ld b,a
+   ld c,a
    ld a,$ff
 zcode_decode_long.op1:
-   bit 6,b
+   bit 6,c
    jr nz,zcode_decode_long.op1_var
 zcode_decode_long.op1_small:
    res 7,a
@@ -78,7 +76,7 @@ zcode_decode_long.op1_small:
 zcode_decode_long.op1_var:
    res 6,a
 zcode_decode_long.op2:
-   bit 5,b
+   bit 5,c
    jr nz,zcode_decode_long.op2_var
 zcode_decode_long.op2_small:
    res 5,a
@@ -88,9 +86,9 @@ zcode_decode_long.op2_var
 zcode_decode_long.store_opinfo
    ; store operand information
    ld (zcode_decode.types),a
-   ld (zframe_pc),hl
+   LD_BHL_TO_ABS_ZA(zframe_pc)
 zcode_decode_long.opnum:
-   ld a,b ; restore opcode
+   ld a,c ; restore opcode
    and a,$1f
    ld ix,zcode_LUT.2OP ; always 2OP
    MLT_A(LONG_SIZE, R_DE)
@@ -111,15 +109,14 @@ zcode_decode_variable:
    call zaddr_fetch ; preserves de; hl++
    ret c
    ld (zcode_decode.types),a
-   ld (zframe_pc),hl
+   LD_BHL_TO_ABS_ZA(zframe_pc)
 zcode_decode_variable.opnum:
    ld a,d
    bit 5,a
    ld ix,zcode_LUT.VAR
    jr nz,_
    ld ix,zcode_LUT.2OP
-_
-   and a,$1f
+_  and a,$1f
    MLT_A(LONG_SIZE, R_DE)
    add ix,de
 zcode_decode_variable.exec:
@@ -144,20 +141,19 @@ zcode_decode_extended:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zcode_fetch_op:
-   ; ld de,0 ; for zero-padding
-   cp ZOP_LARGE
+   cp a,ZOP_LARGE
    jp z,zcode_fetch_op.large
-   cp ZOP_SMALL
+   cp a,ZOP_SMALL
    jp z,zcode_fetch_op.small
-   cp ZOP_VARIABLE
+   cp a,ZOP_VARIABLE
    jp z,zcode_fetch_op.variable
    jp zcode_fetch_op.omitted
 
 zcode_fetch_op.large:
-   call zaddr_fetch ; hl++
+   call zaddr_fetch ; [b:hl]++
    ret c
    ld d,a
-   call zaddr_fetch ; hl++
+   call zaddr_fetch ; [b:hl]++
    ret c
    ld e,a
    ex de,hl
@@ -167,7 +163,7 @@ zcode_fetch_op.large:
    ret
 
 zcode_fetch_op.small:
-   call zaddr_fetch ; hl++
+   call zaddr_fetch ; [b:hl]++
    ret c
    ex de,hl
    call btolu ; upcast
@@ -176,14 +172,14 @@ zcode_fetch_op.small:
    ret
 
 zcode_fetch_op.variable:
-   call zaddr_fetch ; hl++
+   call zaddr_fetch ; [b:h]l++
    ret c
    ; now %a contains variable no.
    ; fetch variable value
-   push hl
+   PUSH_BHL_ZA
    call zvar_fetch ; hl++
-   pop de
    ex de,hl
+   POP_BHL_ZA
    ; result in %de, errflg set
    ret
 
@@ -213,19 +209,19 @@ zcode_err.notavail:
 ;; DESTROYS: all but %hl
 zcode_readvarnum:
    push hl
-   ld hl,(zframe_pc)
+   LD_BHL_FROM_ABS_ZA(zframe_pc)
    call zaddr_fetch
    ret c ; error
-   ld (zframe_pc),hl
+   LD_BHL_TO_ABS_ZA(zframe_pc)
    pop hl
    ret
 
 ;; zcode_decode_branch -- decode branch in opcode.
 ;; INPUTS:
-;;  hl = logical pointer to branch byte(s).
+;;  [b:hl] = logical pointer to branch byte(s).
 ;; OUTPUTS:
 ;;  de = offset (raw, 24 bits, signed)
-;;  hl points to logical address after branch info
+;;  [b:hl] points to logical address after branch info
 ;;  Z if branch when false; NZ if branch when true
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
@@ -238,20 +234,20 @@ zcode_decode_branch:
    ld de,0
    call zaddr_fetch
    ret c
-   ld b,a
-   bit 6,b
+   ld c,a
+   bit 6,c
    jr z,zcode_decode_branch.14bits
 zcode_decode_branch.6bits:
    ; unsigned 6-bit offset
-   and $3f ; NC
+   and a,$3f ; NC
    ld e,a
-   bit 7,b
+   bit 7,c
    ret ; NC
 
 zcode_decode_branch.14bits:
    ; signed 14-bit offset
    ; test sign of offset
-   and $3f
+   and a,$3f
    bit 5,a
    jr z,zcode_decode_branch.de_signed
    ; offset < 0
@@ -261,108 +257,110 @@ zcode_decode_branch.de_signed:
    ld d,a
    push bc
    call zaddr_fetch
-   pop bc
+   ex (sp),hl
+   ld c,l
+   pop hl
    ret c
    ld e,a
-   scf \ ccf
-   bit 7,b
+   or a,a
+   bit 7,c
    ret
 
 
 zcode_LUT.2OP:
-   .dl zcode_err.bad       ; $00
-   .dl zexec.je            ; $01
-   .dl zexec.jl            ; $02
-   .dl zexec.jg            ; $03
-   .dl zexec.dec_chk       ; $04
-   .dl zexec.inc_chk       ; $05
-   .dl zexec.jin           ; $06
-   .dl zexec.test          ; $07
-   .dl zexec.or            ; $08
-   .dl zexec.and           ; $09
-   .dl zexec.test_attr     ; $0A
-   .dl zexec.set_attr      ; $0B
-   .dl zexec.clear_attr    ; $0C
-   .dl zexec.store         ; $0D
-   .dl zexec.insert_obj    ; $0E
-   .dl zexec.loadw         ; $0F
-   .dl zexec.loadb         ; $10
-   .dl zexec.get_prop      ; $11
-   .dl zexec.get_prop_addr ; $12
-   .dl zexec.get_next_prop ; $13
-   .dl zexec.add           ; $14
-   .dl zexec.sub           ; $15
-   .dl zexec.mul           ; $16
-   .dl zexec.div           ; $17
-   .dl zexec.mod           ; $18
-   .dl zcode_err.notavail  ; $19
-   .dl zcode_err.notavail  ; $1A
-   .dl zcode_err.notavail  ; $1B
-   .dl zcode_err.notavail  ; $1C
-   .dl zcode_err.bad       ; $1D
-   .dl zcode_err.bad       ; $1E
-   .dl zcode_err.bad       ; $1F
+   DL zcode_err.bad       ; $00
+   DL zexec.je            ; $01
+   DL zexec.jl            ; $02
+   DL zexec.jg            ; $03
+   DL zexec.dec_chk       ; $04
+   DL zexec.inc_chk       ; $05
+   DL zexec.jin           ; $06
+   DL zexec.test          ; $07
+   DL zexec.or            ; $08
+   DL zexec.and           ; $09
+   DL zexec.test_attr     ; $0A
+   DL zexec.set_attr      ; $0B
+   DL zexec.clear_attr    ; $0C
+   DL zexec.store         ; $0D
+   DL zexec.insert_obj    ; $0E
+   DL zexec.loadw         ; $0F
+   DL zexec.loadb         ; $10
+   DL zexec.get_prop      ; $11
+   DL zexec.get_prop_addr ; $12
+   DL zexec.get_next_prop ; $13
+   DL zexec.add           ; $14
+   DL zexec.sub           ; $15
+   DL zexec.mul           ; $16
+   DL zexec.div           ; $17
+   DL zexec.mod           ; $18
+   DL zcode_err.notavail  ; $19
+   DL zcode_err.notavail  ; $1A
+   DL zcode_err.notavail  ; $1B
+   DL zcode_err.notavail  ; $1C
+   DL zcode_err.bad       ; $1D
+   DL zcode_err.bad       ; $1E
+   DL zcode_err.bad       ; $1F
 
 zcode_LUT.1OP:
-   .dl zexec.jz            ; $0
-   .dl zexec.get_sibling   ; $1
-   .dl zexec.get_child     ; $2
-   .dl zexec.get_parent    ; $3
-   .dl zexec.get_prop_len  ; $4
-   .dl zexec.inc           ; $5
-   .dl zexec.dec           ; $6
-   .dl zexec.print_addr    ; $7
-   .dl zcode_err.notavail  ; $8
-   .dl zexec.remove_obj    ; $9
-   .dl zexec.print_obj     ; $A
-   .dl zexec.ret           ; $B
-   .dl zexec.jump          ; $C
-   .dl zexec.print_paddr   ; $D
-   .dl zexec.load          ; $E
-   .dl zexec.not           ; $F
+   DL zexec.jz            ; $0
+   DL zexec.get_sibling   ; $1
+   DL zexec.get_child     ; $2
+   DL zexec.get_parent    ; $3
+   DL zexec.get_prop_len  ; $4
+   DL zexec.inc           ; $5
+   DL zexec.dec           ; $6
+   DL zexec.print_addr    ; $7
+   DL zcode_err.notavail  ; $8
+   DL zexec.remove_obj    ; $9
+   DL zexec.print_obj     ; $A
+   DL zexec.ret           ; $B
+   DL zexec.jump          ; $C
+   DL zexec.print_paddr   ; $D
+   DL zexec.load          ; $E
+   DL zexec.not           ; $F
 
 zcode_LUT.0OP:
-   .dl zexec.rtrue         ; $0
-   .dl zexec.rfalse        ; $1
-   .dl zexec.print         ; $2
-   .dl zexec.print_ret     ; $3
-   .dl zexec.nop           ; $4
-   .dl zexec.save          ; $5
-   .dl zexec.restore       ; $6
-   .dl zexec.restart       ; $7
-   .dl zexec.ret_popped    ; $8
-   .dl zexec.pop           ; $9
-   .dl zexec.quit          ; $A
-   .dl zexec.new_line      ; $B
-   .dl zcode_err.notavail  ; $C
-   .dl zexec.verify        ; $D
+   DL zexec.rtrue         ; $0
+   DL zexec.rfalse        ; $1
+   DL zexec.print         ; $2
+   DL zexec.print_ret     ; $3
+   DL zexec.nop           ; $4
+   DL zexec.save          ; $5
+   DL zexec.restore       ; $6
+   DL zexec.restart       ; $7
+   DL zexec.ret_popped    ; $8
+   DL zexec.pop           ; $9
+   DL zexec.quit          ; $A
+   DL zexec.new_line      ; $B
+   DL zcode_err.notavail  ; $C
+   DL zexec.verify        ; $D
 
 zcode_LUT.VAR:
-   .dl zexec.call          ; $00
-   .dl zexec.storew        ; $01
-   .dl zexec.storeb        ; $02
-   .dl zexec.put_prop      ; $03
-   .dl zexec.read          ; $04
-   .dl zexec.print_char    ; $05
-   .dl zexec.print_num     ; $06
-   .dl zexec.random        ; $07
-   .dl zexec.push          ; $08
-   .dl zexec.pull          ; $09
-   .dl zcode_err.notavail  ; $0A
-   .dl zcode_err.notavail  ; $0B
-   .dl zcode_err.notavail  ; $0C
-   .dl zcode_err.notavail  ; $0D
-   .dl zcode_err.notavail  ; $0E
-   .dl zcode_err.notavail  ; $0F
-   .dl zcode_err.notavail  ; $10
-   .dl zcode_err.notavail  ; $11
-   .dl zcode_err.notavail  ; $12
-   .dl zcode_err.notavail  ; $13
+   DL zexec.call          ; $00
+   DL zexec.storew        ; $01
+   DL zexec.storeb        ; $02
+   DL zexec.put_prop      ; $03
+   DL zexec.read          ; $04
+   DL zexec.print_char    ; $05
+   DL zexec.print_num     ; $06
+   DL zexec.random        ; $07
+   DL zexec.push          ; $08
+   DL zexec.pull          ; $09
+   DL zcode_err.notavail  ; $0A
+   DL zcode_err.notavail  ; $0B
+   DL zcode_err.notavail  ; $0C
+   DL zcode_err.notavail  ; $0D
+   DL zcode_err.notavail  ; $0E
+   DL zcode_err.notavail  ; $0F
+   DL zcode_err.notavail  ; $10
+   DL zcode_err.notavail  ; $11
+   DL zcode_err.notavail  ; $12
+   DL zcode_err.notavail  ; $13
 
-
+#if 0
 ;; zcode_decoden -- decode and execute a given number of instructions
 ;; INPUTS:
-;;  hl = address of 1st instruction
+;;  [b:hl] = address of 1st instruction
 ;;  b = number of instructions
 ;; OUTPUTS:
 ;;  zframe_pc modified
@@ -378,7 +376,6 @@ zcode_decoden.loop:
    djnz zcode_decoden.loop
    ret
 
-
 ;; zcode_rununtil -- execute CPU until given address
 ;; INPUTS:
 ;;  hl = (unpacked) address of instruction to break at
@@ -392,7 +389,6 @@ zcode_rununtil:
 zcode_rununtil.nop:
    or a,a
    ret
-
 
 ;; zcode_stepuntil -- step thru instructions until reach given address
 ;; INPUTS:
@@ -418,5 +414,7 @@ zcode_stepuntil.call:
 
 zcode_stepuntil.fn: .dl 0
 
+#endif
 
 
+#endif

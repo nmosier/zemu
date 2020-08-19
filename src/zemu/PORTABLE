@@ -13,7 +13,7 @@
 [X] zhdr.z80
 [ ] zhex.z80
 [X] zin.z80
-[ ] zmap.z80
+[X] zmap.z80
 [X] zmem.z80
 [X] zname.z80
 [X] zobj.z80

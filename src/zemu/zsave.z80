@@ -10,11 +10,11 @@
 ;;  hl = size
 ;; DESTROYS: bc, de
 ;; ERRORS: no.
+;; *** portable ***
 zsave_size:
    ;; get size of current zmap
    ld hl,(zmap_appvar)
-   ld bc,0
-   ld c,(hl)
+   UCAST_FROM_HL_TO_BC
    inc hl
    ld b,(hl)
    ;; get size of current zmem
@@ -33,6 +33,7 @@ zsave_size:
 ;; OUTPUTS: ???
 ;; DESTROYS: ???
 ;; ERRORS: yes.
+;; *** portable ***
 zsave_savemap:
    ;; frame setup
    ld b,(ix+ZMAP_HDR_NPAGES)  ; pages remaining
@@ -63,7 +64,7 @@ zsave_savemap.loop:
    push hl
    push bc
    ld a,c
-   lea de,ix+ZMAP_ENT_VARNAME
+   LEA_DE_IX(ZMAP_ENT_VARNAME)
    call zmap_namepage
    call appvar_to_OP1
 
@@ -80,11 +81,9 @@ zsave_savemap.loop:
 
    ;; update flags
    ld (ix+ZMAP_ENT_FLAGS),MASK(ZMAP_ENT_FLAGS_COPY)
-   
-_  lea ix,ix+ZMAP_TABENTLEN
+_  LEA_IX_IX(ZMAP_TABENTLEN)
    inc c
    djnz zsave_savemap.loop
-
 zsave_savemap.leave:
    or a,a   ; SUCCESS
    ret
@@ -100,6 +99,7 @@ zsave_savemap.err:
 ;;  a = whether save was successful
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zsave_save:
    ;; create empty appvar of required size
    push hl           ; preserve name
@@ -120,14 +120,13 @@ zsave_save:
    ;; copy in map appvar
    push de    ; save for update
    ld hl,(zmap_appvar)
-   ld bc,0
-   ld c,(hl)
+   UCAST_FROM_HL_TO_BC
    inc hl
    ld b,(hl)
    dec hl
    ldir
    pop ix
-   lea ix,ix+2    ; skip size bytes
+   LEA_IX_IX(2)    ; skip size bytes
    ;; update map
    pop hl   ; name
    push de
@@ -155,6 +154,7 @@ zsave_save.done:
 ;; OUTPUTS: (none)
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zsave_restore:
    call appvar_find
    jr c,zsave_restore.false   ; not found, so false
@@ -183,8 +183,7 @@ zsave_restore:
    ex (sp),hl     ; preserve save ptr and restore working zmap pointer
    LD_IX_HL
    call zmap_setptr
-   inc ix
-   inc ix
+   LEA_IX_IX(2)
    call zmap_markupdate
    pop hl         ; restore save ptr
    ;; get size of zmem
@@ -220,6 +219,7 @@ zsave_restore.false:
 ;; OUTPUTS: ???
 ;; DESTROYS: ???
 ;; ERRORS: ???
+;; *** portable ***
 zsave_restart:
    call zmap_load      ; load canonical map into working map
    call nc,zcpu_init   ; re-init CPU

@@ -23,8 +23,8 @@ ZMAP_HDRSIZE        .equ ZMAP_HDR_END - ZMAP_HDR_BEGIN
 
 ZMAP_ENT_VARNAME .equ 0                           ; char[]
 ZMAP_ENT_FLAGS .equ ZMAP_ENT_VARNAME + VARNAMELEN ; B
-ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + BYTE_SIZE      ; L
-ZMAP_TABENTLEN .equ ZMAP_ENT_PTR + LONG_SIZE
+ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + BYTE_SIZE      ; uint24_t, regardless of platform
+ZMAP_TABENTLEN .equ ZMAP_ENT_PTR + 3             
 
 ZMAP_ENT_FLAGS_INRAM .equ 0
 ZMAP_ENT_FLAGS_COPY .equ 1   ; whether page should be copied

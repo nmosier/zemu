@@ -1,5 +1,9 @@
 ; zop.z80 -- utilities for reading/writing operands
 
+#include "zti.inc"
+#include "util.inc"
+#include "zaddr.inc"
+
 ;; zcode_readop -- fetch the value of the next operand.
 ;; INPUTS:
 ;;  zcode_decode.types, zframe_pc set
@@ -9,6 +13,7 @@
 ;;  Z if no more ops, NZ if op is returned
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zcode_readop:
    ; read type
    ld hl,zcode_decode.types
@@ -23,10 +28,10 @@ zcode_readop:
    ; (hl) = (hl) << 2 | OMITTED
    cp a,ZOP_OMITTED
    ret z
-   ld hl,(zframe_pc)
+   LD_BHL_FROM_ABS_ZA(zframe_pc)
    call zcode_fetch_op
    ret c
-   ld (zframe_pc),hl ; update pointer
+   LD_BHL_TO_ABS_ZA(zframe_pc) ; update pointer
    ex de,hl
    or a,$ff ; NZ, NC
    ret
@@ -40,6 +45,7 @@ zcode_readop:
 ;;  zcode_decode.types, zframe_pc updated
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
+;; *** portable ***
 zcode_readop_force:
    call zcode_readop
    ret nz
@@ -59,6 +65,7 @@ zcode_readop_force:
 ;; NOTE: supports up to 4 ops (0 <= %a <= 4).
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zop_readn:
    ld b,a
    ld c,a
@@ -70,22 +77,22 @@ zop_readn.loop:
    pop bc
    pop ix
    ret c
-   ld (ix),hl
-   lea ix,ix+3
+   LD_HL_TO_IX(0)
+   LEA_IX_IX(3, R_DE)
    djnz zop_readn.loop
 zop_readn.load:
    ld a,c
-   ld hl,(zop_readn.data+0)
+   ld hl,(zop_readn.data+(0*LONG_SIZE))
    dec a
    ret z
-   ld de,(zop_readn.data+3)
+   ld de,(zop_readn.data+(1*LONG_SIZE))
    dec a
    ret z
-   ld bc,(zop_readn.data+6)
+   ld bc,(zop_readn.data+(2*LONG_SIZE))
    dec a
    ret z
-   ld ix,(zop_readn.data+9)
+   ld ix,(zop_readn.data+(3*LONG_SIZE))
    ret
 
-zop_readn.data: .dl 0,0,0,0
+zop_readn.data: DL 0,0,0,0
 

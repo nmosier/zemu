@@ -34,4 +34,19 @@ ULONG_MAX .equ (1 << LONG_BITS) - 1
   add hl,sp
 #endmacro
 
+;; ALLOCA_HL_A -- allocate %a bytes on the stack, loading pointer into %hl
+;; INPUTS:
+;;  a = size in bytes
+;; OUTPUTS:
+;;  hl = pointer to char[a] on stack
+;; DESTROYS: (none)
+#macro ALLOCA_HL_A(size)
+  ld hl,-1
+  neg
+  ld l,a
+  add hl,sp
+  ld sp,hl
+  neg
+#endmacro
+
 #endif

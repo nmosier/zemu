@@ -25,6 +25,28 @@
   ld c,0  
 #endmacro
 
+#macro LD_BHL_FROM_IY_ZA(off)
+  ld l,(iy+off+0)
+  ld h,(iy+off+1)
+  ld b,(iy+off+2)
+#endmacro
+#macro LD_CDE_FROM_IY_ZA(off)
+  ld e,(iy+off+0)
+  ld d,(iy+off+1)
+  ld c,(iy+off+2)
+#endmacro
+
+#macro LD_BHL_FROM_IY_ZAW(off)
+  LD_HL_FROM_IY_W(off)
+  ld b,0  
+#endmacro
+#macro LD_CDE_FROM_IY_ZAW(off)
+  LD_DE_FROM_IY_W(off)
+  ld c,0  
+#endmacro
+
+
+
 #macro LD_BHL_FROM_ABS_ZA(addr)
   ld l,a
   ld a,(addr+2)

@@ -21,6 +21,21 @@
   ld d,(ix+off+1)
 #endmacro
 
+#define LD_BHL_FROM_IY_ZA(off) LD_HL_FROM_IY(off)
+#define LD_CDE_FROM_IY_ZA(off) LD_DE_FROM_IY(off)
+
+#macro LD_BHL_FROM_IY_ZAW(off)
+  ld hl,0
+  ld l,(iy+off+0)
+  ld h,(iy+off+1)
+#endmacro
+#macro LD_CDE_FROM_IY_ZAW(off)
+  ld de,0
+  ld e,(iy+off+0)
+  ld d,(iy+off+1)
+#endmacro
+
+
 #define LD_BHL_IMM(imm) ld hl,imm
 #define LD_CDE_IMM(imm) ld de,imm
 

@@ -667,7 +667,7 @@ zwin_getc_bare:
 ;;  hl = pointer to buffer
 ;;  bc = number of non-null ASCII chars written (not including null byte)
 ;; ERRORS: yes.
-;; DESTROYS: all but hl
+;; DESTROYS: (all)
 ;; NOTE: bc = 0 means # bytes == 2^16
 ;; *** portable ***
 zwin_getsn:

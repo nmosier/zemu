@@ -9,12 +9,12 @@
 ;; OUTPUTS: (none)
 ;; ERRORS: yes
 ;; DESTROYS: (all)
+;; *** portable ***
 zin_read:
    push iy
    ld iy,0
    add iy,sp
-   push hl ; text-buf  (ZA)
-   push de ; parse-buf (ZA)
+   PUSH_CDE_ZA ; parse-buf (ZA)
    ;; allocate PA text-buf
    call zaddr_fetch ; %a <- text-maxlen
    jr c,zin_read.leave
@@ -29,7 +29,7 @@ zin_read:
 zin_read.text:
    call zin_getsn
 zin_read.parse:
-   ld de,(iy-6) ; parse-buf
+   LD_CDE_FROM_IY_ZA(-3) ; parse-buf
    call nc,zin_parse
 zin_read.leave:
    ld sp,iy
@@ -39,29 +39,33 @@ zin_read.leave:
 ;; zin_getsn -- get input string, stripping trailing newline & converting to lowercase
 ;; INPUTS:
 ;;  hl = buffer pointer (PA)
-;;  de = buffer pointer (ZA)
+;;  [c:de] = buffer pointer (ZA)
 ;;  a = buffer size
 ;; OUTPUTS:
 ;;  hl = buffer pointer (PA)
-;;  de = buffer pointer (ZA)
+;;  [c:de] = buffer pointer (ZA)
 ;;  a = string length (not including NUL-terminator)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; *** portable ***
 zin_getsn:
    push iy
    ld iy,0
    add iy,sp
-   push hl ; bufptr (PA)
-   push de ; bufptr (ZA)
+   PUSH_HL_L ; bufptr (PA) @ iy-3
+   PUSH_CDE_ZA ; bufptr (ZA) @ iy-6
+   dec sp ; reserve for buffer size @ iy-7
+   ld (iy-7),a ; save string length
+   ;; read string into main window
    ld ix,win_main
-   ld bc,0
-   ld c,a
+   UCAST_A_TO_BC
    push iy
    call zwin_nopage  ; don't want to page when getting input
    call zwin_getsn
    pop iy
    jr c,zin_getsn.leave
    call tolowers
+   ;; strip trailing newline
    ld a,c
    or a,a
    jr z,zin_getsn.copy
@@ -74,19 +78,20 @@ zin_getsn:
    ld (hl),0
    dec bc
 zin_getsn.copy:
-   ld b,c
+   ld b,c       ; string length
    inc b        ; include NUL-terminator
-   ld hl,(iy-3) ; bufptr (PA)
-   ld de,(iy-6) ; bufptr (ZA)
+   LD_HL_FROM_IY(-3) ; bufptr (PA)
    push bc
-   call pmemcpyz_b      
+   LD_CDE_FROM_IY_ZA(-6) ; bufptr (ZA)
+   call pmemcpyz_b
    pop bc
    jr c,zin_getsn.leave ; ERROR
-   ld a,c       ; restore string length
+   ld a,c
    or a,a       ; SUCCESS
 zin_getsn.leave:
-   pop de
-   pop hl
+   inc sp
+   POP_CDE_ZA
+   POP_HL_L
    pop iy
    ret
 
@@ -95,7 +100,7 @@ zin_getsn.leave:
 ;; zin_parse -- parse input (as required by `read')
 ;; INPUTS:
 ;;  hl = pointer to text buffer (PA)
-;;  de = pointer to parse buffer (ZA)
+;;  [c:de] = pointer to parse buffer (ZA)
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
@@ -104,16 +109,16 @@ zin_parse:
    push iy
    ld iy,0
    add iy,sp
-   push hl ; text-buf
-   push de ; parse-buf
-   push af ; local 0,1,2
+   PUSH_HL_L ; text-buf @ iy-3
+   PUSH_DE_L ; parse-buf @ iy-6
+   PUSH_HL_L ; local 0,1,2, @ iy-[789]
    call zdict_hdraddr
    jr c,zin_parse.done ; ERROR
    call zaddr_fetch ; byte: size of word-sep buffer
    jr c,zin_parse.done ; ERROR
    ;; allocate word-sep buffer
    ex de,hl
-   ld b,a ; for call to memcpy
+   ld c,a ; for call to memcpy
    inc a ; NUL terminator
    inc a ; ZSCII SPACE
    ld hl,-1
@@ -123,24 +128,26 @@ zin_parse:
    ld sp,hl ; buffer starts at (sp)
    ex de,hl
    ;; initialize word-sep buffer
-   ;; hl = word-sep string pointer (ZA, src)
+   ;; [b:hl] = word-sep string pointer (ZA, src)
    ;; de = word-sep string pointer (PA, dst)
-   ld c,b ; TODO: b will actually be the upper byte of hl
+   ;; c = length
+#if TI83PLUS
+   ld b,0
+#endif
    call zmemcpyp_b ; copy word-sep string into memory
    jr c,zin_parse.done  ; ERROR
    ld (iy-10),ZSCII_NUL ; NUL terminate string
    ld (iy-11),' '       ; ZSCII SPACE
    ;; fetch max word count of parse-buf (ZA)
-   ld hl,(iy-6)
+   LD_HL_FROM_IY(-6)
    call zaddr_fetch ; word-maxcnt is first byte
    jr c,zin_parse.done  ; ERROR
    ld (iy-8),a          ; store word-maxcnt
    ;; put arguments in place for zin_parse_word
    ex de,hl
    inc de       ; de <- parse-buf (pointer to 1st entry), skip over word-cnt
-   ld hl,0
-   add hl,sp    ; recompute word-sep PA dst => hl
-   ld bc,(iy-3) ; fetch text-buf pointer (PA)
+   LD_HL_SP
+   LD_BC_FROM_IY(-3) ; fetch text-buf pointer (PA)
    ld (iy-7),0  ; word-cnt <- 0 (local 0)
    jr zin_parse.word_entry
 zin_parse.word_loop:
@@ -150,13 +157,12 @@ zin_parse.word_entry:
    ld a,(iy-7)  ; %a <- word-cnt
    cp a,(iy-8)  ; flags(word-cnt - word-maxcnt)
    jr nc,zin_parse.write_wordcnt
-   ld hl,(iy-3) ; text-buf start
+   LD_HL_FROM_IY(-3) ; text-buf start
    or a,a
    sbc hl,bc    ; hl <- word-index * -1
    ld a,l
    neg          ; a = word-index
-   ld hl,0
-   add hl,sp    ; restore word-sep pointer
+   LD_HL_SP     ; restore word-sep pointer
    call zin_parse_word
    jr nc,zin_parse.word_loop
    ;; check for error
@@ -166,8 +172,11 @@ zin_parse.word_entry:
 zin_parse.write_wordcnt:
    ;; write word-cnt into parse buffer
    ld a,(iy-7)  ; %a <- word-cnt
-   ld hl,(iy-6)
+   LD_HL_FROM_IY(-6)
    inc hl       ; hl <- parse-buf (pointer to word-cnt)
+#if TI83PLUS
+   ld b,0
+#endif
    call zaddr_store
    or a,a       ; SUCCESS
 zin_parse.done:
@@ -178,7 +187,7 @@ zin_parse.done:
 ;; zin_parse_word -- parse single word in input string
 ;; INPUTS:
 ;;  bc = pointer to next char in text buffer (PA)
-;;  de = pointer to next entry in parse buffer (ZA)
+;;  de = pointer to next entry in parse buffer (ZA-static)
 ;;  hl = pointer to word-sep string (PA)
 ;;  a = index of word in text-buf
 ;; OUTPUTS:
@@ -193,14 +202,15 @@ zin_parse.done:
 ;; ERRORS: yes.
 ;; NOTE: assumes there is space in the parse buffer.
 ;; BUGS: word-len and word-index are incorrect.
+;; *** portable ***
 zin_parse_word:
    push iy
    ld iy,-9
    add iy,sp
-   push hl ; word-sep (PA)
-   push de ; parse-buf (ZA)
-   push bc ; text-buf (PA)
-   push af ; local 0,1,2
+   PUSH_HL_L ; word-sep (PA)  @ iy+6
+   PUSH_DE_L ; parse-buf (ZA) @ iy+3
+   PUSH_BC_L ; text-buf (PA)  @ iy+0
+   PUSH_HL_L ; local 0,1,2    @ iy-[123]
    ;; initialize counters
    ld d,0 ; word-len
    add a,ZIN_TXTBUF_HDRSIZE
@@ -218,14 +228,14 @@ zin_parse_word.spaces_entry:
    ; save word-index
    ld (iy-2),e ; local 1 -- save word-index
    ;; save text-buf pointer
-   ld (iy+0),bc
+   LD_BC_TO_IY(0)
    jr zin_parse_word.term_entry
    ; find word terminator
 zin_parse_word.term_loop:
    inc bc
    inc d ; word-len++
 zin_parse_word.term_entry:
-   ld hl,(iy+6) ; saved word-sep string
+   LD_HL_FROM_IY(6) ; saved word-sep string
    ld a,(bc)
    call strchr
    cp a,(hl) ; NOTE: this does what we want if a == '\0' already.
@@ -249,16 +259,16 @@ zin_parse_word.encode:
    ex de,hl
    ; temporarily replace word-sep with NUL-terinator
    ld a,(bc)
-   ld (iy-1),a  ; local 0 -- displaced delimiter
-   ld hl,(iy+0) ; text-buf pointer
-   ld (iy+0),bc ; update text-buf pointer
+   ld (iy-1),a    ; local 0 -- displaced delimiter
+   ld hl,(iy+0)   ; text-buf pointer
+   LD_BC_TO_IY(0) ; update text-buf pointer
    xor a,a
    ld (bc),a    ; temporarily NUL-terminate word
    ; all args (hl, de, c) set
    ld c,ZDICT_WORDLEN/2 ; in words, not bytes
    call zstr_encode_pad
    ld a,(iy-1)
-   ld bc,(iy+0)   ; restore text-pointer
+   LD_BC_FROM_IY(0)  ; restore text-pointer
    ld (bc),a    ; restore word terminator
    jr c,zin_parse_word.leave ; ERROR
    ; search for word in dictionary
@@ -270,14 +280,17 @@ zin_parse_word.search:
 zin_parse_word.write:
    ;; write dictionary entry byte address
    ex de,hl
-   ld hl,(iy+3) ; parse-buf
+   LD_HL_FROM_IY(3) ; parse-buf
+#if TI83PLUS
+   ld b,0
+#endif
    call zaddr_storew
    jr c,zin_parse_word.leave ;; ERROR
    ld a,(iy-3)  ; local 2 -- word-len
    call zaddr_store
    ld a,(iy-2)  ; local 1 -- word-index
    call zaddr_store
-   ld (iy+3),hl ; new parse-buf address
+   LD_HL_TO_IY(3) ; new parse-buf address
    or a,a ; SUCCESS
    jr zin_parse_word.leave
 
@@ -289,9 +302,9 @@ zin_parse_word.none:
 
 zin_parse_word.leave:
    ld sp,iy
-   pop bc
-   pop de
-   pop hl
+   POP_BC_L
+   POP_DE_L
+   POP_HL_L
    pop iy
    ret
 

@@ -152,6 +152,15 @@ LONG_SIZE .equ WORD_SIZE
 
 #define LD_HL_FROM_HL call _ld_hl_from_hl
 
+#define PUSH_HL_L dec sp \\ push hl
+#define PUSH_DE_L dec sp \\ push de
+#define PUSH_BC_L dec sp \\ push bc
+
+#define POP_HL_L  pop hl \\ inc sp
+#define POP_DE_L  pop de \\ inc sp
+#define POP_BC_L  pop bc \\ inc sp
+
+
 
 ;; SYSTEM CALLS ;;
 #define SYSCALL(addr) bcall(addr)

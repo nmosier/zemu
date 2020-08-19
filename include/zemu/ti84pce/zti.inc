@@ -93,6 +93,14 @@ LONG_SIZE .equ 3
 #endif
 #endmacro
 
+#define PUSH_HL_L push hl
+#define PUSH_DE_L push de
+#define PUSH_BC_L push bc
+#define POP_HL_L  pop hl
+#define POP_DE_L  pop de
+#define POP_BC_L  pop bc
+
+
 ;; SYSCALLS ;;
 #define SYSCALL(addr) call addr
 

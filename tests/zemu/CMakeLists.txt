@@ -1,4 +1,4 @@
-set(EXEC zemu)
+set(EXEC zemu84pce)
 
 set(LOCATION WIN_MAIN)
 

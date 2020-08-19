@@ -1,0 +1,11 @@
+#ifndef TI83PLUS_ZEMU_Z80
+#define TI83PLUS_ZEMU_Z80
+
+#include "zti.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+#include "../zemu.z80"
+
+#endif

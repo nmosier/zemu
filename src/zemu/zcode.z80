@@ -57,7 +57,7 @@ zcode_decode_short.opnum:
    MLT_A(LONG_SIZE, R_DE)
    add ix,de
 zcode_decode_short.exec:
-   ld ix,(ix)
+   LD_IX_FROM_IX(0)
    jp (ix)
    
 
@@ -93,7 +93,7 @@ zcode_decode_long.opnum:
    ld ix,zcode_LUT.2OP ; always 2OP
    MLT_A(LONG_SIZE, R_DE)
    add ix,de
-   ld ix,(ix)
+   LD_IX_FROM_IX(0)
 zcode_decode_long.exec:
    jp (ix)
    ;; NOTE: only possible operand types are SHORT and VAR.
@@ -120,7 +120,7 @@ _  and a,$1f
    MLT_A(LONG_SIZE, R_DE)
    add ix,de
 zcode_decode_variable.exec:
-   ld ix,(ix)
+   LD_IX_FROM_IX(0)
    jp (ix)
 
 

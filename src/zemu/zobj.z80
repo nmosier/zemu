@@ -32,7 +32,6 @@ zobj_tabaddr.done:
 ;;  a = object number
 ;; OUTPUTS:
 ;;  [b:hl] = logical address of object
-;;  TMP: ix 
 ;; ERRORS: yes.
 ;; DESTROYS: de
 ;; *** portable ***
@@ -164,6 +163,7 @@ zobj_attrset:
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 ;; TODO: use stack, not global data.
+;; *** portable ***
 zobj_insert:
    ; 0. Save params
    ld hl,zobj_insert.data
@@ -171,44 +171,35 @@ zobj_insert:
    inc hl
    ld (hl),c
    ; 1. Remove object from parent
-   ld b,a
    call zobj_remove
    ret c
    ; 2.   Insert object as first child of new parent
    ; 2.a  Get parent's address
    ld a,(zobj_insert.parent)
-   push bc
    call zobj_objaddr
-   pop bc
-   LD_IX_HL
    ret c
    ; 2.b  Fetch parent's current child
-   lea hl,ix+ZOBJ_O_CHILD
+   ld de,ZOBJ_O_CHILD
+   ADD_BHL_DE_ZA
    call zaddr_fetch
    ret c
    ld (zobj_insert.newsib),a
    ; 2.c  Update parent's child
-   dec hl
+   DEC_BHL_ZA
    ld a,(zobj_insert.obj)
    call zaddr_store
    ret c
    ; 2.d  Update child's parent and sibling
    ld a,(zobj_insert.obj)
-   push bc
    call zobj_objaddr
-   pop bc
-   LD_IX_HL
    ret c
-   lea hl,ix+ZOBJ_O_FAMILY
+   ld de,ZOBJ_O_FAMILY
+   ADD_BHL_DE_ZA
    ld a,(zobj_insert.parent)
    call zaddr_store
    ret c
    ld a,(zobj_insert.newsib)
-   call zaddr_store
-   ret c
-zobj_insert.done:
-   scf \ ccf
-   ret
+   jp zaddr_store
 
 zobj_insert.data:
 zobj_insert.obj:        .db 0

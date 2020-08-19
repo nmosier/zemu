@@ -42,7 +42,7 @@ zsave_savemap:
    ;; copy the page and rename it using the given name prefix
    ;; move copied page to flash
    ;; change flags: flags <- COPY
-   lea ix,ix+ZMAP_HDR_END    ; table ptr -> ix
+   LEA_IX_IX(ZMAP_HDR_END)   ; table ptr -> ix
 zsave_savemap.loop:
    ;; INVARIANTS:
    ;;  hl = name prefix

@@ -73,7 +73,7 @@ zmap_copypage_ent:
    inc hl   ; skip size bytes
    inc hl 
    ;; update zmap entry
-   ld (ix+ZMAP_ENT_PTR),hl
+   LD_HL_TO_IX(ZMAP_ENT_PTR)
    ld a,MASK(ZMAP_ENT_FLAGS_INRAM)
    ld (ix+ZMAP_ENT_FLAGS),a
    push hl

@@ -259,9 +259,9 @@ zin_parse_word.encode:
    ex de,hl
    ; temporarily replace word-sep with NUL-terinator
    ld a,(bc)
-   ld (iy-1),a    ; local 0 -- displaced delimiter
-   ld hl,(iy+0)   ; text-buf pointer
-   LD_BC_TO_IY(0) ; update text-buf pointer
+   ld (iy-1),a      ; local 0 -- displaced delimiter
+   LD_HL_FROM_IY(0) ; text-buf pointer
+   LD_BC_TO_IY(0)   ; update text-buf pointer
    xor a,a
    ld (bc),a    ; temporarily NUL-terminate word
    ; all args (hl, de, c) set

@@ -1,4 +1,30 @@
 #ifndef TI84PCE_ZADDR_Z80
 #define TI84PCE_ZADDR_Z80
 
+;; zaddr_fetch_c -- C wrapper for zaddr_fetch
+;; ARGS:
+;;  arg1 = uint24_t address
+;; RETV: uint8_t byte = *address
+;; ERRORS: no.
+;; DESTROYS: (all)
+;; TODO: make portable.
+zaddr_fetch_c:
+   ; push ix
+   push iy
+   ld iy,0
+   add iy,sp
+   ld hl,(iy+9) ; address
+   push iy
+   call zaddr_fetch
+   pop iy
+   jr nc,_ ; error, but can't propogate
+   xor a,a  
+_  ld hl,0
+   ld l,a
+   ld sp,iy
+   pop iy
+   ; pop ix
+   ret
+
+
 #endif

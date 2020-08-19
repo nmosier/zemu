@@ -48,8 +48,7 @@
 #macro LD_CDE_TO_IX_ZA(off)
   LD_DE_TO_IX_W(off)
   ld (ix+off+2),c
-#endif
-
+#endmacro
 
 #macro LD_BHL_FROM_ABS_ZA(addr)
   ld l,a

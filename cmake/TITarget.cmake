@@ -1,7 +1,7 @@
 function(add_8xp TARGET MAIN_SOURCE)
   cmake_parse_arguments(TI
     ""
-    "PLATFORM"
+    "PLATFORM;NAME"
     "INCLUDE_DIRS;DEFINITIONS;SPASM_FLAGS"
     ${ARGN}
     )
@@ -10,7 +10,10 @@ function(add_8xp TARGET MAIN_SOURCE)
     message(FATAL_ERROR "add_8xp: invalid argument")
   endif()
 
-  set(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.8xp)
+  if(NOT DEFINED TI_NAME)
+    get_filename_component(TI_NAME ${MAIN_SOURCE} NAME_WLE)
+  endif()
+  set(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${TI_NAME}.8xp)
   
   get_directory_property(INCLUDE_DIRS INCLUDE_DIRECTORIES)
   list(APPEND TI_INCLUDE_DIRS ${INCLUDE_DIRS})
@@ -39,7 +42,7 @@ function(add_8xp TARGET MAIN_SOURCE)
   endif()
 
   if(-L IN_LIST TI_SPASM_FLAGS)
-    set(LAB ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.lab)
+    set(LAB ${CMAKE_CURRENT_BINARY_DIR}/${TI_NAME}.lab)
   else()
     set(LAB)
   endif()
@@ -59,7 +62,7 @@ function(add_8xp TARGET MAIN_SOURCE)
   set_target_properties(${TARGET} PROPERTIES 8XP ${OUTPUT})
 
   if(-L IN_LIST TI_SPASM_FLAGS)
-    set_target_properties(${TARGET} PROPERTIES LAB ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.lab)
+    set_target_properties(${TARGET} PROPERTIES LAB ${LAB})
   endif()
 
 endfunction()

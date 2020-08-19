@@ -43,6 +43,7 @@ LONG_SIZE .equ 3
 #define LD_HL_FROM_IX(off) ld hl,(ix+off)
 #define LD_DE_FROM_IX(off) ld de,(ix+off)
 #define LD_BC_FROM_IX(off) ld bc,(ix+off)
+#define LD_IX_FROM_IX(off) ld ix,(ix+off)
 
 #define LD_HL_TO_IX(off) ld (ix+off),hl
 #define LD_DE_TO_IX(off) ld (ix+off),de

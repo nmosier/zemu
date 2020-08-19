@@ -210,8 +210,8 @@ appvar_trunc.insert:
    call _EnoughMem    ; de <- extra mem
    jr c,appvar_trunc.err
    ;; compute end of appvar
-   ld hl,(ix-LONG_SIZE*0)
-   ld bc,(ix-LONG_SIZE*2)
+   LD_HL_FROM_IX(-LONG_SIZE*0)
+   LD_BC_FROM_IX(-LONG_SIZE*2)
    add hl,bc
    ex de,hl
    ;; NOTE: hl = extra mem; de = end of appvar
@@ -225,16 +225,16 @@ appvar_trunc.del:
    sbc hl,hl
    sbc hl,de
    ;; calculate deletion address (mid-appvar)
-   ld hl,(ix-0*LONG_SIZE)
-   ld bc,(ix-1*LONG_SIZE)
+   LD_HL_FROM_IX(-LONG_SIZE*0)
+   LD_BC_FROM_IX(-LONG_SIZE*1)
    add hl,bc
    ;; delete memory
    call _DelMem
 appvar_trunc.update:
    pop ix
    ;; update size field
-   ld hl,(ix-0*LONG_SIZE)
-   ld bc,(ix-1*LONG_SIZE)
+   LD_HL_FROM_IX(-LONG_SIZE*0)
+   LD_BC_FROM_IX(-LONG_SIZE*1)
    ld (hl),c
    inc hl
    ld (hl),b

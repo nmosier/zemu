@@ -4,8 +4,9 @@
 #define DRAND(seed) .db LOW_IMM(seed), HIGH_IMM(seed), UPPER_IMM(seed)
 
 #macro LD_BHL_FROM_ABS_RAND(abs)
+  ld hl,abs+2
+  ld b,(hl)
   ld hl,(abs)
-  ld b,(abs+2)
 #endmacro
 #macro LD_BHL_TO_ABS_RAND(abs)
   ld (abs+1),bc
@@ -28,7 +29,7 @@
   push hl
 #endmacro
 
-#macro POP_BLH_RAND
+#macro POP_BHL_RAND
   pop hl
   dec sp
   ex (sp),hl

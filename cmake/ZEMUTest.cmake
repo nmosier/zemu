@@ -68,7 +68,7 @@ function(add_zemu_test NAME)
       list(APPEND COMMANDS "'${COMMAND}'")
     endforeach()
 
-    get_filename_component(TARGET_NAME_LOWER ${ZT_EXEC} NAME_WLE)
+    get_filename_component(TARGET_NAME_LOWER ${ZT_8XP} NAME_WLE)
     string(TOUPPER ${TARGET_NAME_LOWER} TARGET_NAME)
     
 

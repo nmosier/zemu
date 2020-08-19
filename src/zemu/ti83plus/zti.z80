@@ -47,4 +47,23 @@ _ld_hl_from_hl:
   pop af
   ret
 
+;; INPUTS:
+;;  ix
+;;  de = offset
+;; OUTPUTS:
+;;  ix <- (ix+a)
+;; DESTROYS: 
+_ld_ix_from_ix:
+  push hl
+  LD_HL_IX
+  add hl,de
+  ld e,(hl)
+  inc hl
+  ld d,(hl)
+  ex de,hl
+  ex (sp),hl
+  pop ix
+  ret
+
+
 #endif

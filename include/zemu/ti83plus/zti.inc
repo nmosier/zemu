@@ -80,6 +80,13 @@ LONG_SIZE .equ WORD_SIZE
    ld c,(ix+off)
    ld b,(ix+off+1)
 #endmacro
+#macro LD_IX_FROM_IX(off)
+  push de
+  ld de,off
+  call _ld_ix_from_ix
+  pop de
+  ret
+#endmacro
 
 #macro LD_HL_TO_IX(off)
   ld (ix+off),l
@@ -93,6 +100,8 @@ LONG_SIZE .equ WORD_SIZE
   ld (ix+off),c
   ld (ix+off+1),b
 #endmacro
+
+#define LD_DE_TO_IX_W(off) LD_DE_TO_IX(off)
 
 #define LD_HL_FROM_IX_W(off) LD_HL_FROM_IX(off)
 #define LD_DE_FROM_IX_W(off) LD_DE_FROM_IX(off)

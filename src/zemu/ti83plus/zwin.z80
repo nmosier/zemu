@@ -113,11 +113,9 @@ zwin_unputcursor:
   push ix \ pop de
   LD_HL_FROM_IX(ZWIN.BUFPTR)
   push hl
-  ld de,ZWIN.BUF
-  LD_BC_IX
+  LD_DE_FROM_IX(ZWIN.BUF)
   or a,a
   sbc hl,de
-  sbc hl,bc
   ;; if index == 0, nothing to unput 
   jr z,zwin_unputc.done
 

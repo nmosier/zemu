@@ -43,4 +43,8 @@ STORY_NAME_MAXLEN .equ 4
 
 ZADDR_NULL .equ ULONG_MAX
 
+;; MAIN WINDOWS 
+win_main.buflen .equ 512
+
+
 #endif

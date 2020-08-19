@@ -42,12 +42,11 @@ ZWIN.RECT   .equ ZWIN.ORGCOL
 ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
 ZWIN.FLAGS.PAGD .equ 1 ; whether paged (must be buffered)
 
-ZWIN_NOBUF_SIZE .equ ZWIN.BUFLEN ; without buffering
-ZWIN_BUF_BASE_SIZE .equ ZWIN.BUF ; all fixed-sized fields, with buffering
+ZWIN_SIZE .equ ZWIN.BUF + LONG_SIZE
 
 ZWIN_CLEARCOLOR .equ $ff
 
-#macro D_ZWIN(orgcol, orgrow, width, height, flags, buflen)
+#macro D_ZWIN(orgcol, orgrow, width, height, flags, buflen, buf)
   DCOL orgcol ; curcol
   DROW orgrow ; currow
   DCOL orgcol ; orgcol
@@ -59,15 +58,13 @@ ZWIN_CLEARCOLOR .equ $ff
 #else
   DB flags  ; flags
 #endif
-#if buflen > 0     
   DL buflen ; buflen
-  DL _      ; bufptr
+  DL buf     ; bufptr
   DL 0      ; bufanc
 #if ZTEST
   DL 5381   ; cksum
 #endif
-_ RESB(buflen) ; buf
-#endif
+  DL buf    ; buf
 #endmacro
 
 #define RES_ZWIN(buflen) RESB(ZWIN_BUF_BASE_SIZE + buflen)

@@ -98,7 +98,7 @@ zwin_unputcursor:
 
    ;; get buffer index
    ld hl,(ix+ZWIN.BUFPTR)
-   lea de,ix+ZWIN.BUF
+   LD_DE_FROM_IX(ZWIN.BUF)
    or a,a
    sbc hl,de
    jr z,zwin_unputc.done ; nothing to unput
@@ -207,7 +207,7 @@ zwin_cksum:
   push de
   push bc
    ld hl,(ix+ZWIN.BUFPTR)
-   lea de,ix+ZWIN.BUF
+   ld de,(ix+ZWIN.BUF)
    or a,a
    sbc hl,de
    LD_BC_HL ; length 

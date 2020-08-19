@@ -55,7 +55,7 @@ zwin_org:
 zwin_flush:
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z
-   LEA_HL_IX(ZWIN.BUF)
+   LD_HL_FROM_IX(ZWIN.BUF)
    LD_HL_TO_IX(ZWIN.BUFPTR)
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret z
@@ -226,11 +226,15 @@ zwin_redraw:
    or a,a ; NC
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; if not buffered, then nothing to redisplay
-#if TI83PLUS
-   LD_HL_IX
-   ld de,ZWIN.BUF
-   add hl,de
+   LD_DE_FROM_IX(ZWIN.BUF)
+   LD_HL_FROM_IX(ZWIN.BUFPTR)
+   or a,a
+   sbc hl,de
+   LD_BC_HL
    ex de,hl
+#if 0
+#if TI83PLUS
+   LD_DE_FROM_IX(ZWIN.BUF)
    LD_HL_FROM_IX(ZWIN.BUFPTR)
    or a,a ; NC
    sbc hl,de
@@ -243,6 +247,7 @@ zwin_redraw:
    sbc hl,bc
    LD_BC_HL
    lea hl,ix+ZWIN.BUF
+#endif
 #endif
    jp zwin_putsn_bare
 
@@ -261,11 +266,12 @@ zwin_redraw:
 zwin_bufc:
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; this window isn't buffered
-   LEA_HL_IX(ZWIN.BUF)
+   LD_HL_FROM_IX(ZWIN.BUF)
    LD_DE_FROM_IX(ZWIN.BUFLEN)
    add hl,de
    ex de,hl
    LD_HL_FROM_IX(ZWIN.BUFPTR)
+   or a,a
    sbc hl,de
    call nc,zwin_trunc ; a preserved
    LD_HL_FROM_IX(ZWIN.BUFPTR)
@@ -356,7 +362,7 @@ zwin_trunc:
    ; de = buffer begin
    ; bc = buffer end
    LD_HL_FROM_IX_C(ZWIN.WIDTH)
-   LEA_DE_IX(ZWIN.BUF)
+   LD_DE_FROM_IX(ZWIN.BUF)
    LD_BC_FROM_IX(ZWIN.BUFPTR)
    call zwin_eol
    ; hl = (one past) end of first line
@@ -371,7 +377,7 @@ zwin_trunc:
    push de ; save EOL ptr
    ex de,hl ; hl = EOL ptr
    ;; calculate deleted bytes
-   LEA_DE_IX(ZWIN.BUF)
+   LD_DE_FROM_IX(ZWIN.BUF)
    or a,a
    sbc hl,de ; size of bytes to delete
    ex de,hl
@@ -390,7 +396,7 @@ zwin_trunc:
    jr z,zwin_trunc.move    ; no anchor set yet
    or a,a
    sbc hl,de   ; shifted anchor
-   LEA_DE_IX(ZWIN.BUF)
+   LD_DE_FROM_IX(ZWIN.BUF)
    call cp_hl_de
    ;; if CF is set, then anchored region will be scrolled offscreen
    jr nc,_
@@ -398,7 +404,7 @@ zwin_trunc:
 _  LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_trunc.move:
    pop hl ; restore EOL ptr
-   LEA_DE_IX(ZWIN.BUF)
+   LD_DE_FROM_IX(ZWIN.BUF)
    ; hl = EOL ptr
    ; de = buf begin
    ; bc = number of bytes to keep

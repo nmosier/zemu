@@ -66,8 +66,15 @@ zemu_str: .db "zemu",0
 
 ;; initialize windows
 init_windows:
+   ;; allocate windows appvar
+   ld hl,win_main_name
+   ld bc,win_main.buflen+2 ; size bytes
+   call appvar_touch
+   inc de
+   inc de ; skip size bytes
+   ld (win_main+ZWIN.BUF),de ; save buf pointer
    ld ix,win_main
-   call zwin_clear
+   call zwin_reset
 
 #ifdef ZDBG
    push iy
@@ -92,23 +99,22 @@ init_windows:
    ld a,lcdHeight/2
    ld b,0 ; don't buffer
    call zwin_split_bottom
-
+   
    pop iy
 #endif
    ret
 
-win_main.buflen .equ 512
-
-win_main: D_ZWIN(2, 2, DISP_WIDTH-4, DISP_HEIGHT-4, MASK(ZWIN.FLAGS.BUFD), win_main.buflen)
-win_main_protector: .db $42
-win_main.buf .equ win_main + ZWIN.BUF
+;; main window's buffer is alloacted at runtime
+win_main: D_ZWIN(2, 2, DISP_WIDTH-4, DISP_HEIGHT-4, MASK(ZWIN.FLAGS.BUFD), win_main.buflen, 0)
 #if ZTEST
 win_main.cksum .equ win_main + ZWIN.CKSUM
 #endif
+win_main_name: .db "ZEMUWIN",0
 
 #ifdef ZDBG
 win_dbgout: RES_ZWIN(0) ; not buffered
-win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE) ; buffered
+win_dbgin: D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE, win_dbgin.buf) ; buffered
+win_dbgin.buf: RESB(WIN_DBGIN_BUFSIZE)
 win_dbg1: RES_ZWIN(0) ; not buffered
 win_dbg2: RES_ZWIN(0) ; not buffered
 #endif

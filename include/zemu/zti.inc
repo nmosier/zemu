@@ -34,6 +34,16 @@ ULONG_MAX .equ (1 << LONG_BITS) - 1
   add hl,sp
 #endmacro
 
+#macro LD_DE_SP
+  ex de,hl
+  LD_HL_SP
+  ex de,hl
+#endmacro
+
+#macro CALL_IX
+  call jp_ix
+#endmacro
+
 ;; ALLOCA_HL_A -- allocate %a bytes on the stack, loading pointer into %hl
 ;; INPUTS:
 ;;  a = size in bytes

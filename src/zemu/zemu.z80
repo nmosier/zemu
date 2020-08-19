@@ -213,7 +213,6 @@ zemu_prompt_game: .db "Story name: ",0
 #include "zerr.z80"
 #include "zexec.z80"
 #include "zhdr.z80"
-#include "zhex.z80"
 #include "zin.z80"
 #include "zmap.z80"
 #include "zmem.z80"

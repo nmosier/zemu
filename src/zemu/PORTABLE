@@ -3,7 +3,7 @@
 [X] zbranch.z80
 [X] zcall.z80
 [X] zcode.z80
-[ ] zcpu.z80
+[X] zcpu.z80
 [ ] zdbg.z80
 [X] zdict.z80
 [X] zdisp.z80

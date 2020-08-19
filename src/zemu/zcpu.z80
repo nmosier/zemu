@@ -1,4 +1,8 @@
 ;; zcpu.z80 -- run Z-machine
+;; *** portable ***
+
+#ifndef ZCPU_Z80
+#define ZCPU_Z80
 
 #include "zhdr.inc"
 #include "zmem.inc"
@@ -24,11 +28,10 @@ zcpu_run:
 ;; ERRORS: yes.
 ;; NOTE: Also called during RESTART.
 zcpu_init:
-   ld hl,ZHDR_INITPC
-   call zaddr_fetchwu
+   LD_BHL_IMM(ZHDR_INITPC)
+   call zaddr_fetchz ; fetch init PC
    ret c
-   ex de,hl
-   ld (zframe_pc),hl
+   LD_CDE_TO_ABS_ZA(zframe_pc)
    ld hl,ZSTACK_NULL
    ld (zframe_fp),hl
    ld (zframe_sp),hl
@@ -36,4 +39,4 @@ zcpu_init:
    ld (zframe_nl),a  ; nl <- 0
    ret
 
-
+#endif

@@ -26,18 +26,23 @@ zcall0.unpacked:
    call zstack_enter ; a = # of locals
    pop hl ; restore PC
    ret c
+   ;; enter frame
+   push ix
+   ld ix,0
+   add ix,sp
+   dec sp
+   dec sp
    ; initialize locals
    or a,a
    jr z,zcall0.jump ; no locals to initialize
-   ld ix,zcall0.index
-   ld (ix+0),1
-   ld (ix+1),a
+   ld (ix-2),1
+   ld (ix-1),a
 zcall0.loop:
    push ix
    call zaddr_fetchw ; fetch default val
    pop ix
    ret c
-   ld a,(ix+0)
+   ld a,(ix-2)
    push ix
    PUSH_BHL_ZA ; preserve new PC
    ex de,hl
@@ -45,18 +50,15 @@ zcall0.loop:
    POP_BHL_ZA  ; restore new PC
    pop ix
    ret c
-   inc (ix+0)
-   dec (ix+1)
+   inc (ix-2)
+   dec (ix-1)
    jr nz,zcall0.loop
 zcall0.jump:
    ; hl points to byte address after last local init val
-   ; ld (zframe_pc),hl
-   or a,a
+   inc sp
+   inc sp
+   pop ix
    ret
-
-zcall0.index:
-zcall0.i: .db 0
-zcall0.d: .db 0
 
 #ifdef ZDBG
 

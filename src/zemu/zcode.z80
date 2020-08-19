@@ -229,6 +229,7 @@ zcode_readvarnum:
 ;;  Z if branch when false; NZ if branch when true
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+;; TODO: input needs to be long ZA.
 zcode_decode_branch:
    ; 4.7 If bit 6 is set, then the branch occupies 1 byte only, and the offset
    ;     is in the range 0 to 63, given in the bottom 6 bits. If bit 6 is clear,

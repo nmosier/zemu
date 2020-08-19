@@ -1,5 +1,9 @@
 ; zbranch.z80 -- branch & jump utility routines
 
+#ifndef ZBRANCH_Z80
+#define ZBRANCH_Z80
+
+#include "zaddr.inc"
 #include "zutil.inc"
 
 ;; zexec_cjmp -- execute conditional branches (jumps)
@@ -11,22 +15,26 @@
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 zexec_cjmp:
-   push af
-   ld hl,(zframe_pc)
+   push af ; save truth value
+   LD_BHL_FROM_ABS_ZA(zframe_pc)
    call zcode_decode_branch
-   pop bc
+   ex (sp),hl
+   ld a,h ; restore truth value
+   pop hl
    ret c
    ; apply branch inversion flag
-   ld a,b ; truth value
    jr nz,zexec_cjmp.inv
    cpl ; branch when false
 zexec_cjmp.inv:
-   ; hl = no-branch PC
+   ; [b:hl] = no-branch PC
    ; de = raw offset
    or a,a
    jr z,zexec_cjmp.store_pc ; don't take the branch
    ex de,hl
-   ; de = no-branch PC
+#if TI83PLUS
+   ld c,b
+#endif
+   ; [c:de] = no-branch PC
    ; hl = raw offset
    push de
    ld de,1
@@ -36,12 +44,14 @@ zexec_cjmp.inv:
    jp z,zexec.rtrue  ; offset == 1 => RTRUE
 zexec_cjmp.jump:
    ; otherwise, apply offset
-   add hl,de
-   dec hl
-   dec hl ; don't forget to subtract 2!
+   UCAST_HL_TO_BHL_ZA
+   ADD_BHL_CDE_ZA
+   DEC_BHL_ZA
+   DEC_BHL_ZA ; don't forget to subtract 2!
    ; hl = new PC
 zexec_cjmp.store_pc:
-   ld (zframe_pc),hl
+   LD_BHL_TO_ABS_ZA(zframe_pc)
    or a,a
    ret
 
+#endif

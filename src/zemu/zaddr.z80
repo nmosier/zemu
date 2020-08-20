@@ -201,15 +201,18 @@ zaddr_fetch.cleanup:
 ;;  [b:hl] <- [b:hl] + 2
 ;;  de = word, sign-extended
 ;; ERRORS: yes.
-;; DESTROYS: a
+;; DESTROYS: (none)
 ;; *** portable ***
 zaddr_fetchw:
+   push af
    call zaddr_fetch
-   ret c
    ld d,a
-   call zaddr_fetch
-   ret c
+   call nc,zaddr_fetch
    ld e,a
+   ex (sp),hl
+   ld a,h
+   pop hl
+   ret c
    ex de,hl
    call wtols ; upcast
    ex de,hl
@@ -223,20 +226,27 @@ zaddr_fetchw:
 ;;  [b:hl] <- [b:hl] + 2
 ;;  de = word, zero-extended
 ;; ERRORS: yes.
-;; DESTROYS: a
+;; DESTROYS: (none)
 ;; *** portable ***
+#if TI83PLUS
+zaddr_fetchwu .equ zaddr_fetchw
+#elif TI84PCE
 zaddr_fetchwu:
+   push af
    call zaddr_fetch
-   ret c
    ld d,a
-   call zaddr_fetch
+   call nc,zaddr_fetch
    ret c
    ld e,a
+   ex (sp),hl
+   ld a,h
+   pop hl
    ex de,hl
    call wtolu ; upcast
    ex de,hl
    or a,a ; NC
    ret
+#endif
 
 ;; zaddr_fetchz -- fetch byte Z-address at Z-address
 ;; INPUTS:

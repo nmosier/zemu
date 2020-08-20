@@ -95,15 +95,8 @@ zstr_putc.abbr_apply:
    LD_BHL_FROM_ABS_ZA(zstr_abbrtab)
    rla ; a <- a * WORD_SIZE == a * 2 == a << 1
    UCAST_A_TO_DE
-   add hl,de
-#if TI83PLUS
-   jr z,_
-   inc b
-_
-#endif
-   push ix
+   ADD_BHL_DE_ZA
    call zaddr_fetchwu ; get word address to expanded string
-   pop ix
    ret c
    ex de,hl
    ; convert to byte address
@@ -122,12 +115,8 @@ zstr_putc.abbr_select:
    rrca
    rrca ; a <- a * TABLE SIZE * WORD SIZE == a * 64 == a << 6 == a >> 2
    LD_BHL_IMM(ZHDR_ABBR)
-   push af
-   push ix
    call zaddr_fetchwu
-   pop ix
-   jr c,zstr_putc.abbr_select.err
-   pop af
+   ret c
    ex de,hl ; hl = zword ptr, 16-bit
    UCAST_HL_TO_BHL_ZA
    UCAST_A_TO_CDE_ZA
@@ -135,10 +124,7 @@ zstr_putc.abbr_select:
    LD_BHL_TO_ABS_ZA(zstr_abbrtab)
    or a,a
    ret
-zstr_putc.abbr_select.err:
-   pop bc
-   ret
-
+   
 zstr_putc.wchar_select:
    ; update flags
    set ZSTR_FLAGS_WCHAR,(hl)
@@ -243,9 +229,7 @@ zstr_puts:
    res ZSTR_FLAGS_SHIFT,a
    ld (zstr_flags),a
 zstr_puts.loop:
-   push ix
    call zaddr_fetchwu
-   pop ix
    ret c
    PUSH_BHL_ZA
    ex de,hl
@@ -255,27 +239,6 @@ zstr_puts.loop:
    jr z,zstr_puts.loop ; not end of string
 zstr_puts.end:
    ret
-
-#if 0
-zstr_puts_phys:
-   ld a,(zstr_flags)
-   res ZSTR_FLAGS_SHIFT,a
-   ld (zstr_flags),a
-zstr_puts_phys.loop:
-   ld de,0
-   ld d,(hl)
-   inc hl
-   ld e,(hl)
-   inc hl
-   ex de,hl
-   push de
-   call zstr_putw
-   pop hl
-   ret c
-   jr z,zstr_puts_phys.loop ; not end of string
-zstr_puts_phys.end:
-   ret
-#endif
 
 zstr_A0.tab:
    .db "abcdefghijklmnopqrstuvwxyz"

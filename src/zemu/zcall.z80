@@ -38,9 +38,7 @@ zcall0.unpacked:
    ld (ix-2),1
    ld (ix-1),a
 zcall0.loop:
-   push ix
    call zaddr_fetchw ; fetch default val
-   pop ix
    ret c
    ld a,(ix-2)
    push ix

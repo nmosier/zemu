@@ -9,7 +9,7 @@
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  [b:hl] = static z-addr of dictionary
-;; DESTROYS: (all)
+;; DESTROYS: de
 ;; ERRORS: yes.
 ;; *** portable ***
 zdict_addr:
@@ -38,16 +38,8 @@ zdict_tab:
    UCAST_A_TO_DE
    add hl,de
    UCAST_HL_TO_BHL_ZA
-   call zaddr_fetch ; entry size
-   ret c
-   push af
-   call zaddr_fetchwu ; number of entries
-   jr c,zdict_tab.err
-   pop af
-   ret
-zdict_tab.err:
-   pop de
-   ret
+   call nc,zaddr_fetch ; entry size
+   jp zaddr_fetchwu ; number of entries
 
 
 ;; zdict_search -- search for Z-string in dictionary

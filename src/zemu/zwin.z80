@@ -502,6 +502,7 @@ zwin_setcur:
    pop de
    ret
 
+#if ZDBG
 ;; zwin_split_top -- split off window from top of base window
 ;; zwin_split_bottom -- split off window from bottom of base window
 ;; INPUTS:
@@ -638,6 +639,7 @@ zwin_split_horiz.org_right:
    add hl,de
    LD_HL_TO_IY_C(ZWIN.ORGCOL)
    jr zwin_split_horiz.cont
+#endif
 
 ;; zwin_getc -- get input character, buffered
 ;; zwin_getc_bare -- get input char, unbuffered

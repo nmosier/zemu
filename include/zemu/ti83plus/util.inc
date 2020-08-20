@@ -23,4 +23,9 @@ _
   DEC_W_AT_IX(off)
 #endmacro
 
+#macro WTOLU_HL
+#endmacro
+#macro WTOLS_HL
+#endmacro
+
 #endif

@@ -76,7 +76,7 @@ init_windows:
    ld ix,win_main
    call zwin_reset
 
-#ifdef ZDBG
+#if ZDBG
    push iy
    
    ld iy,win_dbgout

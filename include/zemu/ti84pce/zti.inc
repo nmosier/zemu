@@ -28,6 +28,8 @@ LONG_SIZE .equ 3
 
 #define UCAST_FROM_HL_TO_BC ld bc,0 \\ ld c,(hl)
 
+#define LTOWU_HL call ltowu
+
 #define LD_BC_HL push hl \\ pop bc
 #define LD_BC_DE push de \\ pop bc
 #define LD_HL_BC push bc \\ pop hl

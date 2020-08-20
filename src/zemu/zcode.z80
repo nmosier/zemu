@@ -157,7 +157,7 @@ zcode_fetch_op.large:
    ret c
    ld e,a
    ex de,hl
-   call wtols ; upcast
+   WTOLS_HL ; upcast
    ex de,hl
    or a,a
    ret

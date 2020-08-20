@@ -191,7 +191,7 @@ zexec_binop.loadw:
    add hl,de
    add hl,de ; hl <- hl + 2*de
    ;; NOTE: stored in big-endian order.
-   call ltowu ; downcast
+   LTOWU_HL ; downcast
    UCAST_HL_TO_BHL_ZA
    call zaddr_fetchw
    ex de,hl
@@ -634,7 +634,7 @@ zexec.print_addr:
    ld a,1
    call zop_readn
    ;; cast op back to unsigned
-   call ltowu
+   LTOWU_HL
    UCAST_HL_TO_BHL_ZA
    ld ix,win_main
    jp zstr_puts
@@ -701,7 +701,7 @@ zexec.print_paddr:
    ld a,1
    call zop_readn
    ret c
-   call ltowu ; make unsigned
+   LTOWU_HL
    call zaddr_unpack
    ld ix,win_main
    jp zstr_puts
@@ -826,7 +826,7 @@ zexec.call:
    ;; read packed address of routine
    call zcode_readop_force
    ret c
-   call wtolu
+   WTOLU_HL
    ;; read parameters into locals
    push hl ; save packed address for after we've read in the params
    call zexec.call.readvars
@@ -927,9 +927,9 @@ zexec.storew:
    ld a,3
    call zop_readn
    ret c
-   call wtolu
+   WTOLU_HL
    ex de,hl
-   call wtolu
+   WTOLU_HL
    add hl,hl ; word-index *= 2
    add hl,de ; hl = address of word to store in
    ; move value into de
@@ -947,9 +947,9 @@ zexec.storeb:
    ld a,3
    call zop_readn
    ret c
-   call wtolu
+   WTOLU_HL
    ex de,hl
-   call wtolu
+   WTOLU_HL
    add hl,de ; byte address
    ld a,c
    UCAST_HL_TO_BHL_ZA

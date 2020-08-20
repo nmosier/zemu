@@ -33,6 +33,9 @@ LONG_SIZE .equ WORD_SIZE
 
 #define UCAST_FROM_HL_TO_BC ld b,0 \\ ld c,(hl)
 
+#macro LTOWU_HL
+#endmacro
+
 #define LD_BC_HL ld b,h \\ ld c,l
 #define LD_BC_DE ld b,d \\ ld c,e
 #define LD_HL_BC ld h,b \\ ld l,c

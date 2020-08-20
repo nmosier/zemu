@@ -1,0 +1,1123 @@
+;; zdbg.z80 -- debugging routines
+
+#ifdef ZDBG
+
+#ifndef TI84PCE_ZDBG_Z80
+#define TI84PCE_ZDBG_Z80
+
+#include "zdbg.inc"
+#include "zlog.inc"
+#include "zobj.inc"
+
+;; zdbg_init -- initialize debugger for execution
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: no.
+;; DESTROYS: hl, a
+zdbg_init:
+   ld hl,zdbg_flags
+   res ZDBG_FLAGS_STEP,(hl)
+   res ZDBG_FLAGS_BREAK,(hl)
+   set ZDBG_FLAGS_MODE,(hl)
+   set ZDBG_FLAGS_INTR,(hl)
+   set ZDBG_FLAGS_STAT,(hl)
+   set ZDBG_FLAGS_STACK,(hl)
+   set ZDBG_FLAGS_BT,(hl)
+   xor a,a
+   ld (zdbg_alerts),a
+   call zcpu_init
+   ret
+
+;; zdbg_puts -- put string in debug line
+;; NOTE: clears line first.
+zdbg_puts:
+   push ix \ push de \ push bc
+   push hl
+   ld ix,win_dbgout
+   call zwin_reset
+   pop hl
+   push hl
+   call zwin_puts
+   pop hl
+   pop bc \ pop de \ pop ix
+   ret
+
+;; zdbg_step -- do stuff before instruction is executed
+zdbg_step:
+   bit ZDBG_FLAGS_STAT,(ix)
+   call nz,zdbg_status
+   bit ZDBG_FLAGS_STACK,(ix)
+   call nz,zdbg_disp_stack
+   bit ZDBG_FLAGS_BT,(ix)
+   call nz,zdbg_disp_backtrace
+   bit ZDBG_FLAGS_INTR,(ix)
+   ld a,0
+   call nz,zdbg_step.input
+   jr zdbg_step.done
+
+zdbg_step.input:
+   call sys_getkey
+   jr c,zdbg_step.done ; interrupt
+   cp a,kEnter
+   jr z,zdbg_step.run
+   JCLASS(k0,k9,zdbg_step.num)
+   cp a,kAdd ; read command
+   jr z,zdbg_step.cmd
+   or a,a
+   ret ; NC
+   
+
+zdbg_step.run:
+   ld ix,ZDBG_FLAGS
+   res ZDBG_FLAGS_MODE,(ix)
+   jr zdbg_step.done
+
+zdbg_step.num:
+   sub a,k0
+   jr nz,_
+   ld a,10
+_  ld (zdbg_stepn),a
+   jr  zdbg_step.done
+
+zdbg_step.done:
+   ld ix,ZDBG_FLAGS
+   res ZDBG_FLAGS_STEP,(ix)
+   ret
+
+zdbg_step.cmd:
+   ld hl,zdbg_step.cmd_buf
+   ld bc,32
+   call zdbg_getsn
+   call nc,zdbg_cmd
+   jr nc,zdbg_step.input
+   or a,a
+   jr z,zdbg_step.input
+   scf
+   jr zdbg_step.done
+   
+
+
+zdbg_step.cmd_buf: RESB(32)
+
+
+
+;; zdbg_cmd -- parse command
+;; INPUTS:
+;;  hl = command string
+;; OUTPUTS:
+;;  CF = whether failed
+;; ERRORS: no.
+;; DESTROYS: (all)
+zdbg_cmd:
+   ld ix,zdbg_flags
+   ld a,(hl)
+   inc hl
+   cp a,'B'
+   jr z,zdbg_cmd.break
+   cp a,'W'
+   jr z,zdbg_cmd.watch
+   cp a,'D'
+   jr z,zdbg_cmd.disable
+   cp a,'P'
+   jr z,zdbg_cmd.print
+   cp a,'X'
+   jp z,zdbg_cmd.examine
+   cp a,'J'
+   jp z,zdbg_cmd.jump
+   cp a,'E'
+   jp z,zdbg_cmd.seed
+   cp a,'S'
+   jp z,zdbg_cmd.save
+   cp a,'R'
+   jp z,zdbg_cmd.restore
+   or a,a
+   ret
+
+zdbg_cmd.break:
+   ld a,16
+   call strtoul ; to hex
+   ccf
+   ret nc ; failed to convert
+   ld (zdbg_break),hl
+   ex de,hl
+   ld ix,zdbg_flags
+   set ZDBG_FLAGS_BREAK,(ix)
+   or a,a ; NC
+   ret
+
+zdbg_cmd.watch:
+   ld a,16 ; hex
+   call strtoul ; to i
+   ccf
+   ret nc
+   ld a,l
+   ld l,0
+   call cp_hl_0
+   ret nz
+   ld (zdbg_watch),a
+   ld ix,zdbg_flags
+   set ZDBG_FLAGS_WATCH,(ix)
+   or a,a
+   ret ; NC
+
+zdbg_cmd.disable:
+   ; which to disable?
+   ld a,(hl)
+   inc hl
+   cp a,'B' ; disable breakpoints?
+   jr z,zdbg_cmd.disable.break
+   cp a,'W' ; disable watchpoints?
+   jr z,zdbg_cmd.disable.watch
+zdbg_cmd.disable.done:
+   or a,a
+   ret
+zdbg_cmd.disable.break:
+   res ZDBG_FLAGS_BREAK,(ix)
+   jr zdbg_cmd.disable.done
+zdbg_cmd.disable.watch:
+   res ZDBG_FLAGS_WATCH,(ix)
+   jr zdbg_cmd.disable.done
+
+
+zdbg_cmd.print:
+   ld a,(hl)
+   inc hl
+   cp a,'V' ; variable
+   jr z,zdbg_cmd.print.var
+   cp a,'O' ; object
+   jr z,zdbg_cmd.print.obj
+   cp a,'L' ; locals
+   jp z,zdbg_cmd.print.locals
+   or a,a
+   ret
+
+zdbg_cmd.print.var:
+   ; print variable
+   ld a,16 ; hex
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld l,0
+   call cp_hl_0
+   ret nz
+   ; fetch variable
+   call zvar_fetch
+   ; format
+   push hl ; value
+   ld hl,zdbg_cmd.print.var.fmt
+   push hl ; format
+   ld hl,zdbg_cmd.print.var.buf
+   push hl ; buffer
+   call _sprintf
+   pop hl \ pop hl \ pop hl
+   ld hl,zdbg_cmd.print.var.buf
+   call zdbg_puts
+   or a,a
+   ret
+
+zdbg_cmd.print.var.buf: RESB(8)
+zdbg_cmd.print.var.fmt: .db " %04x",0
+
+zdbg_cmd.print.obj:
+   ; print object
+   ld a,16 ; hex
+   call zdbg_readop ; strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld l,0
+   call cp_hl_0
+   ret nz
+   call zobj_objaddr
+   LD_IX_HL
+   ret c
+   lea hl,ix
+   ld de,zdbg_cmd.print.obj.dat
+   ld a,ZOBJSIZE
+   call zaddr_fetchn
+   ret c ; error
+   ld ix,zdbg_cmd.print.obj.dat
+   ; format string
+   push iy
+   ld iy,0
+   add iy,sp
+   ld hl,0
+   ; property Table
+   ld h,(ix+ZOBJ_O_PROPS)
+   ld l,(ix+ZOBJ_O_PROPS+1)
+   push hl
+   ; child
+   ld h,0
+   ld l,(ix+ZOBJ_O_CHILD)
+   push hl
+   ; sibling
+   ld l,(ix+ZOBJ_O_SIBLING)
+   push hl
+   ; parent
+   ld l,(ix+ZOBJ_O_PARENT)
+   push hl
+   ; attrtibutes
+   ld h,(ix+ZOBJ_O_ATTRS+2)
+   ld l,(ix+ZOBJ_O_ATTRS+3)
+   push hl
+   ld h,(ix+ZOBJ_O_ATTRS)
+   ld l,(ix+ZOBJ_O_ATTRS+1)
+   push hl
+   ld hl,zdbg_cmd.print.obj.fmt
+   push hl
+   ld hl,zdbg_cmd.print.obj.buf
+   push hl
+   call _sprintf
+   ld sp,iy
+   pop iy
+   ld hl,zdbg_cmd.print.obj.buf
+   call zdbg_puts
+   ; put object name
+   ld hl,0
+   ld h,(ix+ZOBJ_O_PROPS+0)
+   ld l,(ix+ZOBJ_O_PROPS+1)
+   call zaddr_fetch ; get word count
+   ld b,a
+   push bc
+   push hl
+   ld ix,win_dbgout
+   ld a,'/'
+   call zwin_putc
+   ld a,'\"'
+   call zwin_putc
+   pop hl
+   ld a,(zstr_flags)
+   call zstr_reset
+   pop bc
+   push af
+   ld a,b
+   or a,a
+   call nz,zstr_puts ; nonzero word count
+   pop af
+   ld (zstr_flags),a
+   ld a,'\"'
+   call zwin_putc
+
+   ; check protector
+   ld a,(zdbg_cmd.print.obj.protector)
+   cp a,$42
+   jr z,_
+   scf
+   ld a,ZERR_INTERNAL
+   ret
+_
+
+   ; print object properties
+   call zdbg_cmd.print.obj.props
+   or a,a
+   ret
+
+zdbg_cmd.print.obj.buf: RESB(32)
+zdbg_cmd.print.obj.fmt: .db "A%04x%04x/P%02x/S%02x/C%02x/T%04x",0
+zdbg_cmd.print.obj.dat: RESB(128)
+zdbg_cmd.print.obj.protector: .db $42
+
+
+;; ix = pointer to object
+;; a = object
+zdbg_cmd.print.obj.props:
+   ld ix,win_dbg1
+   call zwin_reset
+   ; call zwin_clear
+   ld ix,zdbg_cmd.print.obj.dat
+   ld hl,0
+   ld h,(ix+ZOBJ_O_PROPS+0)
+   ld l,(ix+ZOBJ_O_PROPS+1)
+   ; hl = logical byte address of object properties
+   call zobj_proptab_body_alt
+   ; hl = LBA of object's first property
+   ; bring from Z-mem address space into ez80 address space
+   jr zdbg_cmd.print.obj.props.entry
+zdbg_cmd.print.obj.props.loop:
+   push hl
+   ld (zdbg_cmd.print.obj.props.propid),a
+   ; print prop id number
+   call zobj_propid_to_num
+   ld hl,zdbg_cmd.print.obj.props.buf_hex
+   call hexbyte ; put leading byte
+#if ZDBG_PRINT_PROPDATA
+   ld (hl),':'
+   inc hl
+   ld (hl),' '
+   inc hl
+   ; transfer prop data into buf
+   ld a,(zdbg_cmd.print.obj.props.propid)
+   call zobj_propid_to_size
+   ; ld b,a
+   ex (sp),hl ; swap LBA into hl
+   ld de,zdbg_cmd.print.obj.props.buf_bytes
+   push bc
+   call zaddr_fetchn
+   pop bc
+   ex (sp),hl
+   ex de,hl
+   ; now hl = start address of byte buf
+   ; b = count of data bytes
+   ; de = output buffer
+   call hexdump
+#else
+   ld (hl),','
+   inc hl
+   ld (hl),0
+   ld a,(zdbg_cmd.print.obj.props.propid)
+   call zobj_propid_to_size
+      
+#endif
+   ; print line
+   ld ix,win_dbg1
+   ld hl,zdbg_cmd.print.obj.props.buf_hex
+   call zwin_puts
+#if ZDBG_PRINT_PROPDATA   
+   call zwin_newline
+#endif
+   pop hl
+   ld a,(zdbg_cmd.print.obj.props.propid)
+   call zobj_propid_to_size
+   ld de,0
+   ld e,a
+   add hl,de
+zdbg_cmd.print.obj.props.entry:
+   call zaddr_fetch ; get propid
+   or a,a ; check if terminating null byte
+   jr nz,zdbg_cmd.print.obj.props.loop
+zdbg_cmd.print.obj.props.done:
+   ret
+
+zdbg_cmd.print.obj.props.propid: .db 0
+zdbg_cmd.print.obj.props.buf_bytes: RESB(8)
+zdbg_cmd.print.obj.props.buf_hex: RESB(32)
+
+zdbg_cmd.print.locals:
+   call zdbg_disp_locals
+   or a,a
+   ret
+
+;; hexdump at given address
+;; format: X<addr>/<count>/<size>/<ipl>
+zdbg_cmd.examine:
+   ; initialize values
+   ld de,1
+   ld (zdbg_cmd.examine.count),de
+   ld a,1
+   ld (zdbg_cmd.examine.size),a
+   ld a,1
+   ld (zdbg_cmd.examine.ipl),a
+   ; parse string
+   ld a,16 ; hex
+   call strtoul ; parse address
+   ccf
+   ret nc
+   ld (zdbg_cmd.examine.addr),hl
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   cp a,'/'
+   scf \ ccf
+   ret nz
+   inc hl
+   ; parse count
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld (zdbg_cmd.examine.count),a
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   cp a,'/'
+   scf \ ccf
+   ret nz
+   inc hl
+   ; parse size
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld (zdbg_cmd.examine.size),a
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   cp a,'/'
+   scf \ ccf
+   ret nz
+   inc hl
+   ; parse ipl
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,l
+   ld (zdbg_cmd.examine.ipl),a
+   ex de,hl
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr z,zdbg_cmd.examine.hexdump
+   ; invalid char at end
+   scf
+   ret
+   
+zdbg_cmd.examine.hexdump:
+   push ix
+   ld ix,0
+   add ix,sp
+   ld hl,zdbg_cmd.examine.print_args
+   push hl ; print context
+   ld hl,zwin_puts_c
+   push hl ; print
+   ld hl,zaddr_fetch_c
+   push hl ; fetch
+   ld hl,MASK(HEXDUMP_IDXSIZE)
+   push hl ; flags
+   ld hl,0
+   ld a,(zdbg_cmd.examine.ipl)
+   ld l,a
+   push hl ; ipl
+   ld a,(zdbg_cmd.examine.size)
+   ld l,a
+   push hl ; size
+   ld hl,(zdbg_cmd.examine.count)
+   push hl ; count
+   ld hl,(zdbg_cmd.examine.addr)
+   push hl ; index
+   push hl ; base
+   call _hexdump
+zdbg_cmd.examine.hexdump.done:
+   ld sp,ix
+   pop ix
+   or a,a
+   ret
+
+zdbg_cmd.examine.addr: .dl 0
+zdbg_cmd.examine.count: .dl 0
+zdbg_cmd.examine.size: .db 0
+zdbg_cmd.examine.ipl: .db 0
+zdbg_cmd.examine.print_args: .dl win_dbg1
+
+
+zdbg_cmd.jump:
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   scf \ ccf
+   ret nz
+   ; jump to address
+   ld (zframe_pc),hl
+   ret
+
+
+zdbg_cmd.seed:
+   ld a,16
+   call strtoul
+   ccf
+   ret nc
+   ld a,(de)
+   cp a,ASCII_NEWLINE
+   jr nz,_
+   call zrand_seed
+_  or a,a
+   ret
+
+zdbg_cmd.save:
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr nz,_
+   ld hl,zexec.save.name
+   call zsave_save
+   ld hl,zdbg_str
+   call c,zemu_perror
+_  or a,a
+   ret
+   
+zdbg_cmd.restore:
+   ld a,(hl)
+   cp a,ASCII_NEWLINE
+   jr nz,_
+   ld hl,zexec.save.name
+   call zsave_restore
+   ld hl,zdbg_str
+   call c,zemu_perror
+_  or a,a
+   ret
+
+;; zdbg_status -- display status information
+zdbg_status:
+   ; watchpoint status info
+   push ix
+   ld ix,ZDBG_ALERTS
+   bit ZDBG_ALERTS_WATCH,(ix)
+   ld hl,emptystr
+   jr z,_
+   res ZDBG_ALERTS_WATCH,(ix)
+   ld hl,zdbg_alert_watch.str
+_  push hl ; arg4
+   ld hl,(zframe_pc)
+   push hl ; arg3
+   ld hl,zdbg_status.fmt
+   push hl ; arg2
+   ld hl,zdbg_status.buf
+   push hl ; arg1
+   call _sprintf
+   pop hl \ pop hl \ pop hl \ pop hl
+   ld hl,zdbg_status.buf
+   call zdbg_puts
+   pop ix
+   ret
+
+zdbg_status.buf: RESB(32)
+zdbg_status.fmt: .db "%x %s",0   ; PC [WATCH]
+
+;; zdbg_exec -- run ZCPU in debugging mode
+;; INPUTS:
+;;  zdbg_flags set
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS: yes.
+zdbg_run:
+   ld ix,zdbg_flags
+   
+zdbg_run.break:
+   ; 1. Check if should break.
+   bit ZDBG_FLAGS_BREAK,(ix)
+   jr z,_
+   call zdbg_brkcmp
+   jr nz,zdbg_run.mode
+   set ZDBG_FLAGS_STEP,(ix)
+   set ZDBG_FLAGS_MODE,(ix) ; back to step mode
+_
+zdbg_run.alerts:
+   ; 1.5 Check for alerts.
+   ld a,(zdbg_alerts)
+   or a,a
+   jr z,_
+   set ZDBG_FLAGS_STEP,(ix)
+   set ZDBG_FLAGS_MODE,(ix) ; back to step mode
+_
+zdbg_run.mode:
+   ; 2. Check mode.
+   bit ZDBG_FLAGS_MODE,(ix)
+   jr z,zdbg_run.step
+
+zdbg_run.stepn:
+   ld de,zdbg_stepn
+   ld a,(de)
+   or a,a
+   jr nz,zdbg_run.stepn_dec
+   set ZDBG_FLAGS_STEP,(ix)
+   jr zdbg_run.step
+
+zdbg_run.stepn_dec:
+   dec a
+   ld (de),a
+
+zdbg_run.step:
+   or a,a
+   bit ZDBG_FLAGS_STEP,(ix)
+   call nz,zdbg_step
+   ld hl,(zframe_pc)
+   jr c,zdbg_exit
+
+zdbg_run.instr:
+#ifdef ZDBG_LOG
+   ld (zdbg_run.log_pc),hl ; save PC
+   .db LOG_PREFIX, LOGNUM_OPCODE
+zdbg_run.log_pc:
+   .dl 0
+   LOGLN()
+#endif
+   push hl
+   call zcode_decode
+   pop hl
+   call c,zdbg_chkintr
+   jr nc,zdbg_run
+zdbg_run.exit
+   jp zdbg_exit
+
+;; zdbg_brkcmp -- check if should break -- stored in ZF
+zdbg_brkcmp:
+   ld de,(zdbg_break)
+   ld hl,(zframe_pc)
+   jp cp_hl_de
+
+zdbg_stkcmp:
+   ld de,(zframe_fp)
+   ld hl,(zdbg_frame)
+   jp cp_hl_de
+
+
+;; zdbg_chkintr -- check for and handle interrupt on error flag
+;; INPUTS:
+;;  hl = PC of beginning of current instruction
+;;  a = error code
+;; OUTPUTS:
+;;  zframe_pc conditionally modified
+;;  CF indicates whether to exit
+;;  a = error code
+;; ERRORS: (sort of, but not really)
+;; DESTROYS: ???
+;; NOTE: Should only be called if CF is set (i.e. error occurred).
+zdbg_chkintr:
+   cp a,ZERR_INTR
+   scf
+   ret nz
+   ld a,(zdbg_flags)
+   bit ZDBG_FLAGS_STEP,a
+   jr z,zdbg_chkintr.break
+   bit ZDBG_FLAGS_MODE,a
+   jr z,zdbg_chkintr.break
+   ld a,ZERR_INTR
+   scf
+   ret
+zdbg_chkintr.break:
+   set ZDBG_FLAGS_STEP,a
+   set ZDBG_FLAGS_MODE,a   ; to step mode
+   ld (zdbg_flags),a
+   ld (zframe_pc),hl       ; reset instruction
+   or a,a
+   ret
+
+;; zdbg_exit -- handle errors during execution
+;; INPUTS:
+;;  hl = PC, i.e. addr of instruction that triggered error
+;;  zdbg_prev contains previous PC
+;; OUTUPTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_exit:
+   push af
+   ld de,zdbg_exit.buf
+   call hexstr
+   ex de,hl
+   ld (hl),' '
+   inc hl
+   ld (hl),0
+   ld hl,zdbg_exit.buf
+   call zdbg_puts
+   pop af
+   ret
+
+zdbg_exit.buf: RESB(32)
+
+;; zdbg_readaddr -- read address
+;; INPUTS:
+;; OUTPUTS:
+;;  hl = address
+;; DESTROYS:
+;; ERRORS:
+zdbg_readaddr:
+   ld hl,zdbg_readaddr.buf
+   ld bc,16
+   call zdbg_getsn
+   ex de,hl
+   ld hl,0
+   ld a,c
+   ld b,c
+   or a,a
+   ret z
+zdbg_readaddr.loop:
+   ld a,(de)
+   inc de
+   or a,a
+   ret z
+   JCLASS('0', '9', zdbg_readaddr.digit)
+   JCLASS('A', 'F', zdbg_readaddr.letter)
+   ret
+
+zdbg_readaddr.digit:
+   sub a,'0'
+   jr zdbg_readaddr.shift
+
+zdbg_readaddr.letter:
+   sub a,'A'-10
+   jr zdbg_readaddr.shift
+
+zdbg_readaddr.shift:
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   add hl,hl
+   or a,l
+   ld l,a
+   djnz zdbg_readaddr.loop
+
+
+
+zdbg_readaddr.buf: RESB(16)
+;; zdbg_gets -- get string
+;; INPUTS:
+;;  hl = pointer to output buffer
+;;  bc = count
+;; OUTPUTS:
+;;  hl = pointer to output buffer
+;;  bc = count read
+;; DESTROYS: all bux ix
+;; ERRORS: no.
+;; NOTE: only supports A-Z, 0-9.
+zdbg_getsn:
+   push ix
+   ld ix,win_dbgin
+   push hl \ push bc
+   call zwin_reset
+   pop bc \ pop hl
+   call zwin_getsn
+   pop ix
+   ret
+
+
+;; zdbg_watch_hook -- check if var was accessed
+;; INPUTS:
+;;  hl = value
+;;  a = var
+;;  CF = read or write (NC = read, C = write)
+;; OUTPUTS:
+;; ERRORS:
+;; DESTROYS: (none)
+zdbg_watch_hook:
+   push af
+   push hl
+   push de
+   push bc
+   push ix
+   push iy
+   ; set r/w char
+   ld c,'r'
+   jr nc,_
+   ld c,'w'
+_  ; check if watched var
+   ld iy,0 ; set up stack
+   add iy,sp
+   ex de,hl
+   ld hl,zdbg_watch
+   cp a,(hl)
+   ex de,hl
+   jr nz,zdbg_watch_hook.done ; not watched
+   ; watched
+   push hl ; arg5
+   push bc ; arg4
+   ld de,0
+   ld e,a
+   push de ; arg3
+   ld de,zdbg_watch_hook.fmt
+   push de ; arg2
+   ld de,zdbg_alert_watch.str
+   push de
+   call _sprintf
+   ld sp,iy ; remove args from stack
+   ld hl,zdbg_alerts
+   set ZDBG_ALERTS_WATCH,(hl)
+zdbg_watch_hook.done:
+   pop iy
+   pop ix
+   pop bc
+   pop de
+   pop hl
+   pop af
+   ret
+
+zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0
+
+
+;; zdbg_disp_locals -- display locals
+;; INPUTS:
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_disp_locals:
+   ld hl,(zframe_fp) ; address of locals
+   ld a,(zframe_nl)
+   ld de,0
+   ld e,a
+   jp zdbg_disp_stack_bare
+
+
+;; zdbg_disp_stack -- display stack contents
+;; INPUTS:   (none)
+;; OUTPUTS:  (none)
+;; DESTROYS: (all)
+;; ERRORS:   no
+zdbg_disp_stack:
+   ld bc,(zstack_begin)
+   ;; calculate top address of stack
+   ld hl,(zframe_sp)
+   add hl,bc
+   ex de,hl
+   ;; calculate base address of stack (skipping over locals)
+   ld hl,(zframe_fp)
+   add hl,bc
+   ld a,(zframe_nl)
+   rlca           ; a *= ZWORD_SIZE
+   UCAST_A_TO_BC
+   add hl,bc
+   ;; calculate number of stack elements (in Z-words)
+   ex de,hl
+   or a,a
+   sbc hl,de
+   srl h
+   rr l        ; hl /= ZWORD_SIZE
+   ex de,hl
+   jp zdbg_disp_stack_bare
+   
+
+;; zdbg_disp_stack_bare -- generic stack printing routine
+;; INPUTS:
+;;  de = number of elements
+;;  hl = pointer to beginning of stack
+;; OUTPUTS:
+;; DESTROYS:
+;; ERRORS:
+zdbg_disp_stack_bare:
+   ;; setup
+   push ix
+   push iy
+   ld iy,0
+   add iy,sp
+   lea ix,iy-(4+3)*3
+   ld sp,ix
+   ld (iy-3),hl ; stack pointer
+   ld (iy-6),de ; number of elements
+   ld bc,0
+   ld (iy-9),bc ; index
+   ;; clear display
+   ld ix,win_dbg1
+   call zwin_reset
+   jr zdbg_disp_stack.entry
+zdbg_disp_stack.loop:
+   ld (iy-15),hl  ; arg3 -- index
+   inc hl
+   ld (iy-9),hl  ; update index
+   ld hl,(iy-3)
+   ld de,0
+   ld d,(hl)  ; load word from stack pointer
+   inc hl
+   ld e,(hl)
+   inc hl
+   ld (iy-3),hl ; update stack pointer
+   ld (iy-12),de ; arg4 -- value
+   ld hl,zdbg_disp_stack.fmt
+   ld (iy-18),hl ; arg2 -- fmt
+   ld hl,zdbg_disp_stack.buf
+   ld (iy-21),hl ; arg1 -- buf
+   call _sprintf
+   ; print result
+   ld hl,zdbg_disp_stack.buf
+   ld ix,win_dbg1
+   push iy
+   ld iy,flags
+   call zwin_puts
+   call zwin_newline
+   pop iy
+zdbg_disp_stack.entry:
+   ld de,(iy-6) ; load number
+   ld hl,(iy-9) ; load index
+   or a,a
+   sbc hl,de
+   add hl,de
+   jr nz,zdbg_disp_stack.loop
+zdbg_disp_stack.done:
+   ; cleanup
+   ld sp,iy
+   pop iy
+   pop ix
+   ret
+
+zdbg_disp_stack.buf: RESB(16)
+zdbg_disp_stack.fmt: .db "%02x: %04x",0
+
+
+;; zdbg_disp_backtrace -- display backtrace
+;; INPUTS: ???
+;; OUTPUTS: ???
+;; DESTROYS: ???
+;; ERRORS: ???
+zdbg_disp_backtrace:
+   push ix
+   ld ix,win_dbg2
+   call zwin_reset
+   ld ix,zframe_end
+   jr zdbg_disp_backtrace.entry
+zdbg_disp_backtrace.loop:
+   push ix
+   ; format string
+   ex de,hl ; val in de
+   ld hl,zdbg_disp_backtrace.buf
+   call hexlong
+   ; print string
+   ld hl,zdbg_disp_backtrace.buf
+   ld ix,win_dbg2
+   call zwin_puts
+   call zwin_newline
+   pop ix
+   ld de,(ix+zframe_fp-zframe_end)
+   ld hl,(zstack_begin)
+   add hl,de
+   LD_IX_HL
+zdbg_disp_backtrace.entry:
+   ld hl,(ix+zframe_pc-zframe_end)
+   ld de,ZSTACK_NULL
+   call cp_hl_de
+   jr nz,zdbg_disp_backtrace.loop
+zdbg_disp_backtrace.done:
+   pop ix
+   ret
+
+zdbg_disp_backtrace.buf: RESB(7)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; UTIL FUNCTIONS ;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; hexbyte -- convert byte to hex string
+;; INPUTS:
+;;  a = byte
+;;  hl = buffer
+;; OUTPUTS:
+;;  hl <- hl + 2; (points to null-term)
+;; ERRORS: no.
+;; DESTROYS: a
+hexbyte:
+   push af
+   and a,$f0
+   rrca
+   rrca
+   rrca
+   rrca
+   call xtoc
+   ld (hl),a
+   inc hl
+   pop af
+   and a,$0f
+   call xtoc
+   ld (hl),a
+   inc hl
+   ld (hl),0
+   ret
+
+;; hexlong -- convert long to hex string
+;; INPUTS:
+;;  de = val
+;;  hl = nuffer
+;; OUTPUTS:
+;;  hl <- hl + 6 (points to null term)
+;; ERRORS: no.
+;; DESTROYS:
+hexlong:
+   ld (hexlong.val),de
+   ld a,(hexlong.val+2)
+   call hexbyte
+   ld a,(hexlong.val+1)
+   call hexbyte
+   ld a,(hexlong.val+0)
+   call hexbyte
+   ret
+hexlong.val: .dl 0
+
+;; hexdump -- dump hex values at given address
+;; INPUTS:
+;;  hl = start address
+;;  b = count
+;;  de = output buffer
+;; OUTPUTS:
+;;  hl = output buffer
+;; DESTROYS:
+;; ERRORS:
+hexdump:
+   push de ; save beginning of output buffer
+   inc b \ dec b
+   jr z,hexdump.done
+hexdump.loop:
+   ld a,(hl)
+   ex de,hl
+   call hexbyte
+   ex de,hl
+   inc hl
+   djnz hexdump.loop
+hexdump.done:
+   ex de,hl
+   ld (hl),0
+   pop hl
+   ret
+
+;; zdbg_readop -- read ``operand'' from dbgin. Accepts constants (no alphabetical prefix) and
+;;                variables.
+;; INPUTS:
+;;  hl = string pointer
+;; OUTPUTS:
+;;  hl = long number (unsigned)
+;;  de = pointer to first invalid char
+;;  CF = whether conversion was successful
+;; DESTROYS: (all)
+;; ERRORS: no.
+zdbg_readop:
+   ld a,(hl)
+   or a,a
+   scf
+   ret z          ; empty string
+   ex de,hl
+   ld hl,zdbg_readop.prefixes
+   call strchr
+   cp a,(hl)
+   jr z,zdbg_readop.var ; handle variables
+   ;; plain constant
+   ex de,hl
+   ld a,16      ; auto base
+   jp strtoul
+
+zdbg_readop.var:
+   ld bc,zdbg_readop.offsets-zdbg_readop.prefixes
+   add hl,bc
+   ld bc,0
+   ld c,(hl)   ; get variable ``offset''
+   ex de,hl
+   ld a,16     ; parse as hex
+   push bc     ; save offset
+   inc hl      ; skip prefix
+   call strtoul
+   pop bc      ; restore offset
+   ret c
+   add hl,bc   ; hl = actual variable number
+   ;; fetch variable
+   call ltobu
+   ret c
+   push de  ; restore string pointer
+   call zvar_fetch
+   pop de   ; restore string pointer
+   ret
+      
+zdbg_readop.prefixes: .db "GLSV",0
+zdbg_readop.offsets:  .db $10,$1,$0,$0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; DEBUGGING GLOBALS ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+zdbg_flags:  .db 0
+zdbg_alerts: .db 0
+zdbg_break:  .dl 0 ; address to break at
+zdbg_frame:  .dl 0 ; frame to return once reached
+zdbg_stepn:  .db 0 ; number to step before breaking?
+zdbg_watch:  .db 0 ; variable to watch
+
+zdbg_alert_watch.str: RESB(16)
+
+zdbg_str: .db "zdbg",0
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;;; DEPENDENCIES ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;
+#include "zhex.z80"
+
+#endif
+#endif

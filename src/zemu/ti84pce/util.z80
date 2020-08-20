@@ -63,4 +63,44 @@ djb2_unputc:
   pop af
   ret
 
+
+;; wtols -- word to long, signed
+;; INPUTS:
+;;  hl[15:0] = 16-bit word, signed
+;; OUTPUTS:
+;;  hl = sign-extended from hl[15:0]
+;; DESTROYS: (none)
+;; *** portable ***
+wtols:
+   push de
+   ld de,0
+   bit 7,h
+   jr z,wtols.transfer
+   dec de ; de <- $FFFFFF
+wtols.transfer:
+   ld d,h
+   ld e,l
+wtols.done:
+   ex de,hl
+   pop de
+   ret
+
+
+;; wtolu -- word to long, unsigned
+;; INPUTS:
+;;  hl[15:0] = 16-bit word, unsigned
+;; OUTPUTS:
+;;  hl = 24-bit unsigned long from hl[15:0]
+;; DESTROYS: (none)
+;; *** portable ***
+wtolu:
+   push de
+   ld de,0
+   ld d,h
+   ld e,l
+   ex de,hl
+   pop de
+   ret
+
+
 #endif

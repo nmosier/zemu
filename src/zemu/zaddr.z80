@@ -214,7 +214,7 @@ zaddr_fetchw:
    pop hl
    ret c
    ex de,hl
-   call wtols ; upcast
+   WTOLS_HL ; upcast
    ex de,hl
    or a,a ; NC
    ret

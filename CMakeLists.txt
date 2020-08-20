@@ -15,4 +15,5 @@ include(cmake/TITarget.cmake)
 
 add_subdirectory(src)
 add_subdirectory(drivers)
+add_subdirectory(scripts)
 add_subdirectory(tests)

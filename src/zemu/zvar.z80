@@ -70,7 +70,7 @@ zvar_fetch:
    call zvar_fetch.switch
    pop bc
    ret c
-   call wtols ; upcast
+   WTOLS_HL ; upcast
 #ifdef ZDBG
    push hl
    ld ix,ZDBG_FLAGS

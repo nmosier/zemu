@@ -31,6 +31,7 @@ strncpy.entry:
    ret
 
 
+#if 0
 ;; strcpy -- copy strings
 ;; INPUTS:
 ;;  hl = src
@@ -50,8 +51,7 @@ strcpy.entry:
    or a,a
    jr nz,strcpy.loop
    ret
-      
-
+#endif
 
 
 
@@ -113,6 +113,7 @@ mul_hl_a.entry:
    pop de
    ret
 
+#if 0
 ;; memcpl_short -- complement up to 256 bytes of memory
 ;; INPUTS:
 ;;  hl = pointer
@@ -196,6 +197,7 @@ _
    dec bc ; prime ldir
    ldir
    ret   
+#endif
 
 ;; memmove -- move possibly overlapping memory from src to dst
 ;; INPUTS:
@@ -379,52 +381,6 @@ negl:
    pop de
    ret
 
-;; wtols -- word to long, signed
-;; INPUTS:
-;;  hl[15:0] = 16-bit word, signed
-;; OUTPUTS:
-;;  hl = sign-extended from hl[15:0]
-;; DESTROYS: (none)
-;; *** portable ***
-wtols:
-#if TI84PCE
-   push de
-   ld de,0
-   bit 7,h
-   jr z,wtols.transfer
-   dec de ; de <- $FFFFFF
-wtols.transfer:
-   ld d,h
-   ld e,l
-wtols.done:
-   ex de,hl
-   pop de
-   ret
-#elif TI83PLUS
-wtols:
-   ret
-#endif
-
-;; wtolu -- word to long, unsigned
-;; INPUTS:
-;;  hl[15:0] = 16-bit word, unsigned
-;; OUTPUTS:
-;;  hl = 24-bit unsigned long from hl[15:0]
-;; DESTROYS: (none)
-;; *** portable ***
-#if TI84PCE
-wtolu:
-   push de
-   ld de,0
-   ld d,h
-   ld e,l
-   ex de,hl
-   pop de
-   ret
-#elif TI83PLUS
-wtolu .equ wtols
-#endif
-
 ;; btols -- byte to long, signed
 ;; INPUTS:
 ;;  a = byte, signed
@@ -479,28 +435,6 @@ ltobu:
    ccf
    ret
 
-;; ltowu -- long to word, unsigned
-;; INPUTS:
-;;  hl = 24-bit unsigned long
-;; OUTPUTS:
-;;   hl[23:16] = 0
-;;   hl[15:0] remain
-;; DESTROYS: (none)
-;; ERRORS: no.
-ltowu:
-#if TI84PCE
-   push de
-   ld de,0
-   ld d,h
-   ld e,l
-   ex de,hl
-   pop de
-   ret
-#elif TI83PLUS
-   ret
-#endif
-
-
 ;; maskb/exp2b -- get bitmask / find 2^n
 ;; INPUTS:
 ;;  a = bit/power
@@ -509,6 +443,7 @@ ltowu:
 ;; ERRORS: no.
 ;; DESTROYS: (none)
 ;; *** portable ***
+#if 0
 maskb:
 exp2b:
    push hl
@@ -531,7 +466,22 @@ exp2b.tab:
    .db $40
    .db $80
 
+#else
+maskb:
+exp2b:
+  push bc
+  ld b,a
+  inc b
+  ld a,$80
+exp2b.loop:
+  rlca  
+  djnz exp2b.loop
+  pop bc
+  ret
+#endif
 
+
+#if 0
 ;; cftoa -- carry flag to a
 ;; INPUTS:
 ;;  carry flag (CF)
@@ -546,7 +496,7 @@ cftoa:
    ret c
    xor a
    ret
-
+#endif
 
 ;; bsearch -- binary search
 ;; INPUTS:
@@ -641,6 +591,7 @@ bsearch.cmp:
 bsearch.size: .db 0
 bsearch.key: DL 0
 
+#if ZDBG
 ;; hexstr -- get hex string of value
 ;; INPUTS:
 ;;  hl = value
@@ -674,11 +625,11 @@ hexstr.loop:
    xor a,a
    ld (de),a
    ret
-
-
+l
 hexstr.lut: .db '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
+#endif
 
-
+#if 0
 ;; xstrtoul -- convert hex string to unsigned long
 ;; INPUTS:
 ;;  hl = pointer to string
@@ -715,6 +666,8 @@ xstrtoul.shift:
    ld l,a
    inc de
    jr xstrtoul.loop
+#endif
+
 
 ;; ktoch -- convert key scan code (as returned by GetKey) to ASCII char
 ;; INPUTS:
@@ -796,6 +749,7 @@ isprint.true:
    scf
    ret
 
+#if ZDBG
 ;; strtoul -- covnert string to unsigned long
 ;; INPUTS:
 ;;  hl = pointer to string
@@ -944,7 +898,6 @@ strtoul.handle.error:
 
 strtoul.handler: DL 0
 
-
 ;; mul_hl_10 -- multiply hl by 10
 ;; INPUTS:
 ;;  hl = number, signed
@@ -965,7 +918,6 @@ mul_hl_10:
    add hl,de
    pop de
    ret
-
 
 ;; ctox -- convert character to hex digit
 ;; INPUTS:
@@ -994,6 +946,8 @@ ctox.lwr:
 ctox.cap:
    sub a,'A'-10
    ret ; NC
+
+#endif
 
 ;; xtoc -- convert hex digit to character
 ;; INPUTS:

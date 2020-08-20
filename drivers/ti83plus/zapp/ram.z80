@@ -1,0 +1,35 @@
+#include "zti.inc"
+#include "zapp.inc"
+#include "zwin.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+start:
+  ld hl,0
+  ld (curRow),hl
+  bcall(_ClrScrnFull)
+
+  ld hl,name
+  call appvar_to_RAM
+  jr c,err
+  bcall(_DispHL)
+  jr done
+
+err:
+  ld hl,0
+  call zemu_perror
+  jr done
+
+done:
+  bcall(_GetKey)
+  ret
+
+name: .db "ZORK",0
+s_inram: .db "in RAM",0
+s_notinram: .db "not in RAM",0
+
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
+
+#include "zapp.z80"
+#include "zerr.z80"

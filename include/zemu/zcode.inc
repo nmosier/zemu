@@ -19,9 +19,9 @@ ZOP_VARIABLE .equ $02
 ZOP_SMALL .equ $01
 ZOP_LARGE .equ $00
 
-ZCODE_2OP_TABSIZE .equ (zcode.2OP_end - zcode.2OP) / LONG_SIZE
-ZCODE_1OP_TABSIZE .equ (zcode.1OP_end - zcode.1OP) / LONG_SIZE
-ZCODE_0OP_TABSIZE .equ (zcode.0OP_end - zcode.0OP) / LONG_SIZE
-ZCODE_VAR_TABSIZE .equ (zcode.VAR_end - zcode.VAR) / LONG_SIZE
+; ZCODE_2OP_TABSIZE .equ (zcode.2OP_end - zcode.2OP) / LONG_SIZE
+; ZCODE_1OP_TABSIZE .equ (zcode.1OP_end - zcode.1OP) / LONG_SIZE
+; ZCODE_0OP_TABSIZE .equ (zcode.0OP_end - zcode.0OP) / LONG_SIZE
+; ZCODE_VAR_TABSIZE .equ (zcode.VAR_end - zcode.VAR) / LONG_SIZE
 
 #endif

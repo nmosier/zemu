@@ -1010,7 +1010,7 @@ SUBLANG_SPANISH                  equ   01h   ; Spanish (Castilian)
 APP_PUSH_ERRORH EQU	59h
 APP_POP_ERRORH	EQU	5Ch
 ;
-#define AppOnErr xxxx	ld HL,xxxx \ CALL APP_PUSH_ERRORH
+#define AppOnErr(xxxx)	ld HL,xxxx \ CALL APP_PUSH_ERRORH
 #define AppOffErr		CALL	APP_POP_ERRORH
 ;
 ;======================================================================

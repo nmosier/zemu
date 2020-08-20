@@ -2,7 +2,7 @@
 ;; TODO -- stack overflow?
 
 
-ZMEM_SIZE .equ $2000
+ZMEM_SIZE .equ $400 ; 1K -- absolute minimum is 1K by Z-machine standard
 
 ;; GLOBAL VARIABLES ;;
 
@@ -31,7 +31,7 @@ zmem_init:
    ; get appvar in RAM
    ld hl,zmem_name
    ld bc,ZMEM_SIZE+2 ; +2 for size bytes
-   call appvar_touch
+   call appvar_touch_trunc
    ret c
    ex de,hl
    inc hl ; skip size bytes

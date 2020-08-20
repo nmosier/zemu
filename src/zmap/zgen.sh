@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 USAGE="usage: $0 [-n zpage_size] [-v] story_file [outdir]"
 

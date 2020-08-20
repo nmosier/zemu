@@ -12,10 +12,10 @@ zaddr_cp:
   push af ; save a
   ld a,b
   cp a,c
-  ret nz
   ex (sp),hl
   ld a,h ; restore a
   pop hl
+  ret nz
   jp cp_hl_de
 
 ;; zaddr_inc -- increment Z-address
@@ -27,9 +27,9 @@ zaddr_cp:
 ;; DESTROYS: (none)
 zaddr_inc:
   inc l
-  ret z
+  ret nz
   inc h
-  ret z
+  ret nz
   inc b
   ret
 
@@ -86,5 +86,50 @@ zaddr_ex:
   ld c,a
   pop af
   ret
+
+
+;; zaddr_load_from_paddr_{bhl,cde} -- load Z-address from memory
+;; INPUTS:
+;;  {hl,de} = p-addr to load from
+;; OUTPUTS:
+;;  {[b:hl],[c:de]} = Z-addr at ({hl,de})
+;; DESTROYS: (none)
+zaddr_load_from_paddr_bhl:
+  push af
+  ld a,(hl)
+  inc hl
+  ld b,(hl)
+  inc hl
+  ld l,(hl)
+  ld h,b
+  ld b,l
+  ld l,a
+  pop af
+  ret
+
+zaddr_load_from_paddr_cde:
+  call zaddr_ex
+  call zaddr_load_from_paddr_bhl
+  jp zaddr_ex
+
+#if 0
+zaddr_trap_bhl:
+  push af
+  ld a,1
+  cp a,b
+zaddr_trap_bhl.trap:
+  jr c,zaddr_trap_bhl.trap
+  pop af
+  ret
+
+zaddr_trap_cde:
+  push af
+  ld a,1
+  cp a,c
+zaddr_trap_cde.trap:
+  jr c,zaddr_trap_cde.trap
+  pop af
+  ret
+#endif  
 
 #endif

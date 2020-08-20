@@ -1026,7 +1026,7 @@ strchr.done:
 ;; *** portable ***
 sys_getkey:
    ld iy,flags
-   call _GetKey
+   SYSCALL(_GetKey)
    or a,a
    ret nz
    ;; ON key

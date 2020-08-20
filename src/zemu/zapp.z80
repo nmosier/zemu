@@ -36,6 +36,8 @@ appvar_to_OP1.zero:
 ;;  hl = name string
 ;; OUTPUTS:
 ;;  de = pointer to appvar data
+;;   TI83PLUS: only if in RAM (nz)
+;;   TI84PCE: always
 ;;  a = whether in RAM ($00 = no, $ff = yes)
 ;;  ZF = whether in RAM (z = no, nz = yes)
 ;; ERRORS: yes.
@@ -43,15 +45,18 @@ appvar_to_OP1.zero:
 ;; *** portable ***
 appvar_find:
    call appvar_to_OP1
-   call _ChkFindSym
+   SYSCALL(_ChkFindSym)
    ld a,ZERR_NOVAR
    ret c
-#if TI84PCE
+#if TI83PLUS
+   xor a,a
+   inc b \ dec b
+   jr nz,_
+   cpl
+_  or a,a
+   ret
+#elif TI84PCE
    call _ChkInRam
-#elif TI83PLUS
-   ld a,b
-   or a,a
-#endif
    ld a,$ff
    jr z,_ ; in RAM, so don't skip syment
    ex de,hl
@@ -61,7 +66,7 @@ appvar_find:
    xor a,a     ; not in RAM
 _  or a,a
    ret
-
+#endif
 
 ; appvar_to_RAM -- bring appvar into RAM
 ; INPUTS:
@@ -73,22 +78,36 @@ _  or a,a
 ; *** portable ***
 appvar_to_RAM:
    call appvar_find
-   ret c ; AppVar not found
-   jr nz,appvar_to_RAM.done
+   ret c  ; AppVar not found
+   ret nz ; already in RAM
+#if TI83PLUS
+   AppOnErr(appvar_err.nomem)
+   SYSCALL(_Arc_Unarc)
+   AppOffErr
+   ld a,AppVarObj ; stupid bug in TIOS
+   ld (OP1),a
+   SYSCALL(_ChkFindSym)
+   ret ; NOTE: CF always reset, since we know appvar exists
+#elif TI84PCE
    ex de,hl
    CLEAR_UPPER_DE
    ld e,(hl)
    inc hl
    ld d,(hl)
-   call _MemChk
+   SYSCALL(_MemChk)
    or a,a
    sbc hl,de
    ld a,ZERR_NOMEM
    ret c
-   call _Arc_Unarc
-appvar_to_RAM.done:
-   call _ChkFindSym
+   SYSCALL(_Arc_Unarc)
+   SYSCALL(_ChkFindSym)
    ret ; NOTE: CF will always be reset
+#endif
+
+appvar_err.nomem:
+  ld a,ZERR_NOMEM
+  scf
+  ret
 
 ;; appvar_touch -- create appvar (if doens't already exist) and move it into RAM. 
 ;; INPUTS:
@@ -106,7 +125,7 @@ appvar_touch:
    ret nc ; found appvar and is in RAM
    ; check if enough RAM
    push hl
-   call _MemChk
+   SYSCALL(_MemChk)
    pop de
    or a,a
    sbc hl,de
@@ -114,7 +133,7 @@ appvar_touch:
    ret c
    ; create var
    ex de,hl
-   call _CreateAppVar
+   SYSCALL(_CreateAppVar)
    or a,a   ; NC
    ret
 
@@ -130,17 +149,17 @@ appvar_touch:
 appvar_create:
    push de
    call appvar_to_OP1
-   call _ChkFindSym
+   SYSCALL(_ChkFindSym)
    jr c,appvar_create.deleted
-   call _DelVarArc
+   SYSCALL(_DelVarArc)
 appvar_create.deleted:
-   call _MemChk
+   SYSCALL(_MemChk)
    pop de
    sbc.s hl,de
    ld a,ZERR_NOMEM
    ret c ; not enough mem
    ex de,hl ; hl = size
-   call _CreateAppVar
+   SYSCALL(_CreateAppVar)
    ; de = ptr to appvar
    ret
 #endif
@@ -155,8 +174,14 @@ appvar_create.deleted:
 ;; DESTROYS: (all)
 ;; *** portable ***
 appvar_copy:
+   push hl        ; preserve src name
    push de        ; preserve dst name
-   call appvar_find
+#if TI83PLUS
+   call appvar_to_RAM ; must be in RAM to read
+#elif TI84PCE    
+   call appvar_find   ; can be read directly in archive
+#endif
+   jr c,appvar_copy.err2
    ex de,hl ; hl <- address (regardless of whether in RAM/archive)
    ;; fetch src size
    CLEAR_UPPER_BC
@@ -173,8 +198,17 @@ appvar_copy:
    ret c       ; ERROR
    push de
    ldir        ; perform copy
+   pop hl      ; restore dst ptr
+   ex (sp),hl  ; save dst ptr, restore src name
+   call appvar_to_OP1
+   SYSCALL(_Arc_Unarc)
    pop hl
+   or a,a      ; NC
    ret         ; SUCCESS
+appvar_copy.err2:
+   pop hl
+   pop hl
+   ret
 
 ;; appvar_trunc -- resize appvar
 ;; INPUTS:
@@ -207,7 +241,7 @@ appvar_trunc:
    jr c,appvar_trunc.del   ; if new < current, then need to delete memory
 appvar_trunc.insert:
    ;; check if enough mem
-   call _EnoughMem    ; de <- extra mem
+   SYSCALL(_EnoughMem)    ; de <- extra mem
    jr c,appvar_trunc.err
    ;; compute end of appvar
    LD_HL_FROM_IX(-LONG_SIZE*0)
@@ -215,7 +249,7 @@ appvar_trunc.insert:
    add hl,bc
    ex de,hl
    ;; NOTE: hl = extra mem; de = end of appvar
-   call _InsertMem
+   SYSCALL(_InsertMem)
    jr appvar_trunc.update
 
 appvar_trunc.del:
@@ -229,7 +263,7 @@ appvar_trunc.del:
    LD_BC_FROM_IX(-LONG_SIZE*1)
    add hl,bc
    ;; delete memory
-   call _DelMem
+   SYSCALL(_DelMem)
 appvar_trunc.update:
    pop ix
    ;; update size field
@@ -268,6 +302,7 @@ appvar_touch_trunc:
    jp nc,appvar_trunc
    ret
 
+#if TI84PCE
 ;; syment_size -- compute size of symbol table entry
 ;; INPUTS:
 ;;  hl = pointer to symbol table entry
@@ -284,5 +319,7 @@ syment_size:
    sbc hl,bc   ; always NC
    UCAST_A_TO_DE
    ret
+#endif
+
 
 #endif

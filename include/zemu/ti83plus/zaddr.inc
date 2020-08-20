@@ -51,18 +51,12 @@
 #endmacro
 
 #macro LD_BHL_FROM_ABS_ZA(addr)
-  ld l,a
-  ld a,(addr+2)
-  ld b,a
-  ld a,l
-  ld hl,(addr)
+  ld hl,addr
+  call zaddr_load_from_paddr_bhl
 #endmacro
 #macro LD_CDE_FROM_ABS_ZA(addr)
-  ld e,a
-  ld a,(addr+2)
-  ld c,a
-  ld a,e
-  ld de,(addr)
+  ld de,addr
+  call zaddr_load_from_paddr_cde
 #endmacro
 
 #macro LD_BHL_TO_ABS_ZA(addr)

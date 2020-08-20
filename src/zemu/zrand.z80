@@ -31,7 +31,7 @@ zrand_seed:
 ;; DESTROYS: c,de
 ;; ERRORS: no.
 zrand_newseed:
-   call _RandInit
+   SYSCALL(_RandInit)
    LD_BHL_FROM_ABS_RAND(seed1)
    ret
 

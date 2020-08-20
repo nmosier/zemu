@@ -19,8 +19,10 @@
 zmap_fetchpage:
    call zaddr_pageent
 zmap_fetchpage_ent:
+#if TI84PCE
    bit ZADDR_WRITE,b
    jr z,zmap_fetchpage.check_update    ; don't need to copy or move appvar for reads
+#endif
    bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
    jr z,zmap_fetchpage.check_RAM
    ;; copy page and update flags

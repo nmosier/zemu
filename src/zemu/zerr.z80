@@ -1,6 +1,9 @@
 ;; zerr.z80
 ;; *** portable ***
 
+#ifndef ZERR_Z80
+#define ZERR_Z80
+
 #include "zerr.inc"
 
 #if ZERREXTERN
@@ -131,5 +134,10 @@ zerr_fallback:
 zerr_fallback.buf: .db 0,0,0
 
 zerr_tabname: .db "ZEMUERR",0
+
+#endif
+
+#include "util.z80"
+#include "zwin.z80"
 
 #endif

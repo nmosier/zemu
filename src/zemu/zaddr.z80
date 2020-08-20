@@ -29,12 +29,14 @@
 ;; *** portable ***
 zaddr_valid:
    push bc
+   push de
    bit ZADDR_WRITE,a
    jr nz,zaddr_valid.write
 zaddr_valid.read:
    LD_CDE_FROM_IX_ZA(ZMAP_HDR_STORYSIZE)
 zaddr_valid.cmp:
    call zaddr_cp
+   pop de
    pop bc
    ccf
    ret nc
@@ -208,15 +210,16 @@ zaddr_fetchw:
    call zaddr_fetch
    ld d,a
    call nc,zaddr_fetch
+   jr c,zaddr_fetch.err
    ld e,a
-   ex (sp),hl
-   ld a,h
-   pop hl
-   ret c
+   pop af
    ex de,hl
    WTOLS_HL ; upcast
    ex de,hl
    or a,a ; NC
+   ret
+zaddr_fetch.err:
+   pop hl
    ret
 
 ;; zaddr_fetchwu -- fetch unsigned word at logical address

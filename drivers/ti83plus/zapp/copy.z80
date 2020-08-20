@@ -1,0 +1,42 @@
+#include "zti.inc"
+#include "zapp.inc"
+#include "zwin.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+start:
+  ld hl,0
+  ld (curRow),hl
+  bcall(_ClrScrnFull)
+
+  ld hl,srcname
+  ld de,dstname
+  call appvar_copy
+  jr c,err
+  inc hl \ inc hl ; skip size bytes
+  ld e,(hl)
+  inc hl
+  ld d,(hl)
+  ex de,hl
+  bcall(_DispHL)
+  jr done
+
+err:
+  ld hl,0
+  call zemu_perror
+  jr done
+
+done:
+  bcall(_GetKey)
+  ret
+
+srcname: .db "ZORKRAA",0
+dstname: .db "FORK",0
+s_inram: .db "in RAM",0
+s_notinram: .db "not in RAM",0
+
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
+
+#include "zapp.z80"
+#include "zerr.z80"

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # split story files into TI appvars
 
 USAGE="usage: $0 [-n blk_size] story_file [outdir]"
@@ -31,8 +31,7 @@ fi
 MAX_ZPAGE_SIZE=65535
 i=0
 acc=1
-while (( $acc < $MAX_ZPAGE_SIZE ))
-do
+while [[ $acc -lt $MAX_ZPAGE_SIZE ]]; do
     if [ $ZPAGE_SIZE -eq $acc ]
     then
         break
@@ -40,8 +39,7 @@ do
     i=$((i+1))
     acc=$((acc*2))
 done
-if (( $acc >= $MAX_ZPAGE_SIZE ))
-then
+if [[ $acc -ge $MAX_ZPAGE_SIZE ]]; then
     echo "$0: zpage size must be power of 2"
     exit 1
 fi

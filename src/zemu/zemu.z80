@@ -53,7 +53,7 @@ start:
 
 #ifndef ZDBG
    call zcpu_init
-   call zcpu_run
+   call nc,zcpu_run
 #else
    call zdbg_init
    call zdbg_run
@@ -69,7 +69,7 @@ init_windows:
    ;; allocate windows appvar
    ld hl,win_main_name
    ld bc,win_main.buflen+2 ; size bytes
-   call appvar_touch
+   call appvar_touch_trunc
    inc de
    inc de ; skip size bytes
    ld (win_main+ZWIN.BUF),de ; save buf pointer
@@ -157,7 +157,7 @@ zemu_cleanup.table_loop:
    ; move varname into OP1
    LEA_HL_IX(ZMAP_ENT_VARNAME)
    call appvar_to_OP1
-   call _Arc_Unarc ; archive zpage
+   SYSCALL(_Arc_Unarc) ; archive zpage
 zemu_cleanup.table_loop.cond:
    LEA_IX_IX(ZMAP_TABENTLEN)
    djnz zemu_cleanup.table_loop

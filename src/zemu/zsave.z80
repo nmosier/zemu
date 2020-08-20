@@ -72,7 +72,7 @@ zsave_savemap.loop:
    push ix
    push iy
    ld iy,flags
-   call _Arc_Unarc
+   SYSCALL(_Arc_Unarc)
    pop iy
    pop ix
    

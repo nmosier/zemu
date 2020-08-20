@@ -43,8 +43,12 @@ STORY_NAME_MAXLEN .equ 4
 
 ZADDR_NULL .equ ULONG_MAX
 
-;; MAIN WINDOWS 
+;; MAIN WINDOWS
+#if TI83PLUS
+win_main.buflen .equ 256
+#elif TI84PCE
 win_main.buflen .equ 512
+#endif
 
 
 #endif

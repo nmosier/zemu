@@ -13,7 +13,7 @@
 ;; *** portable ***
 zsave_size:
    ;; get size of current zmap
-   ld hl,(zmap_appvar)
+   ld hl,(zmap_header)
    UCAST_FROM_HL_TO_BC
    inc hl
    ld b,(hl)
@@ -108,9 +108,6 @@ zsave_save:
    LD_BC_HL
    pop hl            ; name -> hl
    call appvar_touch_trunc
-   ;; skip size bytes
-   inc hl
-   inc hl
    ex de,hl          ; save data ptr -> de
    ;; copy in frame
    ld hl,zframe_begin
@@ -119,14 +116,13 @@ zsave_save:
    ;; find offsets of frame pointers (fp and sp)
    ;; copy in map appvar
    push de    ; save for update
-   ld hl,(zmap_appvar)
+   ld hl,(zmap_header)
    UCAST_FROM_HL_TO_BC
    inc hl
    ld b,(hl)
    dec hl
    ldir
    pop ix
-   LEA_IX_IX(2)    ; skip size bytes
    ;; update map
    pop hl   ; name
    push de
@@ -159,9 +155,6 @@ zsave_restore:
    call appvar_find
    jr c,zsave_restore.false   ; not found, so false
    ex de,hl
-   ;; skip size bytes
-   inc hl
-   inc hl
    ;; copy saved frame into current frame
    ld de,zframe_begin
    ld bc,ZFRAME_SIZE

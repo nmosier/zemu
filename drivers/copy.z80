@@ -3,12 +3,23 @@
 #include "zwin.inc"
 
 .org userMem-2
+#if TI83PLUS
 .db t2ByteTok,tAsmCmp
+#elif TI84PCE
+.db tExtTok,tAsm84CeCmp
+#endif
 
 start:
+#if TI83PLUS
   ld hl,0
   ld (curRow),hl
-  bcall(_ClrScrnFull)
+#elif TI84PCE
+  ld hl,0
+  ld (curCol),hl
+  ld a,0
+  ld (curRow),a
+#endif
+  SYSCALL(_ClrScrnFull)
 
   ld hl,srcname
   ld de,dstname
@@ -19,7 +30,7 @@ start:
   inc hl
   ld d,(hl)
   ex de,hl
-  bcall(_DispHL)
+  SYSCALL(_DispHL)
   jr done
 
 err:
@@ -28,7 +39,7 @@ err:
   jr done
 
 done:
-  bcall(_GetKey)
+  SYSCALL(_GetKey)
   ret
 
 srcname: .db "ZORKRAA",0

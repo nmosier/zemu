@@ -103,8 +103,6 @@ zerr_fetchtab:
   call appvar_to_RAM
   ret c
   ex de,hl
-  inc hl
-  inc hl ; skip size bytes
   ld (zerr_tabptr),hl
   ret
 

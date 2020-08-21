@@ -31,83 +31,7 @@ appvar_to_OP1.zero:
    djnz appvar_to_OP1.zero
    ret
 
-;; appvar_find -- find AppVar
-;; INPUTS:
-;;  hl = name string
-;; OUTPUTS:
-;;  de = pointer to appvar data
-;;   TI83PLUS: only if in RAM (nz)
-;;   TI84PCE: always
-;;  a = whether in RAM ($00 = no, $ff = yes)
-;;  ZF = whether in RAM (z = no, nz = yes)
-;; ERRORS: yes.
-;; NOTE: Doesn't change storage location (archive vs. RAM).
-;; *** portable ***
-appvar_find:
-   call appvar_to_OP1
-   SYSCALL(_ChkFindSym)
-   ld a,ZERR_NOVAR
-   ret c
-#if TI83PLUS
-   xor a,a
-   inc b \ dec b
-   jr nz,_
-   cpl
-_  or a,a
-   ret
-#elif TI84PCE
-   call _ChkInRam
-   ld a,$ff
-   jr z,_ ; in RAM, so don't skip syment
-   ex de,hl
-   call syment_size
-   add hl,de   ; skip entry
-   ex de,hl
-   xor a,a     ; not in RAM
-_  or a,a
-   ret
-#endif
 
-; appvar_to_RAM -- bring appvar into RAM
-; INPUTS:
-;  hl = name string
-; OUTPUTS:
-;  de = pointer to appvar data in RAM
-; ERROR: a = error code, CF set
-; DESTROYS: (all), OP1
-; *** portable ***
-appvar_to_RAM:
-   call appvar_find
-   ret c  ; AppVar not found
-   ret nz ; already in RAM
-#if TI83PLUS
-   AppOnErr(appvar_err.nomem)
-   SYSCALL(_Arc_Unarc)
-   AppOffErr
-   ld a,AppVarObj ; stupid bug in TIOS
-   ld (OP1),a
-   SYSCALL(_ChkFindSym)
-   ret ; NOTE: CF always reset, since we know appvar exists
-#elif TI84PCE
-   ex de,hl
-   CLEAR_UPPER_DE
-   ld e,(hl)
-   inc hl
-   ld d,(hl)
-   SYSCALL(_MemChk)
-   or a,a
-   sbc hl,de
-   ld a,ZERR_NOMEM
-   ret c
-   SYSCALL(_Arc_Unarc)
-   SYSCALL(_ChkFindSym)
-   ret ; NOTE: CF will always be reset
-#endif
-
-appvar_err.nomem:
-  ld a,ZERR_NOMEM
-  scf
-  ret
 
 ;; appvar_touch -- create appvar (if doens't already exist) and move it into RAM. 
 ;; INPUTS:
@@ -134,6 +58,7 @@ appvar_touch:
    ; create var
    ex de,hl
    SYSCALL(_CreateAppVar)
+   inc hl \ inc hl ; skip size bytes
    or a,a   ; NC
    ret
 
@@ -164,51 +89,6 @@ appvar_create.deleted:
    ret
 #endif
 
-;; appvar_copy -- copy contents of one appvar into another
-;; INPUTS:
-;;  hl = name of src appvar
-;;  de = name of dst appvar
-;; OUTPUTS:
-;;  hl = dst appvar data ptr
-;; ERRORS: yes (memory)
-;; DESTROYS: (all)
-;; *** portable ***
-appvar_copy:
-   push hl        ; preserve src name
-   push de        ; preserve dst name
-#if TI83PLUS
-   call appvar_to_RAM ; must be in RAM to read
-#elif TI84PCE    
-   call appvar_find   ; can be read directly in archive
-#endif
-   jr c,appvar_copy.err2
-   ex de,hl ; hl <- address (regardless of whether in RAM/archive)
-   ;; fetch src size
-   CLEAR_UPPER_BC
-   ld c,(hl)
-   inc hl
-   ld b,(hl)
-   dec hl
-   ex (sp),hl  ; preserve src ptr and restore dst name
-   push bc     ; preserve size
-   call nc,appvar_touch_trunc
-   ex de,hl    ; de <- dst ptr
-   pop bc      ; restore size
-   pop hl      ; restore src ptr
-   ret c       ; ERROR
-   push de
-   ldir        ; perform copy
-   pop hl      ; restore dst ptr
-   ex (sp),hl  ; save dst ptr, restore src name
-   call appvar_to_OP1
-   SYSCALL(_Arc_Unarc)
-   pop hl
-   or a,a      ; NC
-   ret         ; SUCCESS
-appvar_copy.err2:
-   pop hl
-   pop hl
-   ret
 
 ;; appvar_trunc -- resize appvar
 ;; INPUTS:
@@ -278,6 +158,7 @@ appvar_trunc.done:
    ld sp,ix
    pop hl      ; appvar data ptr
    pop ix
+   inc hl \ inc hl ; skip size bytes
    ret
 
 appvar_trunc.err:
@@ -302,24 +183,11 @@ appvar_touch_trunc:
    jp nc,appvar_trunc
    ret
 
-#if TI84PCE
-;; syment_size -- compute size of symbol table entry
-;; INPUTS:
-;;  hl = pointer to symbol table entry
-;; OUTPUTS:
-;;  de = size
-;; DESTROYS: all but hl
-;; ERRORS: no.
-;; *** portable ***
-syment_size:
-   ld bc,SYMENT.NL
-   ld a,SYMENT.VARNAME
-   add hl,bc
-   add a,(hl)
-   sbc hl,bc   ; always NC
-   UCAST_A_TO_DE
-   ret
-#endif
 
+#if TI83PLUS
+#include "ti83plus/zapp.z80"
+#elif TI84PCE
+#include "ti84pce/zapp.z80"
+#endif
 
 #endif

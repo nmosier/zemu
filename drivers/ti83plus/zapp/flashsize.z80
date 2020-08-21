@@ -1,0 +1,58 @@
+#include "zti.inc"
+#include "zapp.inc"
+#include "zwin.inc"
+
+.org userMem-2
+.db t2ByteTok,tAsmCmp
+
+COUNT .equ 32
+
+start:
+  ld hl,0
+  ld (curRow),hl
+  bcall(_ClrScrnFull)
+
+  ld hl,name
+  call appvar_size
+  jr c,err
+  bcall(_DispHL)
+
+  jr done
+
+err:
+  ld hl,s_err
+  bcall(_PutS)
+  jr done
+
+done:
+  bcall(_GetKey)
+  ret
+
+;; INPUTS:
+;;  hl = ptr
+;;  b = count
+hexdump:
+  ld a,(hl)
+  inc hl
+  ex de,hl
+  ld hl,hex
+  call xtos
+  ld hl,hex
+  push de
+  push bc
+  bcall(_PutS)
+  pop bc
+  pop hl
+  djnz hexdump
+  ret
+
+hex: .db 0,0,0
+
+name: .db "ZORKRAA",0
+s_err: .db "error",0
+bytes: RESB(COUNT)
+
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
+
+#include "zapp.z80"
+#include "zerr.z80"

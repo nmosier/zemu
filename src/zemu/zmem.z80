@@ -34,8 +34,6 @@ zmem_init:
    call appvar_touch_trunc
    ret c
    ex de,hl
-   inc hl ; skip size bytes
-   inc hl
    ld (zstack_begin),hl
    ld hl,0
    ld (zframe_fp),hl

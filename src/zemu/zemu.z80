@@ -70,8 +70,6 @@ init_windows:
    ld hl,win_main_name
    ld bc,win_main.buflen+2 ; size bytes
    call appvar_touch_trunc
-   inc de
-   inc de ; skip size bytes
    ld (win_main+ZWIN.BUF),de ; save buf pointer
    ld ix,win_main
    call zwin_reset
@@ -142,7 +140,7 @@ zemu_open.find_zmap:
 ;; zemu_cleanup -- cleanup in preparation for exit
 zemu_cleanup:
    ; check if zmap was found
-   ld hl,(zmap_appvar)
+   ld hl,(zmap_header)
    ld de,0
    or a,a
    sbc hl,de ; (hl == 0)

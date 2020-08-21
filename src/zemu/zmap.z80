@@ -72,8 +72,6 @@ zmap_copypage_ent:
    call appvar_copy
    pop ix
    ret c
-   inc hl   ; skip size bytes
-   inc hl 
    ;; update zmap entry
    LD_HL_TO_IX(ZMAP_ENT_PTR)
    ld a,MASK(ZMAP_ENT_FLAGS_INRAM)
@@ -158,9 +156,6 @@ zmap_load:
 ;; *** portable ***
 zmap_setptr:
    ;; set global zmap pointers
-   ld (zmap_appvar),hl
-   inc hl
-   inc hl
    ld (zmap_header),hl
    ld de,ZMAP_HDRSIZE
    add hl,de
@@ -198,8 +193,6 @@ zmap_update_ent:
    pop ix
    ret c
    ex de,hl
-   inc hl
-   inc hl
    LD_HL_TO_IX(ZMAP_ENT_PTR)
    res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
    ;; update INRAM flag
@@ -237,7 +230,6 @@ zmap_page_to_RAM:
 ;;;;; ZMAP GLOBALS ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-zmap_appvar: DL 0
 zmap_header: DL 0
 zmap_table:  DL 0
 zmap_name_canonical: RESB(VARNAMELEN)

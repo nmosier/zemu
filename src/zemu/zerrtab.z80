@@ -1,39 +1,46 @@
-#if ZERREXTERN
+#ifndef ZERRTAB_Z80
+#define ZERRTAB_Z80
 
+#include "zti.inc"
+
+#if ZERREXTERN
+#define DERR .dw
 #if TI84PCE
 .assume ADL=1
 #endif
 
 .org 0
 
+#else
+#define DERR .dl
 #endif
 
 zerrtab:
-   .dw zerrmsg_success
-   .dw zerrmsg_novar
-   .dw zerrmsg_nomem
-   .dw zerrmsg_badaddr
-   .dw zerrmsg_notavail
-   .dw zerrmsg_nolocl
-   .dw zerrmsg_stackempty
-   .dw zerrmsg_badinstr
-   .dw zerrmsg_badvarno
-   .dw zerrmsg_divzero
-   .dw zerrmsg_badobj
-   .dw zerrmsg_badattr
-   .dw zerrmsg_noprop
-   .dw zerrmsg_badprop
-   .dw zerrmsg_badchar
-   .dw zerrmsg_argc
-   .dw zerrmsg_intr
-   .dw zerrmsg_zchar
-   .dw zerrmsg_txtbuf
-   .dw zerrmsg_prsbuf
-   .dw zerrmsg_toolong
-   .dw zerrmsg_badname
-   .dw zerrmsg_rdonly
-   .dw zerrmsg_stackover
-   .dw zerrmsg_internal
+   DERR zerrmsg_success
+   DERR zerrmsg_novar
+   DERR zerrmsg_nomem
+   DERR zerrmsg_badaddr
+   DERR zerrmsg_notavail
+   DERR zerrmsg_nolocl
+   DERR zerrmsg_stackempty
+   DERR zerrmsg_badinstr
+   DERR zerrmsg_badvarno
+   DERR zerrmsg_divzero
+   DERR zerrmsg_badobj
+   DERR zerrmsg_badattr
+   DERR zerrmsg_noprop
+   DERR zerrmsg_badprop
+   DERR zerrmsg_badchar
+   DERR zerrmsg_argc
+   DERR zerrmsg_intr
+   DERR zerrmsg_zchar
+   DERR zerrmsg_txtbuf
+   DERR zerrmsg_prsbuf
+   DERR zerrmsg_toolong
+   DERR zerrmsg_badname
+   DERR zerrmsg_rdonly
+   DERR zerrmsg_stackover
+   DERR zerrmsg_internal
 
 
 zerrmsg_success:    .db "success",0
@@ -61,3 +68,5 @@ zerrmsg_badname:    .db "name contains invalid character",0
 zerrmsg_rdonly:     .db "write attempt to read-only memory",0
 zerrmsg_stackover:  .db "stack overflow",0
 zerrmsg_internal:   .db "internal error",0
+
+#endif

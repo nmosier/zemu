@@ -5,7 +5,6 @@
 .db t2ByteTok,tAsmCmp
 
 start:
-  call fill_black
   bcall(_GrBufCpy)
   bcall(_GetKey)
   ld ix,rect
@@ -13,13 +12,6 @@ start:
   call zdisp_scrollrect_up.clear
   bcall(_GetKey)
   ret
-
-fill_black:
-   ld hl,DISP_VRAM
-   ld bc,DISP_WIDTH*DISP_HEIGHT/8
-   ld a,$ff
-   call memset
-   ret
 
 
 ;; GLOBAL VARS ;;

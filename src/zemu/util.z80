@@ -974,6 +974,31 @@ xtoc.digit:
    add a,'0'
    ret
 
+;; xtos -- convert hex digit pair to character pair
+;; INPUTS:
+;;  a
+;;  hl = pointer to 2-char buffer
+;; OUTPUTS:
+;;  writes hex representation of %a to (hl),(hl+1)
+;;  hl <- hl + 2
+;; ERRORS: no.
+;; DESTROYS:
+xtos:
+  push af
+  rrca
+  rrca
+  rrca
+  rrca
+  and a,$0f
+  call xtoc
+  ld (hl),a
+  inc hl
+  pop af
+  and a,$0f
+  call xtoc
+  ld (hl),a
+  inc hl
+  ret
 
 ;; cp_hl_0 -- compare hl to 0
 ;; INPUTS:

@@ -1,0 +1,62 @@
+#ifndef TI83PLUS_ZFILE_Z80
+#define TI83PLUS_ZFILE_Z80
+
+
+;; file_addr -- get address of byte in file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset (offset < 16KB - 2B)
+;; OUTPUTS:
+;;  [a:hl] = RAM/flash address of byte
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_addr:
+  push hl
+  call file_info
+  pop hl
+  ret c
+  ex de,hl
+  ld a,$79
+  cp a,h
+  jr c,file_addr.RAM ; hl >= $8000, so in RAM, and size bytes skipped
+file_addr.flash:
+  add hl,de
+  ld de,19 ; magic number for AppVars in flash
+  add hl,de
+  cp a,h
+  ret nc ; hl < $8000, so don't need to adjust
+  inc a
+  ld a,d
+  sub a,$40
+  ld d,a
+  ret ; always NC (success)
+
+file_addr.RAM:
+  inc hl \ inc hl ; skip size bytes
+  add hl,de       ; always NC 
+  ret             ; success
+
+
+;; file_read -- read byte from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset into file
+;; OUTPUTS:
+;   a = byte
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_read:
+  call file_addr
+  ret c
+  ld de,file_read.byte
+  ld bc,1
+  SYSCALL(_FlashToRAM)
+  ld a,(file_read.byte)
+  or a,a ; success
+  ret
+
+file_read.byte: .db 0
+
+
+
+#endif

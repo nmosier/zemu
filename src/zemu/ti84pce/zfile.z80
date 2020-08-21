@@ -1,0 +1,43 @@
+#ifndef TI84PCE_ZFILE_Z80
+#define TI84PCE_ZFILE_Z80
+
+;; file_addr -- get address of byte in file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset (offset < 16K)
+;; OUTPUTS:
+;;  [a:hl] = RAM/flash address of byte
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_addr:
+  push hl
+  call file_info
+  pop hl
+  ret c
+  add hl,de
+  jr z,file_addr.RAM
+file_addr.archive:
+  ld de,19
+  add hl,de
+  ret ; always NC
+file_addr.RAM:
+  inc hl \ inc hl ; skip size bytes
+  ret ; always NC
+
+
+;; file_read -- read byte from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset into file
+;; OUTPUTS:
+;   a = byte
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_read:
+  call file_addr
+  ret c
+  ld a,(hl)
+  ret
+
+
+#endif

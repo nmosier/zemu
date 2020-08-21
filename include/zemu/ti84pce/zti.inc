@@ -108,6 +108,13 @@ LONG_SIZE .equ 3
 
 ;; SYSCALLS ;;
 #define SYSCALL(addr) call addr
+#macro SYSERR_PUSH(addr)
+   ld hl,addr
+   call _PushErrorHandler
+#endmacro
+#macro SYSERR_POP(addr)
+   call _PopErrorHandler
+#endmacro
 
 
 #endif

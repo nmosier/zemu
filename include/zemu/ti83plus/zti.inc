@@ -185,6 +185,8 @@ LONG_SIZE .equ WORD_SIZE
 
 ;; SYSTEM CALLS ;;
 #define SYSCALL(addr) bcall(addr)
+#define SYSERR_PUSH(addr) AppOnErr(addr)
+#define SYSERR_POP(addr) AppOffErr
 
 
 #endif

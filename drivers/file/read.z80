@@ -1,0 +1,82 @@
+#include "zti.inc"
+#include "zapp.inc"
+#include "zwin.inc"
+#include "zfile.inc"
+
+.org userMem-2
+#if TI83PLUS
+.db t2ByteTok,tAsmCmp
+#elif TI84PCE
+.db tExtTok,tAsm84CeCmp
+#endif
+
+start:
+#if TI83PLUS
+  ld hl,0
+  ld (curRow),hl
+#elif TI84PCE
+  ld hl,0
+  ld (curCol),hl
+  ld a,0
+  ld (curRow),a
+#endif
+  SYSCALL(_ClrScrnFull)
+
+  ;; open file
+  ld ix,file
+  call file_open
+
+  ;; read byte from file
+  ld hl,0
+  ld b,32
+  call filedump
+  jr c,err
+
+  jr done
+
+err:
+  ld hl,0
+  call zemu_perror
+  jr done
+
+done:
+  SYSCALL(_GetKey)
+  ret
+
+
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset
+;;  b = count
+filedump:
+  push hl
+  push bc
+  call file_read
+  pop bc
+  pop hl
+  ret c
+  inc hl
+  ex de,hl
+  ld hl,hex
+  call xtos
+  ld hl,hex
+  push de
+  push bc
+  SYSCALL(_PutS)
+  pop bc
+  pop hl
+  djnz filedump
+  or a,a
+  ret
+
+hex: .db 0,0,0
+
+
+file: D_FILE("ZORKRAA", 0)
+
+
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
+
+#include "zapp.z80"
+#include "zerr.z80"
+#include "zfile.z80"

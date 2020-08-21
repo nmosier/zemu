@@ -62,33 +62,6 @@ appvar_touch:
    or a,a   ; NC
    ret
 
-#if 0
-;; appvar_create -- create appvar (deleting existing one of same name).
-;; INPUTS:
-;;  hl = name string
-;;  de.s = size of appvar
-;; OUTPUTS:
-;;  de = pointer to appvar data
-;; DESTROYS: (all)
-;; ERROR: yes.
-appvar_create:
-   push de
-   call appvar_to_OP1
-   SYSCALL(_ChkFindSym)
-   jr c,appvar_create.deleted
-   SYSCALL(_DelVarArc)
-appvar_create.deleted:
-   SYSCALL(_MemChk)
-   pop de
-   sbc.s hl,de
-   ld a,ZERR_NOMEM
-   ret c ; not enough mem
-   ex de,hl ; hl = size
-   SYSCALL(_CreateAppVar)
-   ; de = ptr to appvar
-   ret
-#endif
-
 
 ;; appvar_trunc -- resize appvar
 ;; INPUTS:

@@ -1,0 +1,15 @@
+#include "zti.inc"
+#include "util.inc"
+
+.org userMem-2
+#if TI83PLUS
+.db t2ByteTok,tAsmCmp
+#elif TI84PCE
+.db tExtTok,tAsm84CeCmp
+#endif
+
+.echo $
+_ .db 0
+.echo $
+RESB($ - -_)
+.echo $

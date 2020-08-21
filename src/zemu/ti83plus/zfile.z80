@@ -8,6 +8,7 @@
 ;;  hl = offset (offset < 16KB - 2B)
 ;; OUTPUTS:
 ;;  [a:hl] = RAM/flash address of byte
+;;  ZF = whether in RAM (Z = RAM, NZ = flash)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_addr:
@@ -29,15 +30,41 @@ file_addr.flash:
   ld a,d
   sub a,$40
   ld d,a
-  ret ; always NC (success)
+  ret ; always NC, NZ (success)
 
 file_addr.RAM:
   inc hl \ inc hl ; skip size bytes
-  add hl,de       ; always NC 
+  add hl,de       
+  xor a,a         ; NC, Z
   ret             ; success
 
 
-;; file_read -- read byte from file
+
+;; file_readn -- read bytes from file into buffer
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = file offset
+;;  de = output buffer
+;;  bc = size (size > 0)
+;; OUTPUTS:
+;;  bc = 0
+;;  hl <- hl + bc
+;;  de <- de + bc
+;; DESTROYS: (all)
+;; ERRORS: ???
+file_readn:
+  push de
+  push bc
+  call file_addr
+  pop bc
+  pop de
+  ret c
+  SYSCALL(_FlashToRAM)
+  or a,a
+  ret
+
+
+;; file_readb -- read byte from file
 ;; INPUTS:
 ;;  ix = file pointer
 ;;  hl = offset into file
@@ -45,18 +72,36 @@ file_addr.RAM:
 ;   a = byte
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
-file_read:
+file_readb:
   call file_addr
   ret c
-  ld de,file_read.byte
+  ld de,file_read.buf
   ld bc,1
   SYSCALL(_FlashToRAM)
-  ld a,(file_read.byte)
+  ld a,(file_read.buf)
   or a,a ; success
   ret
 
-file_read.byte: .db 0
+
+;; file_readw -- read word from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset into file
+;; OUTPUTS:
+;;  hl = word
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_readw:
+file_readl:
+  call file_addr
+  ret c
+  ld de,file_read.buf
+  ld bc,2
+  SYSCALL(_FlashToRAM)
+  ld hl,(file_read.buf)
+  ret
 
 
+file_read.buf: RESB(VARNAMELEN) ; max(VARNAMELEN, BYTE_SIZE, WORD_SIZE, LONG_SIZE)
 
 #endif

@@ -154,6 +154,27 @@ file_info:
 #endif
   ret
 
+
+;; file_appvar_to_OP1 -- copy AppVar name to OP1
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = file offset
+;; OUTPUTS:
+;;  OP1 contains AppVar token + string
+;; DESTROYS: ???
+;; ERRORS: yes.
+file_appvar_to_OP1:
+  call file_addr
+  ld de,OP1
+  ld a,AppVarObj
+  ld (de),a
+  inc de
+  ld bc,VARNAMELEN
+  jp nc,file_readn
+  ret
+
+
+
 #if TI83PLUS
 #include "ti83plus/zfile.z80"
 #elif TI84PCE

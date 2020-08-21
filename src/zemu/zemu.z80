@@ -233,3 +233,4 @@ zemu_prompt_game: .db "Story name: ",0
 #include "zwin.z80"
 #include "zti.z80"
 #include "util.z80"
+#include "zfile.z80"

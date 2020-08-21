@@ -7,6 +7,7 @@
 ;;  hl = offset (offset < 16K)
 ;; OUTPUTS:
 ;;  [a:hl] = RAM/flash address of byte
+;;  ZF = whether in RAM (Z = RAM, NZ = flash)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_addr:
@@ -24,19 +25,79 @@ file_addr.RAM:
   inc hl \ inc hl ; skip size bytes
   ret ; always NC
 
+file_addr.err1:
+  pop hl
+  ret
 
-;; file_read -- read byte from file
+
+;; file_readn -- read bytes from file into buffer
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = file offset
+;;  de = output buffer
+;;  bc = size (size > 0)
+;; OUTPUTS:
+;;  bc = 0
+;;  hl <- hl + bc
+;;  de <- de + bc
+;; DESTROYS: (all)
+;; ERRORS: ???
+file_readn:
+  push de
+  push bc
+  call file_addr
+  pop bc
+  pop de
+  ret c
+  ldir
+  ret
+
+;; file_readb -- read byte from file
 ;; INPUTS:
 ;;  ix = file pointer
 ;;  hl = offset into file
 ;; OUTPUTS:
-;   a = byte
+;;  a = byte
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
-file_read:
+file_readb:
   call file_addr
   ret c
   ld a,(hl)
+  ret
+
+
+;; file_readw -- read word from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset into file
+;; OUTPUTS:
+;;  hl = word
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_readw:
+  call file_addr
+  ret c
+  ld de,0
+  ld e,(hl)
+  inc hl
+  ld d,(hl)
+  ex de,hl
+  ret
+
+
+;; file_readl -- read long from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset into file
+;; OUTPUTS:
+;;  hl = long
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_readl:
+  call file_addr
+  ret c
+  ld hl,(hl)
   ret
 
 

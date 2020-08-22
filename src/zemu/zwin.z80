@@ -88,49 +88,50 @@ zwin_reset:
 ;; DESTROYS: (all)
 ;; ERRORS: no, but safe.
 zwin_putc:
-   scf
-   jr zwin_putc.base
+  scf
+  jr zwin_putc.base
 
 zwin_putc_bare:
-   or a,a
-   jr zwin_putc.base
+  or a,a
+  jr zwin_putc.base
 
 ;; preserves %a
 zwin_putc.base:
-   push bc \ push hl \ push de
+  push bc \ push hl \ push de
    push af
-   ; 1.  Check if newline.
-   cp a,ASCII_NEWLINE
-   jr z,zwin_putc.newline
-   ; 2. Check if delete.
-   cp a,ASCII_DEL
-   jr z,zwin_putc.del
-   ; 3. Check if clear.
-   cp a,ASCII_CLEAR
-   jr z,zwin_putc.clear
-   ; Otherwise
-   call zwin_putc.base.other
+    ; 1.  Check if newline.
+    cp a,ASCII_NEWLINE
+    jr z,zwin_putc.newline
+    ; 2. Check if delete.
+    cp a,ASCII_DEL
+    jr z,zwin_putc.del
+    ; 3. Check if clear.
+    cp a,ASCII_CLEAR
+    jr z,zwin_putc.clear
+    ; Otherwise
+    call zwin_putc.base.other
 zwin_putc.done:
    pop af
    ; Buffer char
    call c,zwin_bufc
 zwin_putc.done_nbuf:
-   pop de \ pop hl \ pop bc
-   or a,a
-   ret
+  pop de \ pop hl \ pop bc
+  ret
 
 zwin_putc.newline:
-   call zwin_newline_bare ; already buffered
-   jr zwin_putc.done
+    call zwin_newline_bare ; already buffered
+    jr zwin_putc.done
 
 zwin_putc.del:
-   call zwin_unputc
-   pop af
+    call zwin_unputc
+   pop bc
+   ld a,b
    jr zwin_putc.done_nbuf
 
 zwin_putc.clear:
-   call zwin_clear
+    call zwin_clear
    pop af
+   or a,a ; NC -- success
    jr zwin_putc.done_nbuf
 
 
@@ -411,6 +412,7 @@ zwin_puts:
    jr zwin_puts.entry
 zwin_puts.loop:
    call zwin_putc
+   ret c
    inc hl
 zwin_puts.entry:
    ld a,(hl)
@@ -660,94 +662,100 @@ zwin_getc_bare:
 ;; NOTE: bc = 0 means # bytes == 2^16
 ;; *** portable ***
 zwin_getsn:
-   push hl
+  push hl
    push bc
-   jr zwin_getsn.entry
+    jr zwin_getsn.entry
 zwin_getsn.loop:
-   push hl
-   push bc
+    push hl
+     push bc
 #if ZCURSOR
-   call zwin_putcursor
+      call zwin_putcursor
+      jr c,zwin_getsn.err4
 #endif
-   call zwin_getc_bare ; preserves a
+      call zwin_getc_bare ; preserves a
 #if ZCURSOR
-   push af           ; NOTE: preserving error state.
-   call zwin_unputcursor
-   pop af
+      push af           ; NOTE: preserving error state.
+       call zwin_unputcursor
+      pop af
 #endif
-   pop bc
-   pop hl
-   jr c,zwin_getsn.error
-   or a,a ; check for null term
-   jr z,zwin_getsn.done
+     pop bc
+    pop hl
+    jr c,zwin_getsn.err2
+    or a,a ; check for null term
+    jr z,zwin_getsn.done
 
-   pop de \ push de
-   call zwin_getsn.handle
+    pop de \ push de
+    call zwin_getsn.handle
 
-   jr c,zwin_getsn.done
+    jr c,zwin_getsn.done
 
 zwin_getsn.entry:
-   ld de,1
-   ex de,hl
-   or a,a
-   sbc hl,bc
-   ex de,hl
-   ; continue if count > 1
-   jr nz,zwin_getsn.loop
+    ld de,1
+    ex de,hl
+    or a,a
+    sbc hl,bc
+    ex de,hl
+    ; continue if count > 1
+    jr nz,zwin_getsn.loop
 zwin_getsn.done:
-   ld (hl),ASCII_NUL ; null byte
+    ld (hl),ASCII_NUL ; null byte
    pop hl
    or a,a
    sbc hl,bc
-   push hl \ pop bc
-   pop hl
-   or a,a
-   ret
+   LD_BC_HL
+  pop hl
+  or a,a
+  ret
 
 
 zwin_getsn.handle:
-   call isprint
-   jp nc,zwin_getsn.special
+  call isprint
+  jp nc,zwin_getsn.special
 zwin_getsn.print:
-   ; is print
-   ld (hl),a
-   inc hl
-   dec bc
+  ; is print
+  ld (hl),a
+  inc hl
+  dec bc
 zwin_getsn.putc:
-   push hl
+  push hl
    push bc
-   call zwin_putc
+    call zwin_putc
    pop bc
-   pop hl
-   cp a,ASCII_NEWLINE
-   scf
-   ret z
-   ccf
-   ret
+  pop hl
+  ret c
+  cp a,ASCII_NEWLINE
+  scf
+  ret z
+  ccf
+  ret
 
 zwin_getsn.special:
-   cp a,ASCII_DEL
-   jr z,zwin_getsn.del
-   or a,a
-   ret ; do nothing
+  cp a,ASCII_DEL
+  jr z,zwin_getsn.del
+  or a,a
+  ret ; do nothing
 
 zwin_getsn.del:
-   ; make sure to not underflow the buffer
-   ; expects de = full count
-   ex de,hl
-   or a,a
-   sbc hl,bc
-   ex de,hl
-   ret z ; nothing to delete
-   dec hl ; delete one char
-   inc bc
-   jr zwin_getsn.putc
+  ; make sure to not underflow the buffer
+  ; expects de = full count
+  ex de,hl
+  or a,a
+  sbc hl,bc
+  ex de,hl
+  ret z ; nothing to delete
+  dec hl ; delete one char
+  inc bc
+  jr zwin_getsn.putc
 
-
-zwin_getsn.error:
-   pop de
-   pop hl
-   ret
+zwin_getsn.err4:
+  pop hl
+zwin_getsn.err3:
+  pop hl
+zwin_getsn.err2:
+  pop hl
+zwin_getsn.err1:
+  pop hl
+  ret
 
 
 
@@ -799,7 +807,7 @@ zwin_nopage:
 ;; INPUTS:
 ;;  ix = window
 ;; OUTPUTS: (none)
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; DESTROYS: ???
 ;; *** portable ***
 zwin_putcursor:

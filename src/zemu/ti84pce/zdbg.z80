@@ -220,26 +220,26 @@ zdbg_cmd.print.var.buf: RESB(8)
 zdbg_cmd.print.var.fmt: .db " %04x",0
 
 zdbg_cmd.print.obj:
-   ; print object
-   ld a,16 ; hex
-   call zdbg_readop ; strtoul
-   ccf
-   ret nc
-   ld a,l
-   ld l,0
-   call cp_hl_0
-   ret nz
-   call zobj_objaddr
-   LD_IX_HL
-   ret c
-   lea hl,ix
-   ld de,zdbg_cmd.print.obj.dat
-   ld a,ZOBJSIZE
-   call zaddr_fetchn
-   ret c ; error
-   ld ix,zdbg_cmd.print.obj.dat
-   ; format string
-   push iy
+  ; print object
+  ld a,16 ; hex
+  call zdbg_readop ; strtoul
+  ccf
+  ret nc
+  ld a,l
+  ld l,0
+  call cp_hl_0
+  ret nz
+  call zobj_objaddr
+  LD_IX_HL
+  ret c
+  lea hl,ix
+  ld de,zdbg_cmd.print.obj.dat
+  ld a,ZOBJSIZE
+  call zaddr_fetchn
+  ret c ; error
+  ld ix,zdbg_cmd.print.obj.dat
+  ; format string
+  push iy
    ld iy,0
    add iy,sp
    ld hl,0
@@ -270,48 +270,46 @@ zdbg_cmd.print.obj:
    push hl
    call _sprintf
    ld sp,iy
-   pop iy
-   ld hl,zdbg_cmd.print.obj.buf
-   call zdbg_puts
-   ; put object name
-   ld hl,0
-   ld h,(ix+ZOBJ_O_PROPS+0)
-   ld l,(ix+ZOBJ_O_PROPS+1)
-   call zaddr_fetch ; get word count
-   ld b,a
-   push bc
+  pop iy
+  ld hl,zdbg_cmd.print.obj.buf
+  call zdbg_puts
+  ; put object name
+  ld hl,0
+  ld h,(ix+ZOBJ_O_PROPS+0)
+  ld l,(ix+ZOBJ_O_PROPS+1)
+  call zaddr_fetch ; get word count
+  ld b,a
+  push bc
    push hl
-   ld ix,win_dbgout
-   ld a,'/'
-   call zwin_putc
-   ld a,'\"'
-   call zwin_putc
+    ld ix,win_dbgout
+    ld a,'/'
+    call zwin_putc
+    jr c,zdbg_cmd.print.obj.err2
+    ld a,'\"'
+    call zwin_putc
+    jr c,zdbg_cmd.print.obj.err2
    pop hl
    ld a,(zstr_flags)
    call zstr_reset
-   pop bc
-   push af
-   ld a,b
-   or a,a
-   call nz,zstr_puts ; nonzero word count
-   pop af
-   ld (zstr_flags),a
-   ld a,'\"'
-   call zwin_putc
+  pop bc
+  push af
+  ld a,b
+  or a,a
+  call nz,zstr_puts ; nonzero word count
+  pop af
+  ld (zstr_flags),a
+  ld a,'\"'
+  call zwin_putc
+  ret c
+  ; print object properties
+  call zdbg_cmd.print.obj.props
+  or a,a
+  ret
 
-   ; check protector
-   ld a,(zdbg_cmd.print.obj.protector)
-   cp a,$42
-   jr z,_
-   scf
-   ld a,ZERR_INTERNAL
-   ret
-_
-
-   ; print object properties
-   call zdbg_cmd.print.obj.props
-   or a,a
-   ret
+zdbg_cmd.print.obj.err2:
+   pop hl
+  pop hl
+  ret
 
 zdbg_cmd.print.obj.buf: RESB(32)
 zdbg_cmd.print.obj.fmt: .db "A%04x%04x/P%02x/S%02x/C%02x/T%04x",0

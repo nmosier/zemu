@@ -1,7 +1,5 @@
-zvar_localaddr -- now returns file offset, not p-addr
-zvar_fetch, zvar_store -- needs to be fixed
+[ ] errors in zwin
+    CURRENT: zwin_putc
 
-
-;;;; converting window from appvar to file ;;;;
-[X] zwin.bufptr to offset
-[X] zwin.bufanc to offset
+ADD ERRORS TO...
+[ ] zstr_putn

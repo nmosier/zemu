@@ -165,10 +165,7 @@ zstr_putc.wchar_add.10bits:
    jp zstr_putc_raw ; put raw ASCII character
    
 zstr_putc_raw:
-   ; ld ix,win_main
-   call zwin_putc
-   or a,a
-   ret
+   jp zwin_putc
 
 ;; zstr_putw -- print Z-string contained in z-word
 ;; INPUTS:
@@ -273,6 +270,7 @@ zstr_putn:
    add hl,de ; get back abs val
    ld a,'-'
    call zwin_putc ; display negative sign
+   ret c
 zstr_putn.u:
    ; NOTE: at least one digit will always be written, even if hl = 0.
    ;       this is what we want.
@@ -300,6 +298,7 @@ zstr_putn.disploop:
    ld a,(hl)
    add a,'0'
    call zwin_putc
+   ret c
    inc hl
    djnz zstr_putn.disploop
    ret
@@ -807,6 +806,4 @@ tolowers.done:
 zstr_putcode:
    call zwin_page    ; enable paging
    ;; TODO -- special conversion & checks for ZSCII codes
-   call zwin_putc
-   or a,a ; NC
-   ret
+   jp zwin_putc

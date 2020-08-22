@@ -101,11 +101,11 @@ zsave_savemap.err:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zsave_save:
-   ;; create empty appvar of required size
-   push hl           ; preserve name
+  ;; create empty appvar of required size
+  push hl           ; preserve name
    push hl
-   call zsave_size   ; size -> hl
-   LD_BC_HL
+    call zsave_size   ; size -> hl
+    LD_BC_HL
    pop hl            ; name -> hl
    call appvar_touch_trunc
    ex de,hl          ; save data ptr -> de
@@ -116,33 +116,34 @@ zsave_save:
    ;; find offsets of frame pointers (fp and sp)
    ;; copy in map appvar
    push de    ; save for update
-   ld hl,(zmap_header)
-   UCAST_FROM_HL_TO_BC
-   inc hl
-   ld b,(hl)
-   dec hl
-   ldir
+    ld hl,(zmap_header)
+    UCAST_FROM_HL_TO_BC
+    inc hl
+    ld b,(hl)
+    dec hl
+    ldir
    pop ix
    ;; update map
-   pop hl   ; name
-   push de
+  pop hl   ; name
+  push de
    call zsave_savemap
-   pop de
-   ret c    ; ERROR
-   ;; copy in mem
-   ld bc,(zframe_sp)    ; NOTE: sp as an offset is also size of zmem.
-   ld a,c
-   ld (de),a
-   inc de
-   ld a,b
-   ld (de),a
-   inc de
-   ld hl,(zstack_begin)
-   ldir
+  pop de
+  ret c    ; ERROR
+  ;; copy in mem
+  ld bc,(zframe_sp)    ; NOTE: sp as an offset is also size of zmem.
+  ld a,c
+  ld (de),a
+  inc de
+  ld a,b
+  ld (de),a
+  inc de
+  call zstack_begin
+  ret c
+  ldir
 zsave_save.done:
-   xor a,a
-   dec a       ; ld a,$ff && NC -- SUCCESS
-   ret
+  xor a,a
+  dec a       ; ld a,$ff && NC -- SUCCESS
+  ret
 
 ;; zstate_restore -- restore game
 ;; INPUTS:
@@ -191,7 +192,10 @@ zsave_restore:
    ex de,hl   
    jr c,zsave_restore.stackoverflow    ; exceeds allocated memory for stack
    ;; restore memory
-   ld de,(zstack_begin)
+   ex de,hl
+   call zstack_begin
+   ex de,hl
+   ret c
    ldir
 zsave_restore.true:
    xor a,a

@@ -822,44 +822,47 @@ zexec.verify:
 ;           VAR opcodes              ;
 ;------------------------------------;
 zexec.call:
-   ;; NOTE: 6.4.4 Arguments are written onto local variables.
-   ;; read packed address of routine
-   call zcode_readop_force
-   ret c
-   WTOLU_HL
-   ;; read parameters into locals
-   push hl ; save packed address for after we've read in the params
+  ;; NOTE: 6.4.4 Arguments are written onto local variables.
+  ;; read packed address of routine
+  call zcode_readop_force
+  ret c
+  WTOLU_HL
+  ;; read parameters into locals
+  push hl ; save packed address for after we've read in the params
    call zexec.call.readvars
    ;; read return value
    push bc
-   call nc,zcode_readvarnum
+    call nc,zcode_readvarnum
    pop bc
-   pop hl
-   ret c
-   ;; check if CALL address is 0 -- if so, call nothing and put false in return variable
-   call cp_hl_0
-   jp z,zvar_store   ; this is a trick -- ZFALSE == 0000 == NULLFN
-   ;; set up bare call state
-   ld c,a ; save return varno
-   push bc
+  pop hl
+  ret c
+  ;; check if CALL address is 0 -- if so, call nothing and put false in return variable
+  call cp_hl_0
+  jp z,zvar_store   ; this is a trick -- ZFALSE == 0000 == NULLFN
+  ;; set up bare call state
+  ld c,a ; save return varno
+  push bc
    call zcall0
-   pop bc
-   ret c
-   ld a,c
-   ld (zframe_rv),a ; save return value
-   push hl ; save new address
+  pop bc
+  ret c
+  ld a,c
+  ld (zframe_rv),a ; save return value
+  push hl ; save new address
    call zexec.call.storevars
-   pop hl ; restore new address
-   ret c
+  pop hl ; restore new address
+  ret c
 zexec.call.done:
-   ld ix,(zframe_fp)
-   ld de,(zstack_begin)
-   add ix,de
-   LD_CDE_FROM_ABS_ZA(zframe_pc) ; end of CALL instruction
-   LD_CDE_TO_IX_ZA(zframe_pc-zframe_end) ; save return address
-   LD_BHL_TO_ABS_ZA(zframe_pc) ; save new PC
-   or a,a
-   ret
+  ld ix,(zframe_fp)
+  ex de,hl
+  call zstack_begin
+  ex de,hl
+  ret c
+  add ix,de
+  LD_CDE_FROM_ABS_ZA(zframe_pc) ; end of CALL instruction
+  LD_CDE_TO_IX_ZA(zframe_pc-zframe_end) ; save return address
+  LD_BHL_TO_ABS_ZA(zframe_pc) ; save new PC
+  or a,a
+  ret
 
 ;; get variables before setting up new call frame
 zexec.call.readvars:

@@ -1,13 +1,16 @@
 ;; zmem.z80 -- memory management for zemu & save states
 ;; TODO -- stack overflow?
 
+#ifndef ZMEM_Z80
+#define ZMEM_Z80
+
+#include "zfile.inc"
 
 ZMEM_SIZE .equ $400 ; 1K -- absolute minimum is 1K by Z-machine standard
 
 ;; GLOBAL VARIABLES ;;
 
 ;; NOTE: stack grows up.
-zstack_begin: DL 0
 
 zframe_begin:
 zframe_fp: DL 0   ; p-addr
@@ -17,7 +20,28 @@ zframe_nl: .db 0
 zframe_rv: .db 0
 zframe_end:
 
-;;
+f_stack: D_FILE("ZEMUMEM", ZMEM_SIZE)
+
+;; zstack_begin -- get begin
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  hl = pointer to beginning of stack file in RAM
+;; DESTROYS: (none)
+;; ERRORS: yes.
+zstack_begin:
+  push ix
+   push bc
+    push de
+     push af
+      ld ix,f_stack
+      LD_HL_0
+      call file_addr
+     pop de
+     ld a,d
+    pop de
+   pop bc
+  pop ix
+  ret
 
 ;; zmem_init -- initialize memory for zemu. Empty call state and program stack.
 ;; INPUTS: (none)
@@ -28,21 +52,20 @@ zframe_end:
 ;; TODO: check size bytes of appvar.
 ;; *** portable ***
 zmem_init:
-   ; get appvar in RAM
-   ld hl,zmem_name
-   ld bc,ZMEM_SIZE+2 ; +2 for size bytes
-   call appvar_touch_trunc
-   ret c
-   ex de,hl
-   ld (zstack_begin),hl
-   ld hl,0
-   ld (zframe_fp),hl
-   ld (zframe_sp),hl
-   xor a,a
-   ld (zframe_nl),a
-   LD_BHL_IMM(ZADDR_NULL)
-   LD_BHL_TO_ABS_ZA(ZFRAME_PC)
-   ret
+  push ix
+   ld ix,f_stack
+   call file_create
+  pop ix
+  ret c
+  ;; reset offsets
+  LD_HL_0
+  ld (zframe_fp),hl
+  ld (zframe_sp),hl
+  xor a,a
+  ld (zframe_nl),a
+  LD_BHL_IMM(ZADDR_NULL)
+  LD_BHL_TO_ABS_ZA(ZFRAME_PC)
+  ret
    
 
 zmem_name: .db "ZEMUMEM",0
@@ -55,16 +78,17 @@ zmem_name: .db "ZEMUMEM",0
 ;; ERRORS: (none)
 ;; *** portable ***
 zstack_enter:
-   push bc ; save variable number
+  push bc ; save variable number
    ; push new stack frame onto stack
-   ld hl,(zstack_begin)
+   call zstack_begin
+   jr c,zstack_enter.done
    push hl
-   ld de,(zframe_sp)
-   add hl,de
-   ex de,hl
-   ld hl,zframe_begin
-   ld bc,ZFRAME_SIZE
-   ldir
+    ld de,(zframe_sp)
+    add hl,de
+    ex de,hl
+    ld hl,zframe_begin
+    ld bc,ZFRAME_SIZE
+    ldir
    pop bc
    ex de,hl
    or a,a
@@ -76,8 +100,9 @@ zstack_enter:
    ; update number of locals (NL)
    ld (zframe_nl),a
    ; update return variable
-   pop bc ; restore variable number
-   ret
+zstack_enter.done:
+  pop bc ; restore variable number
+  ret
 
 
 ;; zstack_leave -- leave current stack frame
@@ -87,13 +112,22 @@ zstack_enter:
 ;; ERRORS: yes.
 ;; *** portable ***
 zstack_leave:
-   ; restore stack frame
-   ld ix,(zframe_fp)
-   ld de,(zstack_begin)
-   add ix,de
-   LEA_HL_IX(-ZFRAME_SIZE)
-   ld de,zframe_begin
-   ld bc,ZFRAME_SIZE
-   ldir
-   or a,a
-   ret
+  ; restore stack frame
+  ld ix,(zframe_fp)
+  ex de,hl
+  call zstack_begin
+  ret c
+  ex de,hl
+  add ix,de
+  LEA_HL_IX(-ZFRAME_SIZE)
+  ld de,zframe_begin
+  ld bc,ZFRAME_SIZE
+  ldir
+  or a,a
+  ret
+
+
+#include "zfile.z80"
+
+
+#endif

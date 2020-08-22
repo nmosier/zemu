@@ -849,7 +849,11 @@ zdbg_disp_locals:
 ;; DESTROYS: (all)
 ;; ERRORS:   no
 zdbg_disp_stack:
-   ld bc,(zstack_begin)
+   push hl
+    call zstack_begin
+    ex (sp),hl
+   pop bc
+   ret c
    ;; calculate top address of stack
    ld hl,(zframe_sp)
    add hl,bc
@@ -943,25 +947,26 @@ zdbg_disp_stack.fmt: .db "%02x: %04x",0
 ;; DESTROYS: ???
 ;; ERRORS: ???
 zdbg_disp_backtrace:
-   push ix
+  push ix
    ld ix,win_dbg2
    call zwin_reset
    ld ix,zframe_end
    jr zdbg_disp_backtrace.entry
 zdbg_disp_backtrace.loop:
    push ix
-   ; format string
-   ex de,hl ; val in de
-   ld hl,zdbg_disp_backtrace.buf
-   call hexlong
-   ; print string
-   ld hl,zdbg_disp_backtrace.buf
-   ld ix,win_dbg2
-   call zwin_puts
-   call zwin_newline
+    ; format string
+    ex de,hl ; val in de
+    ld hl,zdbg_disp_backtrace.buf
+    call hexlong
+    ; print string
+    ld hl,zdbg_disp_backtrace.buf
+    ld ix,win_dbg2
+    call zwin_puts
+    call zwin_newline
    pop ix
    ld de,(ix+zframe_fp-zframe_end)
-   ld hl,(zstack_begin)
+   call zstack_begin
+   jr c,zdbg_disp_backtrace.done
    add hl,de
    LD_IX_HL
 zdbg_disp_backtrace.entry:
@@ -970,11 +975,11 @@ zdbg_disp_backtrace.entry:
    call cp_hl_de
    jr nz,zdbg_disp_backtrace.loop
 zdbg_disp_backtrace.done:
-   pop ix
-   ret
-
+  pop ix
+  ret
+  
 zdbg_disp_backtrace.buf: RESB(7)
-
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; UTIL FUNCTIONS ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -15,21 +15,24 @@
 ;; ERRORS: yes. (Checks bounds of var num)
 ;; *** portable ***
 zvar_localaddr:
-   ; validate var num
-   dec a
-   ld hl,zframe_nl
-   cp a,(hl)
-   ccf
-   UCAST_A_TO_HL
-   ld a,ZERR_NOLOCL
-   ret c
-   add hl,hl ; a * ZWORD_SIZE
-   ld de,(zframe_fp)
-   add hl,de
-   ld de,(zstack_begin)
-   add hl,de
-   or a,a ; NC, success
-   ret
+  ; validate var num
+  dec a
+  ld hl,zframe_nl
+  cp a,(hl)
+  ccf
+  UCAST_A_TO_HL
+  ld a,ZERR_NOLOCL
+  ret c
+  add hl,hl ; a * ZWORD_SIZE
+  ld de,(zframe_fp)
+  add hl,de
+  ex de,hl
+  call zstack_begin
+  ret c
+  ex de,hl
+  add hl,de
+  or a,a ; NC, success
+  ret
 
 ;; zvar_globaladdr -- get address of global variable
 ;; INPUTS:
@@ -91,29 +94,33 @@ zvar_fetch.switch:
    jp zvar_fetch.global
 
 zvar_fetch.stack:
-   ; check if stack is empty
-   ld de,(zframe_sp)
-   ld hl,(zframe_fp)
-   call cp_hl_de  ; fp < sp <=> C
-   ccf
-   ld a,ZERR_STACKEMPTY
-   ret c
-   ; get value
-   ex de,hl
-   ld bc,(zstack_begin)
-   add hl,bc
-   CLEAR_UPPER_DE
-   dec hl
-   ld e,(hl)
-   dec hl
-   ld d,(hl)
-   or a,a
-   sbc hl,bc
-   ; update stack ptr
-   ld (zframe_sp),hl
-   ex de,hl
-   or a,a
-   ret
+  ; check if stack is empty
+  ld de,(zframe_sp)
+  ld hl,(zframe_fp)
+  call cp_hl_de  ; fp < sp <=> C
+  ccf
+  ld a,ZERR_STACKEMPTY
+  ret c
+  ; get value
+  ex de,hl
+  push hl
+   call zstack_begin
+   ex (sp),hl
+  pop bc
+  ret c
+  add hl,bc
+  CLEAR_UPPER_DE
+  dec hl
+  ld e,(hl)
+  dec hl
+  ld d,(hl)
+  or a,a
+  sbc hl,bc
+  ; update stack ptr
+  ld (zframe_sp),hl
+  ex de,hl
+  or a,a
+  ret
 
 zvar_fetch.local:
    ; get addr of local var (on stack)
@@ -160,18 +167,22 @@ zvar_store:
    jp zvar_store.global
 
 zvar_store.stack:
-   ld hl,(zframe_sp)
-   ld bc,(zstack_begin)
-   add hl,bc
-   ld (hl),d
-   inc hl
-   ld (hl),e
-   inc hl
-   or a,a
-   sbc hl,bc
-   ld (zframe_sp),hl
-   or a,a
-   ret
+  ld hl,(zframe_sp)
+  push hl
+   call zstack_begin
+   ex (sp),hl
+  pop bc
+  ret c
+  add hl,bc
+  ld (hl),d
+  inc hl
+  ld (hl),e
+  inc hl
+  or a,a
+  sbc hl,bc
+  ld (zframe_sp),hl
+  or a,a
+  ret
 
 zvar_store.local:
    ; get addr

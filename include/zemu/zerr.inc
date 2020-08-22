@@ -28,5 +28,6 @@ ZERR_BADNAME     .equ 21
 ZERR_RDONLY      .equ 22
 ZERR_STACKOVER   .equ 23
 ZERR_INTERNAL    .equ 24
+ZERR_READEOF     .equ 25
 
 #endif

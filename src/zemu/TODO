@@ -1,1 +1,2 @@
-[ ] ltowu
+zvar_localaddr -- now returns file offset, not p-addr
+zvar_fetch, zvar_store -- needs to be fixed

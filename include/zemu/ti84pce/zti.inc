@@ -106,6 +106,8 @@ LONG_SIZE .equ 3
 #define POP_BC_L  pop bc
 
 
+#define LD_HL_0 or a,a \\ sbc hl,hl
+
 ;; SYSCALLS ;;
 #define SYSCALL(addr) call addr
 #macro SYSERR_PUSH(addr)

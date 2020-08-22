@@ -102,6 +102,17 @@ file_readl:
   ret
 
 
+;; file_writel -- write long to file
+;; INPUTS:
+;;  ix = file struct
+;;  hl = file offset
+;;  de = long
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_writel .equ file_writew
+
+
 file_read.buf: RESB(VARNAMELEN) ; max(VARNAMELEN, BYTE_SIZE, WORD_SIZE, LONG_SIZE)
 
 #endif

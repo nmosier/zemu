@@ -49,7 +49,7 @@ file_create.create:
   ret
 
 
-;; file_write -- write byte to file
+;; file_writeb -- write byte to file
 ;; INPUTS:
 ;;  ix = file struct
 ;;  hl = offset into file
@@ -57,7 +57,7 @@ file_create.create:
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
-file_write:
+file_writeb:
   push af
   push hl
   call file_to_RAM
@@ -67,7 +67,57 @@ file_write:
   add hl,de
   ld (hl),b
   ret
-  
+
+
+;; file_writew -- write word to file
+;; INPUTS:
+;;  ix = file struct
+;;  hl = file offset
+;;  de = word
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_writew:
+  push de
+  push hl
+  call file_to_RAM
+  pop hl
+  pop bc
+  ret c
+  add hl,de
+  ld (hl),c
+  inc hl
+  ld (hl),b
+  ret
+
+
+;; file_writen -- write bytes from buffer to file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = source pointer
+;;  de = destination file offset
+;;  bc = size (size > 0)
+;; OUTPUTS:
+;;  bc = 0
+;;  hl <- hl + bc
+;;  de <- de + bc
+;; DESTROYS: (all)
+;; ERRORS: ???
+file_writen:
+  push bc
+  push hl
+  push de
+  call file_to_RAM
+  pop hl
+  jr c,_
+  add hl,de
+  ex de,hl
+_ pop hl
+  pop bc
+  ret c
+  ldir
+  ret
+
 
 ;; file_copy -- copy file
 ;; INPUTS:

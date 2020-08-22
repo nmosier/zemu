@@ -181,6 +181,7 @@ LONG_SIZE .equ WORD_SIZE
 #define POP_DE_L  pop de \\ inc sp
 #define POP_BC_L  pop bc \\ inc sp
 
+#define LD_HL_0   ld h,0 \\ ld l,0
 
 
 ;; SYSTEM CALLS ;;

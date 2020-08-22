@@ -11,6 +11,15 @@
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_addr:
+#if CHECK_BOUNDS
+  ld de,0
+  ld e,(ix+FILE.SIZE)
+  ld d,(ix+FILE.SIZE+1)
+  call cp_hl_de
+  ccf
+  ld a,ZERR_READEOF
+  ret c
+#endif
   push hl
   call file_info
   pop hl
@@ -98,6 +107,26 @@ file_readl:
   call file_addr
   ret c
   ld hl,(hl)
+  ret
+
+
+;; file_writel -- write word to file
+;; INPUTS:
+;;  ix = file struct
+;;  hl = file offset
+;;  de = long
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_writel:
+  push de
+  push hl
+  call file_to_RAM
+  pop hl
+  pop bc
+  ret c
+  add hl,de
+  ld (hl),bc
   ret
 
 

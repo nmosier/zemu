@@ -108,6 +108,12 @@ LONG_SIZE .equ 3
 
 #define LD_HL_0 or a,a \\ sbc hl,hl
 
+#macro LD_ABS_TO_IX(off, abs)
+  ld (ix+off),LOW_IMM(abs)
+  ld (ix+off+1),HIGH_IMM(abs)
+  ld (ix+off+2),UPPER_IMM(abs)
+#endmacro
+
 ;; SYSCALLS ;;
 #define SYSCALL(addr) call addr
 #macro SYSERR_PUSH(addr)

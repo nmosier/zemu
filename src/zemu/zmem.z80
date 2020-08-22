@@ -28,6 +28,8 @@ f_stack: D_FILE("ZEMUMEM", ZMEM_SIZE)
 ;;  hl = pointer to beginning of stack file in RAM
 ;; DESTROYS: (none)
 ;; ERRORS: yes.
+;; OPTIM: All calls to this could be heavily optimized, since preserving all registers is often
+;;        not required.
 zstack_begin:
   push ix
    push bc
@@ -67,8 +69,6 @@ zmem_init:
   LD_BHL_TO_ABS_ZA(ZFRAME_PC)
   ret
    
-
-zmem_name: .db "ZEMUMEM",0
 
 ;; zstack_enter -- enter new stack frame
 ;; INPUTS:

@@ -108,48 +108,43 @@ zwin_vputmap:
 zwin_unputc:
 zwin_unputcursor:
   push hl \ push de
-
-  ;; get buffer index
-  push ix \ pop de
-  LD_HL_FROM_IX(ZWIN.BUFPTR)
-  push hl
-  LD_DE_FROM_IX(ZWIN.BUF)
-  or a,a
-  sbc hl,de
-  ;; if index == 0, nothing to unput 
-  jr z,zwin_unputc.done
-
-  ;; decrement buffer pointer and get removed char
-  pop hl
-  dec hl
-  ld a,(hl)
-  LD_HL_TO_IX(ZWIN.BUFPTR)
-
-  ;; get width of removed char
-  call sfont_width
-  ld a,(ix+ZWIN.CURCOL)
-  sub a,b
-  cp a,(ix+ZWIN.ORGCOL)
-  jr z,zwin_unputc.prevline
-
-  ;; save new width
-  ld (ix+ZWIN.CURCOL),a
-
-  ;; clear char rectangle
-  ld c,(ix+ZWIN.CURROW)
-  push ix
-  ld ix,-ZRECT_SIZE
-  add ix,sp
-  ld sp,ix
-  ld (ix+ZRECT.ORGCOL),a
-  ld (ix+ZRECT.ORGROW),c
-  ld (ix+ZRECT.WIDTH),b
-  ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
-  call zdisp_clearrect
-  ld ix,ZRECT_SIZE
-  add ix,sp
-  ld sp,ix
-  pop ix
+   ;; get buffer index
+   LD_HL_FROM_IX(ZWIN.BUFPTR)
+   call cp_hl_0
+   jr z,zwin_unputc.done ; if index == 0, nothing to unput
+   ;; decrement buffer index
+   dec hl
+   LD_HL_TO_IX(ZWIN.BUFPTR)
+   ;; get decremented buffer pointer
+   LD_DE_FROM_IX(ZWIN.BUF)
+   add hl,de
+   ;; get removed char
+   ld a,(hl)
+   ;; get width of removed char
+   call sfont_width
+   ld a,(ix+ZWIN.CURCOL)
+   sub a,b
+   cp a,(ix+ZWIN.ORGCOL)
+   jr z,zwin_unputc.prevline
+   
+   ;; save new width
+   ld (ix+ZWIN.CURCOL),a
+   
+   ;; clear char rectangle
+   ld c,(ix+ZWIN.CURROW)
+   push ix
+    ld ix,-ZRECT_SIZE
+    add ix,sp
+    ld sp,ix
+    ld (ix+ZRECT.ORGCOL),a
+    ld (ix+ZRECT.ORGROW),c
+    ld (ix+ZRECT.WIDTH),b
+    ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
+    call zdisp_clearrect
+    ld ix,ZRECT_SIZE
+    add ix,sp
+    ld sp,ix
+   pop ix
 zwin_unputc.done:
   pop de \ pop hl
   or a,a

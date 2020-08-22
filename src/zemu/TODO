@@ -1,2 +1,7 @@
 zvar_localaddr -- now returns file offset, not p-addr
 zvar_fetch, zvar_store -- needs to be fixed
+
+
+;;;; converting window from appvar to file ;;;;
+[ ] zwin.bufptr to offset
+[ ] zwin.bufanc to offset

@@ -1,6 +1,8 @@
 #ifndef __ZTI83PLUS_INC
 #define __ZTI83PLUS_INC
 
+#include "util.inc"
+
 #undef TI83PLUS
 #include "ti83plus/ti83plus.inc"
 #define TI83PLUS
@@ -183,6 +185,10 @@ LONG_SIZE .equ WORD_SIZE
 
 #define LD_HL_0   ld h,0 \\ ld l,0
 
+#macro LD_ABS_TO_IX(off, abs)
+  ld (ix+off),LOW_IMM(abs)
+  ld (ix+off+1),HIGH_IMM(abs)
+#endmacro
 
 ;; SYSTEM CALLS ;;
 #define SYSCALL(addr) bcall(addr)

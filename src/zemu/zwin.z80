@@ -55,8 +55,7 @@ zwin_org:
 zwin_flush:
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z
-   LD_HL_FROM_IX(ZWIN.BUF)
-   LD_HL_TO_IX(ZWIN.BUFPTR)
+   LD_ABS_TO_IX(ZWIN.BUFPTR, 0)
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret z
    LD_HL_TO_IX(ZWIN.BUFANC)
@@ -226,29 +225,8 @@ zwin_redraw:
    or a,a ; NC
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; if not buffered, then nothing to redisplay
-   LD_DE_FROM_IX(ZWIN.BUF)
-   LD_HL_FROM_IX(ZWIN.BUFPTR)
-   or a,a
-   sbc hl,de
-   LD_BC_HL
-   ex de,hl
-#if 0
-#if TI83PLUS
-   LD_DE_FROM_IX(ZWIN.BUF)
-   LD_HL_FROM_IX(ZWIN.BUFPTR)
-   or a,a ; NC
-   sbc hl,de
-   LD_BC_HL
-   ex de,hl
-#elif TI84PCE
-   lea bc,ix+ZWIN.BUF
-   ld hl,(ix+ZWIN.BUFPTR)
-   or a,a ; NC
-   sbc hl,bc
-   LD_BC_HL
-   lea hl,ix+ZWIN.BUF
-#endif
-#endif
+   LD_HL_FROM_IX(ZWIN.BUF)
+   LD_BC_FROM_IX(ZWIN.BUFPTR)
    jp zwin_putsn_bare
 
 
@@ -266,18 +244,17 @@ zwin_redraw:
 zwin_bufc:
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; this window isn't buffered
-   LD_HL_FROM_IX(ZWIN.BUF)
-   LD_DE_FROM_IX(ZWIN.BUFLEN)
-   add hl,de
-   ex de,hl
    LD_HL_FROM_IX(ZWIN.BUFPTR)
+   LD_DE_FROM_IX(ZWIN.BUFLEN)
    or a,a
    sbc hl,de
-   call nc,zwin_trunc ; a preserved
-   LD_HL_FROM_IX(ZWIN.BUFPTR)
+   call nc,zwin_trunc ; %a preserved
+   LD_DE_FROM_IX(ZWIN.BUFPTR)
+   LD_HL_FROM_IX(ZWIN.BUF)
+   add hl,de
    ld (hl),a
-   inc hl
-   LD_HL_TO_IX(ZWIN.BUFPTR)
+   inc de
+   LD_DE_TO_IX(ZWIN.BUFPTR)
 #if ZTEST
    call zwin_cksum_putc
 #endif
@@ -355,26 +332,32 @@ zwin_eol.found:
 ;; OPTIM: Could be much optimized for TI83PLUS.
 ;; *** portable ***
 zwin_trunc:
-   or a,a   ; NC
-   bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
-   ret z ; can't truncate if not buffered
-   ; hl = width of window
-   ; de = buffer begin
-   ; bc = buffer end
-   LD_HL_FROM_IX_C(ZWIN.WIDTH)
-   LD_DE_FROM_IX(ZWIN.BUF)
-   LD_BC_FROM_IX(ZWIN.BUFPTR)
-   call zwin_eol
-   ; hl = (one past) end of first line
-   ; need to erase all bytes between ix+ZWIN.BUF and hl
-   ex de,hl
-   LD_HL_FROM_IX(ZWIN.BUFPTR)
-   or a,a
-   sbc hl,de ; hl = # of bytes to keep
-   push hl \ pop bc
-   ; bc = count
-   ; de = EOL ptr
-   push de ; save EOL ptr
+  or a,a   ; NC
+  bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+  ret z ; can't truncate if not buffered
+
+  ; hl = width of window
+  ; de = buffer begin
+  ; bc = buffer end
+  LD_DE_FROM_IX(ZWIN.BUF)
+  LD_HL_FROM_IX(ZWIN.BUFPTR)
+  add hl,de
+  LD_BC_HL
+  LD_HL_FROM_IX_C(ZWIN.WIDTH)
+  call zwin_eol
+  
+  ; hl = (one past) end of first line
+  ; need to erase all bytes between ix+ZWIN.BUF and hl
+  ex de,hl
+  LD_HL_FROM_IX(ZWIN.BUFPTR)
+  LD_BC_FROM_IX(ZWIN.BUF)
+  add hl,bc
+  or a,a
+  sbc hl,de ; hl = # of bytes to keep
+  LD_BC_HL
+  ; bc = count
+  ; de = EOL ptr
+  push de ; save EOL ptr
    ex de,hl ; hl = EOL ptr
    ;; calculate deleted bytes
    LD_DE_FROM_IX(ZWIN.BUF)
@@ -403,18 +386,18 @@ zwin_trunc:
    ex de,hl
 _  LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_trunc.move:
-   pop hl ; restore EOL ptr
-   LD_DE_FROM_IX(ZWIN.BUF)
-   ; hl = EOL ptr
-   ; de = buf begin
-   ; bc = number of bytes to keep
-   push af
+  pop hl ; restore EOL ptr
+  LD_DE_FROM_IX(ZWIN.BUF)
+  ; hl = EOL ptr
+  ; de = buf begin
+  ; bc = number of bytes to keep
+  push af
    call memmove
-   pop af
+  pop af
 #if ZTEST
-   call zwin_cksum ; recompute cksum
+  call zwin_cksum ; recompute cksum
 #endif   
-   ret
+  ret
 
 ;; zwin_puts -- put string in window, buffered, null-terminated
 ;; zwin_puts_bare -- put string in window, unbuffered
@@ -785,13 +768,19 @@ zwin_page:
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    jr nz,zwin_page.test
    set ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
-   ld hl,0
+   LD_HL_0
    jr zwin_page.newanc
 zwin_page.test:
    LD_HL_FROM_IX(ZWIN.BUFANC)
    call cp_hl_0
    jr nz,zwin_page.done ; don't need to update anchor, since it was already set
    LD_HL_FROM_IX(ZWIN.BUFPTR)
+   ;; TEMPORARY
+   push de
+    LD_DE_FROM_IX(ZWIN.BUF)
+    add hl,de
+   pop de
+   ;; 
 zwin_page.newanc:
    LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_page.done:

@@ -94,17 +94,16 @@ zwin_putc.base.other:
 ;; NOTES: erases character on screen.
 zwin_unputc:
 zwin_unputcursor:
-   push hl \ push de
-
-   ;; get buffer index
+  push hl \ push de
    ld hl,(ix+ZWIN.BUFPTR)
-   LD_DE_FROM_IX(ZWIN.BUF)
-   or a,a
-   sbc hl,de
+   call cp_hl_0
    jr z,zwin_unputc.done ; nothing to unput
+   ld de,(ix+ZWIN.BUF)
    add hl,de
    dec hl
    ld a,(hl)
+   or a,a
+   sbc hl,de
    ld (ix+ZWIN.BUFPTR),hl
    ld hl,(ix+ZWIN.CURCOL)
    call sfont_width
@@ -121,25 +120,25 @@ zwin_unputcursor:
    ;; clear rectangle
    ld a,(ix+ZWIN.CURROW)
    push ix
-   ld ix,-ZRECT_SIZE
-   add ix,sp
-   ld sp,ix
-   ld (ix+ZRECT.ORGCOL),hl
-   ld (ix+ZRECT.ORGROW),a
-   ld (ix+ZRECT.WIDTH),bc
-   ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
-   call zdisp_clearrect
-   ld ix,ZRECT_SIZE
-   add ix,sp
-   ld sp,ix
+    ld ix,-ZRECT_SIZE
+    add ix,sp
+    ld sp,ix
+    ld (ix+ZRECT.ORGCOL),hl
+    ld (ix+ZRECT.ORGROW),a
+    ld (ix+ZRECT.WIDTH),bc
+    ld (ix+ZRECT.HEIGHT),SFONT_HEIGHT
+    call zdisp_clearrect
+    ld ix,ZRECT_SIZE
+    add ix,sp
+    ld sp,ix
    pop ix
 zwin_unputc.done:
-   pop de \ pop hl
+  pop de \ pop hl
 #if ZTEST
-   call zwin_cksum
+  call zwin_cksum
 #endif
-   or a,a ; NC
-   ret
+  or a,a ; NC
+  ret
 
 zwin_unputc.prevline:
    call zwin_redraw
@@ -206,11 +205,8 @@ zwin_cksum:
   push hl
   push de
   push bc
-   ld hl,(ix+ZWIN.BUFPTR)
    ld de,(ix+ZWIN.BUF)
-   or a,a
-   sbc hl,de
-   LD_BC_HL ; length 
+   ld bc,(ix+ZWIN.BUFPTR)
    ld hl,5381
    jr zwin_cksum.entry
 zwin_cksum.loop:

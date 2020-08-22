@@ -71,9 +71,7 @@ zstr_putc.char.A2:
    jp c,zstr_putc.wchar_select
    ld hl,zstr_A2.tab
    jr nz,zstr_putc.char.print
-   call zwin_newline
-   or a,a
-   ret
+   jp zwin_newline
 
 zstr_putc.char.print:
    UCAST_A_TO_DE
@@ -620,9 +618,7 @@ zstr_encode_pad.done:
 ;; DESTROYS: ???
 ;; *** portable ***
 zstr_putln:
-   call zwin_newline
-   or a,a
-   ret
+   jp zwin_newline
 
 
 ;; zstr_reset -- reset string state flags

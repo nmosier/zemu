@@ -56,25 +56,31 @@ zwin_putc.base.other:
   call sfont_width
   ld c,a
   push bc ; save char and sfontlen
-  ld a,(ix+ZWIN.CURCOL)
-  add a,b
-  sub a,(ix+ZWIN.ORGCOL)
-  ; a = new width of line
-  ; if line > width, newline
-  scf
-  sbc a,(ix+ZWIN.WIDTH)
-  ld a,c ; restore char
-  call nc,zwin_newline_bare ; newline, no buffering
-  ; call zwin_select ; select window for writing
-  ; push ix
-  ; a = char
-  ;  bcall(_VPutMap)
-  call zwin_vputmap
-  ; pop ix
+   ld a,(ix+ZWIN.CURCOL)
+   add a,b
+   sub a,(ix+ZWIN.ORGCOL)
+   ; a = new width of line
+   ; if line > width, newline
+   scf
+   sbc a,(ix+ZWIN.WIDTH)
+   ld a,c ; restore char
+   ccf
+   call c,zwin_newline_bare ; newline, no buffering
+   jr c,zwin_putc.base.other.err1
+   ; call zwin_select ; select window for writing
+   ; push ix
+   ; a = char
+   ;  bcall(_VPutMap)
+   call zwin_vputmap
+   ; pop ix
   pop af ; a <- sfont_len
   ; update current column
   add a,(ix+ZWIN.CURCOL)
   ld (ix+ZWIN.CURCOL),a
+  ret
+
+zwin_putc.base.other.err1:
+  pop hl
   ret
 
 ;; zwin_vputmap -- buffered vputmap

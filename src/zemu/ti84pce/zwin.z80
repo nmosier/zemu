@@ -57,7 +57,7 @@ zwin_border:
 ;; DESTROYS: (all)
 ;; ERRORS: (none)
 zwin_putc.base.other:
-   push ix
+  push ix
    ld hl,(ix+ZWIN.CURCOL)
    ld de,(ix+ZWIN.ORGCOL)
    or a,a
@@ -70,20 +70,28 @@ zwin_putc.base.other:
    ; bc = character width
    
    push bc
-   add hl,bc
-   ld bc,(ix+ZWIN.WIDTH)
-   scf
-   sbc hl,bc ; new strlen - width - 1
-   call nc,zwin_newline_bare ; don't buffer
-   call zwin_select ; select window for writing
-   call _VPutMap ; display char
+    add hl,bc
+    ld bc,(ix+ZWIN.WIDTH)
+    scf
+    sbc hl,bc ; new strlen - width - 1
+    ccf
+    call c,zwin_newline_bare ; don't buffer
+    jr c,zwin_putc.base.other.err2
+    
+    call zwin_select ; select window for writing
+    call _VPutMap ; display char
    pop bc
-   pop ix
-   ; update current column
-   ld hl,(ix+ZWIN.CURCOL)
-   add hl,bc
-   ld (ix+ZWIN.CURCOL),hl
-   ret  
+  pop ix
+  ; update current column
+  ld hl,(ix+ZWIN.CURCOL)
+  add hl,bc
+  ld (ix+ZWIN.CURCOL),hl
+  ret
+
+zwin_putc.base.other.err2:
+   pop hl
+  pop hl
+  ret
 
 ;; zwin_unputc -- remove last character from window
 ;; INPUTS:

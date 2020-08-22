@@ -1,5 +1,5 @@
 [ ] errors in zwin
-    CURRENT: zwin_putc
+    CURRENT: zwin_newline
 
 ADD ERRORS TO...
 [ ] zstr_putn

@@ -320,20 +320,20 @@ zdbg_cmd.print.obj.protector: .db $42
 ;; ix = pointer to object
 ;; a = object
 zdbg_cmd.print.obj.props:
-   ld ix,win_dbg1
-   call zwin_reset
-   ; call zwin_clear
-   ld ix,zdbg_cmd.print.obj.dat
-   ld hl,0
-   ld h,(ix+ZOBJ_O_PROPS+0)
-   ld l,(ix+ZOBJ_O_PROPS+1)
-   ; hl = logical byte address of object properties
-   call zobj_proptab_body_alt
-   ; hl = LBA of object's first property
-   ; bring from Z-mem address space into ez80 address space
-   jr zdbg_cmd.print.obj.props.entry
+  ld ix,win_dbg1
+  call zwin_reset
+  ; call zwin_clear
+  ld ix,zdbg_cmd.print.obj.dat
+  ld hl,0
+  ld h,(ix+ZOBJ_O_PROPS+0)
+  ld l,(ix+ZOBJ_O_PROPS+1)
+  ; hl = logical byte address of object properties
+  call zobj_proptab_body_alt
+  ; hl = LBA of object's first property
+  ; bring from Z-mem address space into ez80 address space
+  jr zdbg_cmd.print.obj.props.entry
 zdbg_cmd.print.obj.props.loop:
-   push hl
+  push hl
    ld (zdbg_cmd.print.obj.props.propid),a
    ; print prop id number
    call zobj_propid_to_num
@@ -351,7 +351,7 @@ zdbg_cmd.print.obj.props.loop:
    ex (sp),hl ; swap LBA into hl
    ld de,zdbg_cmd.print.obj.props.buf_bytes
    push bc
-   call zaddr_fetchn
+    call zaddr_fetchn
    pop bc
    ex (sp),hl
    ex de,hl
@@ -365,7 +365,6 @@ zdbg_cmd.print.obj.props.loop:
    ld (hl),0
    ld a,(zdbg_cmd.print.obj.props.propid)
    call zobj_propid_to_size
-      
 #endif
    ; print line
    ld ix,win_dbg1
@@ -374,18 +373,21 @@ zdbg_cmd.print.obj.props.loop:
 #if ZDBG_PRINT_PROPDATA   
    call zwin_newline
 #endif
-   pop hl
-   ld a,(zdbg_cmd.print.obj.props.propid)
-   call zobj_propid_to_size
-   ld de,0
-   ld e,a
-   add hl,de
+  pop hl
+#if ZDBG_PRINT_PROPDATA
+  ret c
+#endif
+  ld a,(zdbg_cmd.print.obj.props.propid)
+  call zobj_propid_to_size
+  ld de,0
+  ld e,a
+  add hl,de
 zdbg_cmd.print.obj.props.entry:
-   call zaddr_fetch ; get propid
-   or a,a ; check if terminating null byte
-   jr nz,zdbg_cmd.print.obj.props.loop
+  call zaddr_fetch ; get propid
+  or a,a ; check if terminating null byte
+  jr nz,zdbg_cmd.print.obj.props.loop
 zdbg_cmd.print.obj.props.done:
-   ret
+  ret
 
 zdbg_cmd.print.obj.props.propid: .db 0
 zdbg_cmd.print.obj.props.buf_bytes: RESB(8)
@@ -881,59 +883,60 @@ zdbg_disp_stack:
 ;; DESTROYS:
 ;; ERRORS:
 zdbg_disp_stack_bare:
-   ;; setup
-   push ix
+  ;; setup
+  push ix
    push iy
-   ld iy,0
-   add iy,sp
-   lea ix,iy-(4+3)*3
-   ld sp,ix
-   ld (iy-3),hl ; stack pointer
-   ld (iy-6),de ; number of elements
-   ld bc,0
-   ld (iy-9),bc ; index
-   ;; clear display
-   ld ix,win_dbg1
-   call zwin_reset
-   jr zdbg_disp_stack.entry
+    ld iy,0
+    add iy,sp
+    lea ix,iy-(4+3)*3
+    ld sp,ix
+    ld (iy-3),hl ; stack pointer
+    ld (iy-6),de ; number of elements
+    ld bc,0
+    ld (iy-9),bc ; index
+    ;; clear display
+    ld ix,win_dbg1
+    call zwin_reset
+    jr zdbg_disp_stack.entry
 zdbg_disp_stack.loop:
-   ld (iy-15),hl  ; arg3 -- index
-   inc hl
-   ld (iy-9),hl  ; update index
-   ld hl,(iy-3)
-   ld de,0
-   ld d,(hl)  ; load word from stack pointer
-   inc hl
-   ld e,(hl)
-   inc hl
-   ld (iy-3),hl ; update stack pointer
-   ld (iy-12),de ; arg4 -- value
-   ld hl,zdbg_disp_stack.fmt
-   ld (iy-18),hl ; arg2 -- fmt
-   ld hl,zdbg_disp_stack.buf
-   ld (iy-21),hl ; arg1 -- buf
-   call _sprintf
-   ; print result
-   ld hl,zdbg_disp_stack.buf
-   ld ix,win_dbg1
-   push iy
-   ld iy,flags
-   call zwin_puts
-   call zwin_newline
-   pop iy
+    ld (iy-15),hl  ; arg3 -- index
+    inc hl
+    ld (iy-9),hl  ; update index
+    ld hl,(iy-3)
+    ld de,0
+    ld d,(hl)  ; load word from stack pointer
+    inc hl
+    ld e,(hl)
+    inc hl
+    ld (iy-3),hl ; update stack pointer
+    ld (iy-12),de ; arg4 -- value
+    ld hl,zdbg_disp_stack.fmt
+    ld (iy-18),hl ; arg2 -- fmt
+    ld hl,zdbg_disp_stack.buf
+    ld (iy-21),hl ; arg1 -- buf
+    call _sprintf
+    ; print result
+    ld hl,zdbg_disp_stack.buf
+    ld ix,win_dbg1
+    push iy
+     ld iy,flags
+     call zwin_puts
+     call zwin_newline
+    pop iy
+    jr c,zdbg_disp_stack.done
 zdbg_disp_stack.entry:
-   ld de,(iy-6) ; load number
-   ld hl,(iy-9) ; load index
-   or a,a
-   sbc hl,de
-   add hl,de
-   jr nz,zdbg_disp_stack.loop
+    ld de,(iy-6) ; load number
+    ld hl,(iy-9) ; load index
+    or a,a
+    sbc hl,de
+    add hl,de
+    jr nz,zdbg_disp_stack.loop
 zdbg_disp_stack.done:
-   ; cleanup
-   ld sp,iy
+    ; cleanup
+    ld sp,iy
    pop iy
-   pop ix
-   ret
+  pop ix
+  ret
 
 zdbg_disp_stack.buf: RESB(16)
 zdbg_disp_stack.fmt: .db "%02x: %04x",0
@@ -962,6 +965,7 @@ zdbg_disp_backtrace.loop:
     call zwin_puts
     call zwin_newline
    pop ix
+   jr c,zdbg_disp_backtrace.done
    ld de,(ix+zframe_fp-zframe_end)
    call zstack_begin
    jr c,zdbg_disp_backtrace.done

@@ -141,15 +141,16 @@ zwin_putc.clear:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
 ;; DESTROYS: all but ix and %a
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; TODO: buffer this.
 ;; *** portable ***
 zwin_newline:
-   scf
+  scf
 zwin_newline.base:
-   push af
+  push af
    ld a,ASCII_NEWLINE
    call c,zwin_bufc ; put newline character in buffer
+   jr c,zwin_newline.done
 zwin_newline.loop:
    ld a,(ix+ZWIN.CURROW)
    sub a,(ix+ZWIN.ORGROW)   
@@ -174,18 +175,22 @@ zwin_newline.curset:
 #elif TI84PCE
    ld hl,(ix+ZWIN.ORGCOL)
    ld (ix+ZWIN.CURCOL),hl
-#endif   
-   pop af
-   ret
+#endif
+zwin_newline.done:
+  pop bc
+  ld a,b
+  ret
 
 zwin_newline.oneline:
    call zwin_clear
-   pop af
-   ret
+  pop af
+  or a,a
+  ret
 
 zwin_newline_bare:
-   or a,a ; NC
-   jr zwin_newline.base
+  or a,a ; NC
+  jr zwin_newline.base
+
 
 ;; zwin_scroll -- scroll down one line of text in window
 ;; INPUTS:

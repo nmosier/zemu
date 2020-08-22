@@ -201,7 +201,7 @@ zwin_newline_bare:
 ;; *** portable ***
 zwin_scroll:
    call zwin_trunc
-   call c,zwin_wait ; page if necessary
+   call nz,zwin_wait ; page if necessary
    ld a,SFONT_HEIGHT
    push ix
    LEA_IX_IX_REG(ZWIN.RECT, R_DE)
@@ -330,9 +330,9 @@ zwin_eol.found:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS:
-;;  CF indicates paging status
-;;    NC = don't need to page
-;;    C = should page
+;;  ZF indicates paging status
+;;    Z = don't need to page
+;;    NZ = should page
 ;; DESTROYS: all but a
 ;; ERRORS: no.
 ;; NOTE: doesn't trigger redisplay of window.
@@ -400,7 +400,11 @@ zwin_trunc.move:
   pop af
 #if ZTEST
   call zwin_cksum ; recompute cksum
-#endif   
+#endif
+  ld b,a
+  sbc a,a
+  ld a,b
+  scf \ ccf
   ret
 
 ;; zwin_puts -- put string in window, buffered, null-terminated

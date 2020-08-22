@@ -58,6 +58,7 @@ zwin_flush:
    LD_ABS_TO_IX(ZWIN.BUFPTR, 0)
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    ret z
+   LD_HL_FROM_IX(ZWIN.BUFLEN)
    LD_HL_TO_IX(ZWIN.BUFANC)
 #if ZTEST
    call zwin_cksum
@@ -375,12 +376,9 @@ zwin_trunc:
    jr z,zwin_trunc.move
    ;; paging enabled
    LD_HL_FROM_IX(ZWIN.BUFANC)
-   call cp_hl_0
-   jr z,zwin_trunc.move    ; no anchor set yet
    or a,a
    sbc hl,de   ; shifted anchor
-   LD_DE_FROM_IX(ZWIN.BUF)
-   call cp_hl_de
+   ld de,0
    ;; if CF is set, then anchored region will be scrolled offscreen
    jr nc,_
    ex de,hl
@@ -768,19 +766,15 @@ zwin_page:
    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
    jr nz,zwin_page.test
    set ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
-   LD_HL_0
+   LD_HL_FROM_IX(ZWIN.BUFLEN)
    jr zwin_page.newanc
 zwin_page.test:
    LD_HL_FROM_IX(ZWIN.BUFANC)
-   call cp_hl_0
-   jr nz,zwin_page.done ; don't need to update anchor, since it was already set
-   LD_HL_FROM_IX(ZWIN.BUFPTR)
-   ;; TEMPORARY
    push de
-    LD_DE_FROM_IX(ZWIN.BUF)
-    add hl,de
+    LD_DE_FROM_IX(ZWIN.BUFLEN)
+    call cp_hl_de
    pop de
-   ;; 
+   jr nz,zwin_page.done ; don't need to update anchor, since it was already set
 zwin_page.newanc:
    LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_page.done:

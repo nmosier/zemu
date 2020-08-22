@@ -59,8 +59,8 @@ ZWIN_CLEARCOLOR .equ $ff
   DB flags  ; flags
 #endif
   DL buflen ; buflen
-  DL buf     ; bufptr
-  DL 0      ; bufanc
+  DL 0      ; bufptr
+  DL buflen ; bufanc
 #if ZTEST
   DL 5381   ; cksum
 #endif

@@ -3,5 +3,5 @@ zvar_fetch, zvar_store -- needs to be fixed
 
 
 ;;;; converting window from appvar to file ;;;;
-[ ] zwin.bufptr to offset
-[ ] zwin.bufanc to offset
+[X] zwin.bufptr to offset
+[X] zwin.bufanc to offset

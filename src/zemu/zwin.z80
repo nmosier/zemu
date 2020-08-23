@@ -202,6 +202,7 @@ zwin_newline_bare:
 ;; *** portable ***
 zwin_scroll:
   call zwin_trunc
+  ret c
   call nz,zwin_wait ; page if necessary
   ld a,SFONT_HEIGHT
   push ix
@@ -251,18 +252,20 @@ zwin_redraw:
 ;;  a = character
 ;; OUTPUTS: (none)
 ;; DESTROYS: all but a
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; NOTE: This never fails. If there isn't enough space in the buffer,
 ;;       it truncates it first then appends the character.
 ;; *** portable ***
 zwin_bufc:
+   or a,a ; NC
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; this window isn't buffered
    LD_HL_FROM_IX(ZWIN.BUFPTR)
    LD_DE_FROM_IX(ZWIN.BUFLEN)
-   or a,a
    sbc hl,de
-   call nc,zwin_trunc ; %a preserved
+   ccf
+   call c,zwin_trunc ; %a preserved
+   ret c
    LD_DE_FROM_IX(ZWIN.BUFPTR)
    LD_HL_FROM_IX(ZWIN.BUF)
    add hl,de
@@ -271,8 +274,8 @@ zwin_bufc:
    LD_DE_TO_IX(ZWIN.BUFPTR)
 #if ZTEST
    call zwin_cksum_putc
-#endif
-   ret
+#endif 
+   ret ; always NC, if not ZTEST
 
 
 ;; zwin_eol -- find end of first line
@@ -283,7 +286,7 @@ zwin_bufc:
 ;; OUTPUTS:
 ;;  hl = pointer to end of first line
 ;;  CF indicates whether line was overflown
-;; DESTROYS: all but a
+;; DESTROYS: hl, de, bc
 ;; ERRORS: no.
 ;; OPTIM: Size could be reduced for TI83PLUS.
 ;; *** portable ***
@@ -301,11 +304,10 @@ zwin_eol.loop:
    
    call sfont_width
    push af
-   ld a,b
-   ld bc,0
-   ld c,a
+    ld a,b
+    UCAST_A_TO_BC
    pop af
-
+   
    or a,a ; NC
    sbc hl,bc
    pop bc
@@ -341,7 +343,7 @@ zwin_eol.found:
 ;;    Z = don't need to page
 ;;    NZ = should page
 ;; DESTROYS: all but a
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; NOTE: doesn't trigger redisplay of window.
 ;; OPTIM: Could be much optimized for TI83PLUS.
 ;; *** portable ***

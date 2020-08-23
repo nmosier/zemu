@@ -422,8 +422,8 @@ zwin_trunc.move:
 ;;  ix = pointer to window struct
 ;;  hl = pointer to string
 ;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: all but ix
+;; ERRORS: yes (zwin_puts), no (zwin_puts_bare).
+;; DESTROYS: (all)
 ;; OPTIM: [SIZE] Could join zwin_puts, zwin_puts_bare.
 ;; *** portable ***
 zwin_puts:
@@ -437,7 +437,7 @@ zwin_puts.entry:
    or a,a
    jr nz,zwin_puts.loop
 zwin_puts.end:
-   ret
+   ret ; NC
 
 zwin_puts_bare:
    jr zwin_puts_bare.entry
@@ -648,7 +648,7 @@ zwin_split_horiz.org_right:
 ;;  ix = pointer to window struct
 ;; OUTPUTS:
 ;;  a = char
-;; ERRORS: yes. 
+;; ERRORS: yes (zwin_getc), no (zwin_getc_bare).
 ;; DESTROYS: all but a, ix
 ;; *** portable ***
 zwin_getc:
@@ -694,6 +694,7 @@ zwin_getsn.loop:
 #if ZCURSOR
       push af           ; NOTE: preserving error state.
        call zwin_unputcursor
+       jr c,zwin_getsn.err5
       pop af
 #endif
      pop bc
@@ -765,6 +766,8 @@ zwin_getsn.del:
   inc bc
   jr zwin_getsn.putc
 
+zwin_getsn.err5:
+  pop hl
 zwin_getsn.err4:
   pop hl
 zwin_getsn.err3:

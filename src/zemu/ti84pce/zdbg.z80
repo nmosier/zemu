@@ -371,12 +371,10 @@ zdbg_cmd.print.obj.props.loop:
    ld hl,zdbg_cmd.print.obj.props.buf_hex
    call zwin_puts
 #if ZDBG_PRINT_PROPDATA   
-   call zwin_newline
+   call nc,zwin_newline
 #endif
   pop hl
-#if ZDBG_PRINT_PROPDATA
   ret c
-#endif
   ld a,(zdbg_cmd.print.obj.props.propid)
   call zobj_propid_to_size
   ld de,0
@@ -921,7 +919,7 @@ zdbg_disp_stack.loop:
     push iy
      ld iy,flags
      call zwin_puts
-     call zwin_newline
+     call nc,zwin_newline
     pop iy
     jr c,zdbg_disp_stack.done
 zdbg_disp_stack.entry:
@@ -962,7 +960,7 @@ zdbg_disp_backtrace.loop:
     ; print string
     ld hl,zdbg_disp_backtrace.buf
     ld ix,win_dbg2
-    call zwin_puts
+    call nc,zwin_puts
     call zwin_newline
    pop ix
    jr c,zdbg_disp_backtrace.done

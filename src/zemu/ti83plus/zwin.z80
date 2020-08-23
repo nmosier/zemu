@@ -66,7 +66,6 @@ zwin_putc.base.other:
    ld a,c ; restore char
    ccf
    call c,zwin_newline_bare ; newline, no buffering
-   jr c,zwin_putc.base.other.err1
    ; call zwin_select ; select window for writing
    ; push ix
    ; a = char
@@ -79,15 +78,13 @@ zwin_putc.base.other:
   ld (ix+ZWIN.CURCOL),a
   ret
 
-zwin_putc.base.other.err1:
-  pop hl
-  ret
 
 ;; zwin_vputmap -- buffered vputmap
 ;; INPUTS:
 ;;  a = printable char
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
+;; ERRORS: no.
 zwin_vputmap:
   call zwin_select
   ld b,a
@@ -108,7 +105,7 @@ zwin_vputmap:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; ERRORS: no, but safe.
+;; ERRORS: yes.
 ;; DESTROYS: a, bc
 ;; NOTES: erases character on screen.
 zwin_unputc:

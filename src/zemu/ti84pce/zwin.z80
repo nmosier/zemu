@@ -97,7 +97,7 @@ zwin_putc.base.other.err2:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; ERRORS: no, but safe.
+;; ERRORS: yes.
 ;; DESTROYS: a, bc
 ;; NOTES: erases character on screen.
 zwin_unputc:
@@ -140,7 +140,7 @@ zwin_unputcursor:
     add ix,sp
     ld sp,ix
    pop ix
-   or a,a ; NC
+   or a,a
 zwin_unputc.done:
   pop de \ pop hl
 #if ZTEST
@@ -162,18 +162,18 @@ zwin_unputc.prevline:
 ;; DESTROYS: (all)
 zwin_puts_c:
    push ix
-   push iy
-   ld iy,0
-   add iy,sp
-   ld hl,(iy+9)  ; arg1 -- string
-   ld ix,(iy+12) ; arg2 -- context
-   ld ix,(ix)   ; window
-   push iy
-   ld iy,flags
-   call zwin_puts
-   pop iy
-   ld sp,iy
-   pop iy
+    push iy
+     ld iy,0
+     add iy,sp
+     ld hl,(iy+9)  ; arg1 -- string
+     ld ix,(iy+12) ; arg2 -- context
+     ld ix,(ix)   ; window
+     push iy
+     ld iy,flags
+     call zwin_puts
+    pop iy
+    ld sp,iy
+    pop iy
    pop ix
    ret
 

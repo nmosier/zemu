@@ -27,12 +27,12 @@ zerr_tabptr: DL 0
 zemu_perror:
    ld ix,win_main
    push af
-   call cp_hl_0
-   jr z,zemu_perror.bare
-   call zwin_puts
-   ld hl,zemu_perror.sep
-   call zwin_puts
-   jr zemu_perror.bare
+    call cp_hl_0
+    jr z,zemu_perror.bare
+    call zwin_puts
+    ld hl,zemu_perror.sep
+    call zwin_puts
+    jr zemu_perror.bare
 zemu_perror.done:
    scf
    ret
@@ -41,7 +41,7 @@ zemu_perror.sep: .db ": ",0
 zemu_perror.bare:
    pop af
    push ix
-   call zemu_strerror
+    call zemu_strerror
    pop ix
    call zwin_puts
    jr zemu_perror.done

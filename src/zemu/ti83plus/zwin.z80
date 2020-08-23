@@ -151,9 +151,9 @@ zwin_unputcursor:
     add ix,sp
     ld sp,ix
    pop ix
+   or a,a
 zwin_unputc.done:
   pop de \ pop hl
-  or a,a
   ret
 
 zwin_unputc.prevline:

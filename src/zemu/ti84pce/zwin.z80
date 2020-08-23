@@ -140,12 +140,12 @@ zwin_unputcursor:
     add ix,sp
     ld sp,ix
    pop ix
+   or a,a ; NC
 zwin_unputc.done:
   pop de \ pop hl
 #if ZTEST
-  call zwin_cksum
+  call nc,zwin_cksum
 #endif
-  or a,a ; NC
   ret
 
 zwin_unputc.prevline:

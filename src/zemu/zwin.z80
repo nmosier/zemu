@@ -164,6 +164,7 @@ zwin_newline.loop:
    jr c,zwin_newline.oneline
    ; scroll
    call zwin_scroll
+   jr c,zwin_newline.done ; error
    jr zwin_newline.loop ; retry now
 zwin_newline.curset:
    sub a,SFONT_HEIGHT
@@ -196,33 +197,38 @@ zwin_newline_bare:
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: all but ix
+;; ERRORS: yes.
+;; DESTROYS: (all)
 ;; *** portable ***
 zwin_scroll:
-   call zwin_trunc
-   call nz,zwin_wait ; page if necessary
-   ld a,SFONT_HEIGHT
-   push ix
+  call zwin_trunc
+  call nz,zwin_wait ; page if necessary
+  ld a,SFONT_HEIGHT
+  push ix
    LEA_IX_IX_REG(ZWIN.RECT, R_DE)
    call zdisp_scrollrect_up
-   pop ix
-   ld a,(ix+ZWIN.CURROW)
-   sub a,SFONT_HEIGHT
-   jp c,zwin_org
-   ld (ix+ZWIN.CURROW),a
-   ret
+  pop ix
+  ld a,(ix+ZWIN.CURROW)
+  sub a,SFONT_HEIGHT
+  jr nc,zwin_scroll.setrow
+  call zwin_org
+  or a,a
+  ret
 
+zwin_scroll.setrow:
+  ld (ix+ZWIN.CURROW),a
+  ret ; always NC
 
 zwin_wait:
    jp sys_getkey
+
 
 ;; zwin_redraw -- clear and then display contents of window
 ;; INPUTS:
 ;;  ix = pointer to window struct
 ;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: all but ix
+;; ERRORS: yes.
+;; DESTROYS: (all)
 ;; TODO: this could be optimized to just copy contents in VRAM.
 ;; NOTE: for now, this just clears if unbuffered.
 ;; *** portable ***
@@ -234,8 +240,9 @@ zwin_redraw:
    ret z ; if not buffered, then nothing to redisplay
    LD_HL_FROM_IX(ZWIN.BUF)
    LD_BC_FROM_IX(ZWIN.BUFPTR)
-   jp zwin_putsn_bare
-
+   call zwin_putsn_bare
+   or a,a ; NC
+   ret
 
 
 ;; zwin_bufc -- put character in buffer

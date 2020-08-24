@@ -6,18 +6,20 @@
 #include "zti.inc"
 #include "util.inc"
 #include "zdisp.inc"
+#include "zfile.inc"
 
 ; struct zwin
-;  C curcol
-;  R currow
-;  C orgcol
-;  R orgrow
-;  C width
-;  R height
-;  B flags
-;  L buflen
-;  L bufptr
-;  [buflen] B buf
+; C curcol
+; R currow
+; C orgcol
+; R orgrow
+; C width
+; R height
+; B flags
+; L buflen
+; L bufptr
+; [buflen] B buf
+; F file
 
 ZWIN.CURCOL .equ 0                       ; PENCOL_SIZE
 ZWIN.CURROW .equ ZWIN.CURCOL + COL_SIZE  ; PENROW_SIZE
@@ -35,6 +37,7 @@ ZWIN.BUF    .equ ZWIN.CKSUM  + LONG_SIZE
 #else
 ZWIN.BUF    .equ ZWIN.BUFANC + LONG_SIZE ;
 #endif
+ZWIN.FILE   .equ ZWIN.BUF + LONG_SIZE
 
 ZWIN.RECT   .equ ZWIN.ORGCOL
 
@@ -42,11 +45,11 @@ ZWIN.RECT   .equ ZWIN.ORGCOL
 ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
 ZWIN.FLAGS.PAGD .equ 1 ; whether paged (must be buffered)
 
-ZWIN_SIZE .equ ZWIN.BUF + LONG_SIZE
+ZWIN_SIZE .equ ZWIN.FILE + SIZEOF_FILE
 
 ZWIN_CLEARCOLOR .equ $ff
 
-#macro D_ZWIN(orgcol, orgrow, width, height, flags, buflen, buf)
+#macro D_ZWIN(orgcol, orgrow, width, height, flags, buflen, filename)
   DCOL orgcol ; curcol
   DROW orgrow ; currow
   DCOL orgcol ; orgcol
@@ -64,10 +67,13 @@ ZWIN_CLEARCOLOR .equ $ff
 #if ZTEST
   DL 5381   ; cksum
 #endif
-  DL buf    ; buf
+  DL 0    ; buf
+  D_FILE(filename, buflen) ; filesize 
 #endmacro
 
-#define RES_ZWIN(buflen) RESB(ZWIN_BUF_BASE_SIZE + buflen)
+
+#define RES_ZWIN RESB(ZWIN_SIZE)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; GLOBAL VARIABLES ;;;;

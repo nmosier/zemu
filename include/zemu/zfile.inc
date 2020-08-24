@@ -19,6 +19,8 @@ _  .db name
    RESB(VARNAMELEN - $ + (-_)) ; pad name
    .dw size
 #endmacro
-   
+
+
+#define RES_FILE RESB(SIZEOF_FILE)
 
 #endif

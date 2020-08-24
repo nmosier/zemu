@@ -8,6 +8,49 @@
 #include "zwin.inc"
 #include "zstr.inc"
 
+;; zwin_buf -- get pointer to window buffer
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS:
+;;  hl = pointer to window buffer
+;; ERRORS: yes.
+;; DESTROYS: (none)
+;; OPTIM: required
+zwin_buf:
+  push bc
+   push de
+    push af
+     push ix
+      LEA_IX_IX(ZWIN.FILE)
+      LD_HL_0
+      call file_addr
+     pop ix
+    pop bc
+    ld a,b
+   pop de
+  pop bc
+  ret
+
+
+;; zwin_init -- initialize window
+;; INPUTS:
+;;  ix = pointer to window struct
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zwin_init:
+  bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
+  jr z,_
+  push ix
+   LEA_IX_IX(ZWIN.FILE)
+   call file_create
+  pop ix
+  ret c 
+_ call zwin_reset
+  or a,a
+  ret
+
+
 ;; zwin_clear -- clear window
 ;; INPUTS:
 ;;  ix = pointer to window struct
@@ -86,7 +129,7 @@ zwin_reset:
 ;;  ix = pointer to window struct
 ;;  a = character
 ;; DESTROYS: (all)
-;; ERRORS: no, but safe.
+;; ERRORS: yes (zwin_putc), no (zwin_putc_bare).
 zwin_putc:
   scf
   jr zwin_putc.base
@@ -239,7 +282,8 @@ zwin_redraw:
    or a,a ; NC
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    ret z ; if not buffered, then nothing to redisplay
-   LD_HL_FROM_IX(ZWIN.BUF)
+   call zwin_buf
+   ret c
    LD_BC_FROM_IX(ZWIN.BUFPTR)
    call zwin_putsn_bare
    or a,a ; NC
@@ -265,9 +309,9 @@ zwin_bufc:
    sbc hl,de
    ccf
    call c,zwin_trunc ; %a preserved
-   ret c
    LD_DE_FROM_IX(ZWIN.BUFPTR)
-   LD_HL_FROM_IX(ZWIN.BUF)
+   call nc,zwin_buf
+   ret c
    add hl,de
    ld (hl),a
    inc de
@@ -355,7 +399,10 @@ zwin_trunc:
   ; hl = width of window
   ; de = buffer begin
   ; bc = buffer end
-  LD_DE_FROM_IX(ZWIN.BUF)
+  ex de,hl
+  call zwin_buf
+  ret c
+  ex de,hl
   LD_HL_FROM_IX(ZWIN.BUFPTR)
   add hl,de
   LD_BC_HL
@@ -365,8 +412,10 @@ zwin_trunc:
   ; hl = (one past) end of first line
   ; need to erase all bytes between ix+ZWIN.BUF and hl
   ex de,hl
+  call zwin_buf
+  ret c
+  LD_BC_HL
   LD_HL_FROM_IX(ZWIN.BUFPTR)
-  LD_BC_FROM_IX(ZWIN.BUF)
   add hl,bc
   or a,a
   sbc hl,de ; hl = # of bytes to keep
@@ -374,9 +423,10 @@ zwin_trunc:
   ; bc = count
   ; de = EOL ptr
   push de ; save EOL ptr
-   ex de,hl ; hl = EOL ptr
    ;; calculate deleted bytes
-   LD_DE_FROM_IX(ZWIN.BUF)
+   call zwin_buf
+   jr c,zwin_trunc.pop
+   ex de,hl ; hl = EOL ptr
    or a,a
    sbc hl,de ; size of bytes to delete
    ex de,hl
@@ -399,8 +449,11 @@ zwin_trunc:
    ex de,hl
 _  LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_trunc.move:
+   call zwin_buf
+   ex de,hl
+zwin_trunc.pop:
   pop hl ; restore EOL ptr
-  LD_DE_FROM_IX(ZWIN.BUF)
+  ret c
   ; hl = EOL ptr
   ; de = buf begin
   ; bc = number of bytes to keep
@@ -415,6 +468,7 @@ zwin_trunc.move:
   ld a,b
   scf \ ccf
   ret
+
 
 ;; zwin_puts -- put string in window, buffered, null-terminated
 ;; zwin_puts_bare -- put string in window, unbuffered
@@ -648,8 +702,8 @@ zwin_split_horiz.org_right:
 ;;  ix = pointer to window struct
 ;; OUTPUTS:
 ;;  a = char
-;; ERRORS: yes (zwin_getc), no (zwin_getc_bare).
-;; DESTROYS: all but a, ix
+;; ERRORS: yes.
+;; DESTROYS: bc, de, hl
 ;; *** portable ***
 zwin_getc:
    call sys_getkey
@@ -691,22 +745,22 @@ zwin_getsn.loop:
       jr c,zwin_getsn.err4
 #endif
       call zwin_getc_bare ; preserves a
+      jr c,zwin_getsn.err4 ; error
 #if ZCURSOR
-      push af           ; NOTE: preserving error state.
+      push af
        call zwin_unputcursor
        jr c,zwin_getsn.err5
       pop af
 #endif
      pop bc
     pop hl
-    jr c,zwin_getsn.err2
     or a,a ; check for null term
     jr z,zwin_getsn.done
 
     pop de \ push de
     call zwin_getsn.handle
-
-    jr c,zwin_getsn.done
+    jr c,zwin_getsn.err2
+    jr z,zwin_getsn.done
 
 zwin_getsn.entry:
     ld de,1
@@ -743,9 +797,7 @@ zwin_getsn.putc:
   pop hl
   ret c
   cp a,ASCII_NEWLINE
-  scf
-  ret z
-  ccf
+  scf \ ccf
   ret
 
 zwin_getsn.special:
@@ -843,5 +895,6 @@ zwin_putcursor:
 #endif
 
 #include "zdisp.z80"
+#include "zfile.z80"
 
 #endif

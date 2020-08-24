@@ -106,7 +106,10 @@ zwin_unputcursor:
    ld hl,(ix+ZWIN.BUFPTR)
    call cp_hl_0
    jr z,zwin_unputc.done ; nothing to unput
-   ld de,(ix+ZWIN.BUF)
+   ex de,hl
+   call zwin_buf
+   jr c,zwin_unputc.done ; error
+   ex de,hl
    add hl,de
    dec hl
    ld a,(hl)
@@ -208,12 +211,15 @@ zwin_cksum_unputc:
 ;;  ix = pointer to zwin
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
+;; ERRORS: yes.
 zwin_cksum:
-  push af
   push hl
   push de
   push bc
-   ld de,(ix+ZWIN.BUF)
+  push af
+   call zwin_buf
+   jr c,zwin_cksum.done ; error
+   ex de,hl
    ld bc,(ix+ZWIN.BUFPTR)
    ld hl,5381
    jr zwin_cksum.entry
@@ -237,16 +243,19 @@ zwin_cksum.loop:
    dec bc
 zwin_cksum.entry:
    push hl
-    ld hl,0
+    LD_HL_0
     or a,a
     sbc hl,bc
    pop hl
    jr nz,zwin_cksum.loop
    ld (ix+ZWIN.CKSUM),hl
+   or a,a
+zwin_cksum.done:
+  pop bc
+  ld a,b
   pop bc
   pop de
   pop hl
-  pop af
   ret
 
 #endif

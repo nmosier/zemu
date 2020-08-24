@@ -119,7 +119,10 @@ zwin_unputcursor:
    dec hl
    LD_HL_TO_IX(ZWIN.BUFPTR)
    ;; get decremented buffer pointer
-   LD_DE_FROM_IX(ZWIN.BUF)
+   ex de,hl
+   call zwin_buf
+   jr c,zwin_unputc.done
+   ex de,hl
    add hl,de
    ;; get removed char
    ld a,(hl)

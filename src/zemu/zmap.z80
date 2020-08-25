@@ -118,104 +118,72 @@ _  pop hl
 ;; ERRORS: yes.
 ;; *** portable ***
 zmap_load:
-   ;; copy canonical zmap into temporary zmap
-   ld de,zmap_name_current
-   call appvar_copy
-   ret c    ; ERROR
-   call zmap_setptr
-   ld ix,(zmap_header)
-   ; call zmap_markupdate
-   or a,a   ; SUCCESS
-   ret
+  ld de,zmap_canonical_file+FILE.NAME
+  ld bc,VARNAMELEN
+  call strncpy
+  push ix
+   push iy
+    ld ix,zmap_canonical_file
+    ld iy,zmap_working_file
+    call file_open
+    call nc,file_copy
+   pop iy
+  pop ix
+  ret
+  
 
-;; zmap_setptr -- update global zmap variables to point to zmap at given address
-;; INPUTS:
-;;  hl = pointer to zmap appvar
-;; OUTPUTS: (none)
-;; ERRORS: no (but always NC)
-;; DESTROYS: hl, de
-;; *** portable ***
-zmap_setptr:
-   ;; set global zmap pointers
-   ld (zmap_header),hl
-   ld de,ZMAP_HDRSIZE
-   add hl,de
-   ld (zmap_table),hl
-   ret
-
-#if 0
-;; zmap_markupdate -- set all pages in given zmap as needing update
-;; INPUTS:
-;;  ix = zmap pointer
-;; OUTPUTS: (none)
-;; ERRORS: no.
-;; DESTROYS: b, ix
-zmap_markupdate:
-   ld b,(ix+ZMAP_HDR_NPAGES)
-   LEA_IX_IX(ZMAP_HDRSIZE)
-zmap_markupdate.loop:
-   set ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
-   LEA_IX_IX(ZMAP_TABENTLEN)
-   djnz zmap_markupdate.loop
-zmap_markupdate.done:
-   ret
-
-;; zmap_update_ent -- update pointer in given page entry
-;; INPUTS:
-;;  ix = pointer to page entry in zmap
+;; zmap_header -- get pointer to zmap header
+;; INPUTS: (none)
 ;; OUTPUTS:
-;;  hl = pointer to page entry
+;;  ix = pointer to zmap header
+;; DESTROYS: (none)
 ;; ERRORS: yes.
-;; DESTROYS: all but ix
-;; *** portable ***
-zmap_update_ent:
-   LEA_HL_IX(ZMAP_ENT.VARNAME)
-   push ix
-   call appvar_find
-   pop ix
-   ret c
-   ex de,hl
-   LD_HL_TO_IX(ZMAP_ENT_PTR)
-   res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
-   ;; update INRAM flag
-   and a,MASK(ZMAP_ENT_FLAGS_INRAM)
-   or a,(ix+ZMAP_ENT_FLAGS)
-   ld (ix+ZMAP_ENT_FLAGS),a
-zmap_update_ent.done:
-   or a,a
-   ret
+;; OPTIM required
+zmap_header:
+  push hl
+   push de
+    push bc
+     push af
+      ld ix,zmap_working_file
+      LD_HL_0
+      call file_addr
+      LD_IX_HL
+     pop bc
+     ld a,b
+    pop bc
+   pop de
+  pop hl
+  ret
 
-
-;; zmap_page_to_RAM -- move page into RAM
-;; INPUTS:
-;;  ix = page entry
+;; zmap_table -- get pointer to zmap table
+;; INPUTS: (none)
 ;; OUTPUTS:
-;;  hl = page pointer
-;;  page pointer updated in entry as well
-;;  entry flags also updated
+;;  ix = pointer to zmap table
+;; DESTROYS: (none)
 ;; ERRORS: yes.
-;; DESTROYS: all but ix
-;; *** portable ***
-zmap_page_to_RAM:
-   push ix
-   LEA_HL_IX(ZMAP_ENT.VARNAME)
-   call appvar_to_RAM
-   pop ix
-   ex de,hl
-   ret c
-   LD_HL_TO_IX(ZMAP_ENT_PTR)
-   set ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
-   or a,a
-   ret
-#endif
+;; OPTIM required.
+zmap_table:
+  push hl
+   push de
+    push bc
+     push af
+      ld ix,zmap_working_file
+      ld hl,ZMAP_HDRSIZE
+      call file_addr
+      LD_IX_HL
+     pop bc
+     ld a,b
+    pop bc
+   pop de
+  pop hl
+  ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; ZMAP GLOBALS ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-zmap_header: DL 0
-zmap_table:  DL 0
+zmap_working_file: D_FILE("ZEMUMAP", 0)
+zmap_canonical_file: RES_FILE
 zmap_name_canonical: RESB(VARNAMELEN)
 zmap_name_current:   .db "ZEMUMAP",0
 

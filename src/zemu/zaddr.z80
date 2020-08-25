@@ -112,7 +112,7 @@ zaddr_offset:
 ;; *** portable ***
 zaddr_pageent:
   MLT_A(SIZEOF_ZMAP_ENT, R_DE)
-  ld ix,(zmap_table)
+  call zmap_table
   add ix,de ; pointer to table entry
   ret
 
@@ -130,8 +130,8 @@ zaddr_pageent:
 ;; *** portable ***
 zaddr_to_paddr:
   push ix
-   ld ix,(zmap_header)
-   call zaddr_valid          ; check if Z-address is valid, given access mode
+   call zmap_header
+   call nc,zaddr_valid       ; check if Z-address is valid, given access mode
    push hl                   ; preserve Z-address, lower 16 bits
     ld d,a                   ; access mode
     call nc,zaddr_pageno     ; get page number -> a
@@ -139,7 +139,7 @@ zaddr_to_paddr:
     call nc,zmap_fetchpage   ; get page file -> ix
    pop hl
    push ix                   ; save page file
-    ld ix,(zmap_header)      ; refresh header pointer
+    call nc,zmap_header
     call nc,zaddr_offset     ; get page offset -> de
     ex de,hl
    pop ix                    ; restore page file

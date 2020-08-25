@@ -12,19 +12,27 @@
 ;; ERRORS: no.
 ;; *** portable ***
 zsave_size:
-   ;; get size of current zmap
-   ld hl,(zmap_header)
-   UCAST_FROM_HL_TO_BC
-   inc hl
-   ld b,(hl)
-   ;; get size of current zmem
-   ld hl,(zframe_sp)
-   ;; zmap + zmem
-   add hl,bc
-   ;; add fixed-sized fields
-   ld de,ZFRAME_SIZE+3*WORD_SIZE ; words to store length & size bytes
-   add hl,de
-   ret
+  ;; get size of current zmap
+  push ix 
+   call zmap_header
+   jr c,zsave_size.err1
+   UCAST_FROM_IX_TO_BC
+  pop ix
+  inc hl
+  ld b,(hl)
+  ;; get size of current zmem
+  ld hl,(zframe_sp)
+  ;; zmap + zmem
+  add hl,bc
+  ;; add fixed-sized fields
+  ld de,ZFRAME_SIZE+3*WORD_SIZE ; words to store length & size bytes
+  add hl,de
+  ret
+
+zsave_size.err1:
+  pop hl
+  ret
+
 
 ;; zsave_savemap -- save a map
 ;; INPUTS:
@@ -116,8 +124,11 @@ zsave_save:
    ;; find offsets of frame pointers (fp and sp)
    ;; copy in map appvar
    push de    ; save for update
-    ld hl,(zmap_header)
-    UCAST_FROM_HL_TO_BC
+    push ix
+     call zmap_header
+     jr c,zsave_save.err3
+     UCAST_FROM_IX_TO_BC
+    pop ix
     inc hl
     ld b,(hl)
     dec hl
@@ -144,6 +155,13 @@ zsave_save.done:
   xor a,a
   dec a       ; ld a,$ff && NC -- SUCCESS
   ret
+
+zsave_save.err3:
+  pop hl
+  pop hl
+  pop hl
+  ret
+
 
 ;; zstate_restore -- restore game
 ;; INPUTS:
@@ -176,7 +194,6 @@ zsave_restore:
    ldir
    ex (sp),hl     ; preserve save ptr and restore working zmap pointer
    LD_IX_HL
-   call zmap_setptr
    LEA_IX_IX(2)
    ; call zmap_markupdate
    pop hl         ; restore save ptr

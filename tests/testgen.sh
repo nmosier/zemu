@@ -220,7 +220,7 @@ for ((I = 0; I < NCRCS; ++I)); do
           "start": "$START",
           "size": "$SIZE",
           "expected_CRCs": ["$CRC"],
-          "timeout": 10000
+          "timeout": 30000
        }$SEP
 EOF
 done

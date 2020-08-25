@@ -179,7 +179,6 @@ zemu_prompt_game: .db "Story name: ",0
 
 ;;; OTHER SOURCES ;;;
 #include "zaddr.z80"
-#include "zapp.z80"
 #include "zbranch.z80"
 #include "zcall.z80"
 #include "zcode.z80"

@@ -187,6 +187,4 @@ zmap_canonical_file: RES_FILE
 zmap_name_canonical: RESB(VARNAMELEN)
 zmap_name_current:   .db "ZEMUMAP",0
 
-#include "zapp.z80"
-
 #endif

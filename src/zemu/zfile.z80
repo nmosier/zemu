@@ -259,6 +259,4 @@ file_appvar_to_OP1:
 #endif
 
 
-#include "zapp.z80"
-
 #endif

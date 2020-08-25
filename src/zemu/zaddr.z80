@@ -56,7 +56,7 @@ zaddr_valid.write:
 ;; DESTROYS: (none)
 ;; *** portable ***
 zaddr_pageno:
-   push bc
+  push bc
    ;; get mask of page number (only high byte)
    ld a,(ix+ZMAP_HDR_PAGEMASK)
    cpl
@@ -83,8 +83,8 @@ zaddr_pageno.entry:
    ld a,c
 zaddr_pageno.done:
    ;; NOTE: due to previous loop, always NC, so SUCCESS.
-   pop bc
-   ret
+  pop bc
+  ret
 
 ;; zaddr_offset -- get offset of address within page
 ;; INPUTS:
@@ -96,11 +96,11 @@ zaddr_pageno.done:
 ;; ERRORS: no, but always NC.
 ;; *** portable ***
 zaddr_offset:
-   UCAST_L_TO_DE ; pages are always multiples of lower bit
-   ld a,(ix+ZMAP_HDR_PAGEMASK)
-   and a,h
-   ld d,a
-   ret
+  UCAST_L_TO_DE ; pages are always multiples of lower bit
+  ld a,(ix+ZMAP_HDR_PAGEMASK)
+  and a,h
+  ld d,a
+  ret
 
 ;; zaddr_pageent -- get address of page entry
 ;; INPUTS:
@@ -111,30 +111,11 @@ zaddr_offset:
 ;; ERRORS: no (but always NC)
 ;; *** portable ***
 zaddr_pageent:
-   MLT_A(ZMAP_TABENTLEN, R_DE)
-   ld ix,(zmap_table)
-   add ix,de ; pointer to table entry
-   ret
+  MLT_A(SIZEOF_ZMAP_ENT, R_DE)
+  ld ix,(zmap_table)
+  add ix,de ; pointer to table entry
+  ret
 
-#if 0
-;; zaddr_accesspage -- get pointer to access page with given permissions
-;; INPUTS:
-;;  a = page number
-;;  b = access mode (ZADDR_READ, ZADDR_WRITE)
-;; OUTPUTS:
-;;  hl = pointer to page
-;; ERRORS: yes.
-;; DESTROYS: ???
-zaddr_accesspage:
-   call zaddr_pageent
-   bit ZADDR_WRITE,b
-   jr nz,zaddr_accesspage.write
-
-zaddr_accesspage.write:
-   ;; check if address in dynamic memory
-   bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
-   call nz,zmap_copypage
-#endif
 
 ;; zaddr_to_paddr -- get physical byte address of Z-machine byte address
 ;; INPUTS:
@@ -148,22 +129,23 @@ zaddr_accesspage.write:
 ;; OPTIM: preserve registers to minimize code size.
 ;; *** portable ***
 zaddr_to_paddr:
-   push ix
+  push ix
    ld ix,(zmap_header)
-   call zaddr_valid           ; check if Z-address is valid, given access mode
-   push hl                    ; preserve Z-address, lower 16 bits
-   ld d,a                     ; access mode
-   call nc,zaddr_pageno       ; get page number -> a
-   ld b,d                     ; access mode
-   call nc,zmap_fetchpage     ; get page physical address -> hl
-   ld ix,(zmap_header)        ; refresh header pointer
-   ex (sp),hl                 ; restore Z-address & preserve physical page address
-   call nc,zaddr_offset       ; get page offset -> de
-   pop hl                     ; restore physical page address
-   pop ix
-   ret c                      ; ERROR
-   add hl,de                  ; compute physical byte address
-   ret                        ; SUCCESS (always NC)
+   call zaddr_valid          ; check if Z-address is valid, given access mode
+   push hl                   ; preserve Z-address, lower 16 bits
+    ld d,a                   ; access mode
+    call nc,zaddr_pageno     ; get page number -> a
+    ld b,d                   ; access mode
+    call nc,zmap_fetchpage   ; get page file -> ix
+   pop hl
+   push ix                   ; save page file
+    ld ix,(zmap_header)      ; refresh header pointer
+    call nc,zaddr_offset     ; get page offset -> de
+    ex de,hl
+   pop ix                    ; restore page file
+   call nc,file_addr         ; get physical address
+  pop ix
+  ret
 
 ;; zaddr_fetch -- fetch byte at logical address
 ;; INPUTS:
@@ -175,24 +157,24 @@ zaddr_to_paddr:
 ;; DESTROYS: (none)
 ;; *** portable ***
 zaddr_fetch:
-   push bc
+  push bc
    push de
-   PUSH_BHL_ZA
-   ld a,MASK(ZADDR_READ)
-   call zaddr_to_paddr
-   ex de,hl
-   POP_BHL_ZA
-   jr c,zaddr_fetch.cleanup
-   ld a,(de) ; load byte
-   INC_BHL_ZA ; inc z-addr in [b:hl]
-   ; C reset (nc)
+    PUSH_BHL_ZA
+    ld a,MASK(ZADDR_READ)
+    call zaddr_to_paddr
+    ex de,hl
+    POP_BHL_ZA
+    jr c,zaddr_fetch.cleanup
+    ld a,(de) ; load byte
+    INC_BHL_ZA ; inc z-addr in [b:hl]
+    ; C reset (nc)
 zaddr_fetch.cleanup:
    pop de
    ;; restore %c
    ex (sp),hl
    ld c,l
-   pop hl
-   ret
+  pop hl
+  ret
 
 
 

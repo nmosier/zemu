@@ -5,6 +5,7 @@
 
 #include "zti.inc"
 #include "util.inc"
+#include "zfile.inc"
 
 ZWORD_BYTE .equ 1
 ZWORD_SIZE .equ 2
@@ -21,15 +22,12 @@ ZMAP_HDR_END        .equ ZMAP_HDR_STATIC + WORD_SIZE
 
 ZMAP_HDRSIZE        .equ ZMAP_HDR_END - ZMAP_HDR_BEGIN
 
-ZMAP_ENT_VARNAME .equ 0                           ; char[]
-ZMAP_ENT_FLAGS .equ ZMAP_ENT_VARNAME + VARNAMELEN ; B
-ZMAP_ENT_PTR .equ ZMAP_ENT_FLAGS + BYTE_SIZE      ; uint24_t, regardless of platform
-ZMAP_TABENTLEN .equ ZMAP_ENT_PTR + 3             
+ZMAP_ENT.FILE  .equ 0
+ZMAP_ENT.FLAGS .equ ZMAP_ENT.FILE + SIZEOF_FILE
+SIZEOF_ZMAP_ENT .equ ZMAP_ENT.FLAGS + BYTE_SIZE
 
-ZMAP_ENT_FLAGS_INRAM .equ 0
-ZMAP_ENT_FLAGS_COPY .equ 1   ; whether page should be copied
-ZMAP_ENT_FLAGS_SAVE .equ 2   ; whether page should be saved
-ZMAP_ENT_FLAGS_UPDATE .equ 3 ; whether pointer needs to be updated
+ZMAP_ENT.FLAGS.COPY .equ 0   ; whether page should be copied
+ZMAP_ENT.FLAGS.SAVE .equ 1   ; whether page should be saved
 
 ZPACK .equ 2 ; scaling factor
 

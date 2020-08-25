@@ -48,7 +48,7 @@ zsave_savemap.loop:
    ;;  hl = name prefix
    ;;  b = pages remaining
    ;;  c = page ID
-   bit ZMAP_ENT_FLAGS_SAVE,(ix+ZMAP_ENT_FLAGS)
+   bit ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
    jr z,_
    
    ;; copy page
@@ -64,7 +64,7 @@ zsave_savemap.loop:
    push hl
    push bc
    ld a,c
-   LEA_DE_IX(ZMAP_ENT_VARNAME)
+   LEA_DE_IX(ZMAP_ENT.FILE + FILE.NAME)
    call zmap_namepage
    call appvar_to_OP1
 
@@ -80,8 +80,8 @@ zsave_savemap.loop:
    pop hl
 
    ;; update flags
-   ld (ix+ZMAP_ENT_FLAGS),MASK(ZMAP_ENT_FLAGS_COPY)
-_  LEA_IX_IX(ZMAP_TABENTLEN)
+   ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.COPY)
+_  LEA_IX_IX(SIZEOF_ZMAP_ENT)
    inc c
    djnz zsave_savemap.loop
 zsave_savemap.leave:
@@ -178,7 +178,7 @@ zsave_restore:
    LD_IX_HL
    call zmap_setptr
    LEA_IX_IX(2)
-   call zmap_markupdate
+   ; call zmap_markupdate
    pop hl         ; restore save ptr
    ;; get size of zmem
    CLEAR_UPPER_BC

@@ -36,6 +36,7 @@ ZWIN.CKSUM  .equ ZWIN.BUFANC + LONG_SIZE
 ZWIN.FILE   .equ ZWIN.CKSUM + LONG_SIZE
 #else
 ZWIN.FILE   .equ ZWIN.BUFANC + LONG_SIZE ; SIZEOF_FILE
+#endif
 
 
 ZWIN.RECT   .equ ZWIN.ORGCOL
@@ -66,7 +67,6 @@ ZWIN_CLEARCOLOR .equ $ff
 #if ZTEST
   DL 5381   ; cksum
 #endif
-  DL 0    ; buf
   D_FILE(filename, buflen) ; filesize 
 #endmacro
 

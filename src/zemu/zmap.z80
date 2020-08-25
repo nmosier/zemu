@@ -11,37 +11,23 @@
 ;;  a = page number
 ;;  b = access mode (ZADDR_READ, ZADDR_WRITE)
 ;; OUTPUT:
-;;  hl = pointer to zpage in RAM (skips over size bytes)
+;;  ix = file pointer
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; NOTE: performs no validation of page number.
 ;; TODO: this should check if INRAM flag of page for writes.
 zmap_fetchpage:
-   call zaddr_pageent
-zmap_fetchpage_ent:
-#if TI84PCE
-   bit ZADDR_WRITE,b
-   jr z,zmap_fetchpage.check_update    ; don't need to copy or move appvar for reads
-#endif
-   bit ZMAP_ENT_FLAGS_COPY,(ix+ZMAP_ENT_FLAGS)
-   jr z,zmap_fetchpage.check_RAM
-   ;; copy page and update flags
-   ld hl,zemu_pagepfx
-   call zmap_copypage_ent
-   ret c
-   set ZMAP_ENT_FLAGS_SAVE,(ix+ZMAP_ENT_FLAGS)
-   jr zmap_fetchpage.addr        ; don't need to check for update
-zmap_fetchpage.check_RAM:
-   bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
-   call z,zmap_page_to_RAM
-   jr zmap_fetchpage.addr
-zmap_fetchpage.check_update:
-   bit ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
-   call nz,zmap_update_ent
-zmap_fetchpage.addr:
-   LD_HL_FROM_IX(ZMAP_ENT_PTR)
-   or a,a
-   ret
+  call zaddr_pageent
+  bit ZADDR_WRITE,b
+  ret z
+  bit ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS)
+  ret z
+  ld hl,zemu_pagepfx
+  call zmap_copypage_ent
+  ret c
+  set ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
+  LEA_IX_IX(ZMAP_ENT.FILE)
+  jp file_to_RAM
 
 
 ;; zmap_copypage -- copy page (used when write to page is read-only)
@@ -58,33 +44,28 @@ zmap_fetchpage.addr:
 ;; TODO: parameterize page naming.
 ;; *** portable ***
 zmap_copypage:
-   ;; get pointer to entry
-   call zaddr_pageent
+  ;; get pointer to entry
+  call zaddr_pageent
 zmap_copypage_ent:
-   ;; get src and dst var names
-   ;; name page
-   ld de,zmap_copypage.buf
-   call zmap_namepage
-   LEA_DE_IX(ZMAP_ENT_VARNAME)
-   ex de,hl
-   ;; copy appvar
-   push ix
-   call appvar_copy
-   pop ix
-   ret c
-   ;; update zmap entry
-   LD_HL_TO_IX(ZMAP_ENT_PTR)
-   ld a,MASK(ZMAP_ENT_FLAGS_INRAM)
-   ld (ix+ZMAP_ENT_FLAGS),a
-   push hl
-   ld hl,zmap_copypage.buf
-   LEA_DE_IX(ZMAP_ENT_VARNAME)
-   ld bc,VARNAMELEN
-   call strncpy
-   pop hl
-   or a,a
-   ret
-zmap_copypage.buf: RESB(VARNAMELEN)
+  ;; get src and dst var names
+  ;; name page
+  ld de,zmap_copypage.file + FILE.NAME
+  call zmap_namepage
+  push ix
+   push iy
+    LEA_IX_IX(ZMAP_ENT.FILE)
+    ld iy,zmap_copypage.file
+    call file_copy
+   pop iy
+  pop ix
+  ret c ; error
+  ld hl,zmap_copypage.file
+  LEA_DE_IX(ZMAP_ENT.FILE)
+  ld bc,SIZEOF_FILE
+  ldir
+  ret
+
+zmap_copypage.file: RES_FILE
 
 zemu_pagepfx: .db "ZEMUP",0
 
@@ -143,7 +124,7 @@ zmap_load:
    ret c    ; ERROR
    call zmap_setptr
    ld ix,(zmap_header)
-   call zmap_markupdate
+   ; call zmap_markupdate
    or a,a   ; SUCCESS
    ret
 
@@ -162,6 +143,7 @@ zmap_setptr:
    ld (zmap_table),hl
    ret
 
+#if 0
 ;; zmap_markupdate -- set all pages in given zmap as needing update
 ;; INPUTS:
 ;;  ix = zmap pointer
@@ -187,7 +169,7 @@ zmap_markupdate.done:
 ;; DESTROYS: all but ix
 ;; *** portable ***
 zmap_update_ent:
-   LEA_HL_IX(ZMAP_ENT_VARNAME)
+   LEA_HL_IX(ZMAP_ENT.VARNAME)
    push ix
    call appvar_find
    pop ix
@@ -203,6 +185,7 @@ zmap_update_ent.done:
    or a,a
    ret
 
+
 ;; zmap_page_to_RAM -- move page into RAM
 ;; INPUTS:
 ;;  ix = page entry
@@ -215,7 +198,7 @@ zmap_update_ent.done:
 ;; *** portable ***
 zmap_page_to_RAM:
    push ix
-   LEA_HL_IX(ZMAP_ENT_VARNAME)
+   LEA_HL_IX(ZMAP_ENT.VARNAME)
    call appvar_to_RAM
    pop ix
    ex de,hl
@@ -225,7 +208,8 @@ zmap_page_to_RAM:
    res ZMAP_ENT_FLAGS_UPDATE,(ix+ZMAP_ENT_FLAGS)
    or a,a
    ret
-   
+#endif
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; ZMAP GLOBALS ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;

@@ -134,6 +134,9 @@ zemu_open.find_zmap:
    
 ;; zemu_cleanup -- cleanup in preparation for exit
 zemu_cleanup:
+  or a,a
+  ret
+#if 0
    ; check if zmap was found
    ld hl,(zmap_header)
    ld de,0
@@ -148,7 +151,7 @@ zemu_cleanup.table_loop:
    bit ZMAP_ENT_FLAGS_INRAM,(ix+ZMAP_ENT_FLAGS)
    jr z,zemu_cleanup.table_loop.cond
    ; move varname into OP1
-   LEA_HL_IX(ZMAP_ENT_VARNAME)
+   LEA_HL_IX(ZMAP_ENT.VARNAME)
    call appvar_to_OP1
    SYSCALL(_Arc_Unarc) ; archive zpage
 zemu_cleanup.table_loop.cond:
@@ -159,7 +162,7 @@ zemu_cleanup.done:
 zemu_exit.done:
    or a,a ; success
    ret
-
+#endif
 
 
 ;; zemu_selectgame -- choose game to play

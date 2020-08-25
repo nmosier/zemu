@@ -37,10 +37,14 @@ struct zmap_header {
    uint16_t zmh_staticaddr; // start address of static Z-memory
 };
 
+struct zfile {
+   char varname[VARNAMELEN];
+   uint16_t size;
+};
+
 struct zmap_tabent {
-   char zme_varname[VARNAMELEN];
-   uint8_t zme_flags;
-   unsigned int zme_ptr: 24;
+   struct zfile file;
+   uint8_t flags;
 };
 
 uint8_t read_be8(void *ptr);
@@ -215,11 +219,12 @@ int main(int argc, char *argv[]) {
       }
 
       /* copy strings into table entry */
-      strncpy(tab[i].zme_varname, stem, stem_len);
-      memset(tab[i].zme_varname + stem_len, 0, VARNAMELEN - stem_len);
+      strncpy(tab[i].file.varname, stem, stem_len);
+      memset(tab[i].file.varname + stem_len, 0, VARNAMELEN - stem_len);
+      tab[i].file.size = 0; /* determined at runtime */
 
       /* initialize flags */
-      tab[i].zme_flags = (i * zpage_size < hdr.zmh_staticaddr) ? MASK(ZMAP_ENT_FLAGS_COPY) : 0;
+      tab[i].flags = (i * zpage_size < hdr.zmh_staticaddr) ? MASK(ZMAP_ENT_FLAGS_COPY) : 0;
       
       ++argi;
    }
@@ -234,7 +239,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "static memory: 0x%x\n", hdr.zmh_staticaddr);
       fprintf(stderr, "zpage appvars:\n");
       for (int i = 0; i < hdr.zmh_npages; ++i) {
-         fprintf(stderr, "\t%.*s\n", VARNAMELEN, tab[i].zme_varname);
+         fprintf(stderr, "\t%.*s\n", VARNAMELEN, tab[i].file.varname);
       }
    }
 
@@ -273,11 +278,11 @@ void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
 
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {
    for (int i = 0; i < cnt; ++i) {
-      fwrite(tab[i].zme_varname, 1, VARNAMELEN, outf);
-      fputc(tab[i].zme_flags, outf);
-      for (int j = 0; j < 3; ++j) {
-         fputc(BYTE(tab[i].zme_ptr, j), outf);
+      fwrite(tab[i].file.varname, 1, VARNAMELEN, outf);
+      for (int byte = 0; byte < sizeof(tab[i].file.size); ++byte) {
+         fputc(BYTE(tab[i].file.size, byte), outf);
       }
+      fputc(tab[i].flags, outf);
    }
 }
 

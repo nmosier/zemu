@@ -109,6 +109,10 @@ zsave_savemap.err:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zsave_save:
+  scf
+  ld a,ZERR_INTERNAL
+  ret
+#if 0
   ;; create empty appvar of required size
   push hl           ; preserve name
    push hl
@@ -161,7 +165,7 @@ zsave_save.err3:
   pop hl
   pop hl
   ret
-
+#endif
 
 ;; zstate_restore -- restore game
 ;; INPUTS:
@@ -171,6 +175,10 @@ zsave_save.err3:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zsave_restore:
+  ld a,ZERR_INTERNAL
+  scf
+  ret
+#if 0
    call appvar_find
    jr c,zsave_restore.false   ; not found, so false
    ex de,hl
@@ -226,6 +234,7 @@ zsave_restore.stackoverflow:
 zsave_restore.false:
    xor a,a
    ret
+#endif
 
 ;; zsave_restart -- restart game
 ;; INPUTS:

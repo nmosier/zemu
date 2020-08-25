@@ -7,7 +7,7 @@
 #include "zerr.inc"
 
 #if ZERREXTERN
-zerr_tabptr: DL 0
+zerr_tabfile: D_FILE("ZEMUERR",0)
 #else
 #include "zerrtab.z80"
 #endif
@@ -59,15 +59,18 @@ zemu_perror_sep: .db ": ",0
 ;; *** portable ***
 zemu_strerror:
 #if ZERREXTERN
-  ld hl,(zerr_tabptr)
-  call cp_hl_0
-  ld b,a
-  push bc
-  call z,zerr_fetchtab
-  pop bc
-  ld a,b
-  jr c,zerr_fallback
   MLT_A(WORD_SIZE, R_DE)
+  push ix
+   ld ix,zerr_tabfile
+   CLEAR_UPPER_HL
+   ld l,(ix+FILE.SIZE)
+   ld h,(ix+FILE.SIZE+1)
+   call cp_hl_0
+   call z,file_open
+   LD_HL_0
+   call nc,file_addr
+  pop ix
+  jr c,zerr_fallback
   ex de,hl
   add hl,de
   CLEAR_UPPER_BC
@@ -89,22 +92,6 @@ zemu_strerror:
 
 
 #if ZERREXTERN
-
-;; zerr_fetchtab -- fetch error table appvar
-;; INPUTS: (none)
-;; OUTPUTS:
-;;  hl = pointer to error table
-;;  (zerr_tabptr) <- hl
-;;  CF = whether table was found (NC = found, C = not found)
-;; DESTROYS: (all)
-;; ERRORS: no.
-zerr_fetchtab:
-  ld hl,zerr_tabname
-  call appvar_to_RAM
-  ret c
-  ex de,hl
-  ld (zerr_tabptr),hl
-  ret
 
 ;; zerr_fallback -- return string of numeric error code
 ;; INPUTS:
@@ -130,8 +117,6 @@ zerr_fallback:
   ret  
 
 zerr_fallback.buf: .db 0,0,0
-
-zerr_tabname: .db "ZEMUERR",0
 
 #endif
 

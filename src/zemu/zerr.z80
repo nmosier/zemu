@@ -8,6 +8,7 @@
 
 #if ZERREXTERN
 zerr_tabfile: D_FILE("ZEMUERR",0)
+zerr_strbuf: RESB(ZERR_MAX_STRLEN)
 #else
 #include "zerrtab.z80"
 #endif
@@ -59,26 +60,26 @@ zemu_perror_sep: .db ": ",0
 ;; *** portable ***
 zemu_strerror:
 #if ZERREXTERN
-  MLT_A(WORD_SIZE, R_DE)
   push ix
-   ld ix,zerr_tabfile
-   CLEAR_UPPER_HL
-   ld l,(ix+FILE.SIZE)
-   ld h,(ix+FILE.SIZE+1)
-   call cp_hl_0
-   call z,file_open
-   LD_HL_0
-   call nc,file_addr
+   MLT_A(WORD_SIZE, R_HL)
+   push hl
+    ld ix,zerr_tabfile
+    CLEAR_UPPER_HL
+    ld l,(ix+FILE.SIZE)
+    ld h,(ix+FILE.SIZE+1)
+    call cp_hl_0
+    call z,file_open
+   pop hl
+   push af
+    call nc,file_readw ; read word offset
+    ld de,zerr_strbuf
+    ld bc,ZERR_MAX_STRLEN
+    call nc,file_memcpy
+   pop bc
+   ld a,b
   pop ix
   jr c,zerr_fallback
-  ex de,hl
-  add hl,de
-  CLEAR_UPPER_BC
-  ld c,(hl)
-  inc hl
-  ld b,(hl)
-  ex de,hl
-  add hl,bc
+  ld hl,zerr_strbuf
   scf
   ret
 #else

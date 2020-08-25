@@ -1,5 +1,4 @@
 #include "zti.inc"
-#include "zapp.inc"
 #include "zwin.inc"
 #include "zfile.inc"
 
@@ -26,8 +25,10 @@ start:
   call file_open
   jr c,err
 
-  ld iy,dst_file
-  call file_copy
+  push iy
+   ld iy,dst_file
+   call file_copy
+  pop iy
   jr c,err
 
   ld ix,dst_file
@@ -60,7 +61,7 @@ win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
 filedump:
   push hl
   push bc
-  call file_read
+  call file_readb
   pop bc
   pop hl
   ret c
@@ -68,6 +69,8 @@ filedump:
   ex de,hl
   ld hl,hex
   call xtos
+  ld hl,hex
+  ld hl,hex
   ld hl,hex
   push de
   push bc
@@ -81,6 +84,5 @@ filedump:
 hex: .db 0,0,0
 
 
-#include "zapp.z80"
 #include "zerr.z80"
 #include "zfile.z80"

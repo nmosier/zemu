@@ -12,7 +12,7 @@
 .org 0
 
 #else
-#define DERR .dl
+#define DERR DL
 #endif
 
 zerrtab:

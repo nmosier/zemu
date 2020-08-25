@@ -39,6 +39,24 @@ file_addr.err1:
   ret
 
 
+;; file_size -- get size of file
+;; INPUTS:
+;;  ix = file pointer
+;; OUTPUTS:
+;;  hl = size
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_size:
+  LD_HL_0
+  call file_addr
+  dec hl
+  ld a,(hl)
+  dec hl
+  ld l,(hl)
+  ld h,a
+  ret
+
+
 ;; file_readn -- read bytes from file into buffer
 ;; INPUTS:
 ;;  ix = file pointer

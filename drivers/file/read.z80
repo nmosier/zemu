@@ -1,5 +1,4 @@
 #include "zti.inc"
-#include "zapp.inc"
 #include "zwin.inc"
 #include "zfile.inc"
 
@@ -51,7 +50,7 @@ done:
 filedump:
   push hl
   push bc
-  call file_read
+  call file_readb
   pop bc
   pop hl
   ret c
@@ -77,6 +76,5 @@ file: D_FILE("ZORKRAA", 0)
 
 win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
 
-#include "zapp.z80"
 #include "zerr.z80"
 #include "zfile.z80"

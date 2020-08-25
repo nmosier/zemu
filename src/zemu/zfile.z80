@@ -35,21 +35,14 @@ appvar_to_OP1.zero:
 ;; INPUTS:
 ;;  ix = file struct, with name field populated
 ;; OUTPUTS: (none)
-;; DESTROYS: (none)
+;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_open:
-  LD_HL_0
-  call file_addr
+  call file_size
   ret c
-  ;; populate size field
-  dec hl
-  ld a,(hl)
-  ld (ix+FILE.SIZE+1),a
-  dec hl
-  ld a,(hl)
-  ld (ix+FILE.SIZE),a
+  ld (ix+FILE.SIZE),l
+  ld (ix+FILE.SIZE+1),h
   ret
-
 
 ;; file_create -- create file of given size, removing an existing file of the same name
 ;; INPUTS:
@@ -160,27 +153,32 @@ file_copy:
   ld a,(ix+FILE.SIZE+1)
   ld (iy+FILE.SIZE+1),a
   push iy
-  ex (sp),ix
-  ;; create new file
-  call file_create
-  pop ix
-  ret c
-  sbc hl,hl ; ld hl,0
-  push de ; save dst data ptr
-  call file_addr
-  pop de
-  ret c
+   ld iy,flags ; calls require iy = flags unless iy is a parameter
+   ex (sp),ix
+   ;; create new file
+   call file_create
+   jr c,file_copy.err1
+   ex (sp),ix
+   ret c
+   sbc hl,hl ; ld hl,0
+   push de ; save dst data ptr
+    call file_addr
+   pop de
+   jr c,file_copy.err1
+   CLEAR_UPPER_BC
+   ld c,(ix+FILE.SIZE)
+   ld b,(ix+FILE.SIZE+1)
 #if TI83PLUS
-  ld a,b
-#endif
-  ld c,(ix+FILE.SIZE)
-  ld b,(ix+FILE.SIZE+1)
-#if TI83PLUS
-  SYSCALL(_FlashToRAM)
+   SYSCALL(_FlashToRAM)
 #elif TI84PCE
-  ldir
+   ldir
 #endif
+  pop iy
   or a,a
+  ret
+
+file_copy.err1:
+  pop hl
   ret
 
 ;=== INTERNAL ===;
@@ -250,6 +248,26 @@ file_appvar_to_OP1:
   jp nc,file_readn
   ret
 
+
+;; file_memcpy -- copy memory from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset into file (source)
+;;  de = destination pointer (p-addr)
+;;  bc = bytes to copy (bc > 0)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_memcpy:
+  call file_addr
+  ret c
+#if TI83PLUS
+  SYSCALL(_FlashToRAM)
+#elif TI84PCE
+  ldir
+#endif
+  or a,a
+  ret
 
 
 #if TI83PLUS

@@ -30,4 +30,35 @@ ZERR_STACKOVER   .equ 23
 ZERR_INTERNAL    .equ 24
 ZERR_READEOF     .equ 25
 
+ZERR_COUNT       .equ 26
+
+ZERR_MAX_STRLEN  .equ 36
+
+#define zerrstr_success     "success"
+#define zerrstr_novar       "appvar not found"
+#define zerrstr_nomem       "not enough free RAM"
+#define zerrstr_badaddr     "bad address"
+#define zerrstr_notavail    "opcode not supported"
+#define zerrstr_nolocl      "invalid local variable"
+#define zerrstr_stackempty  "cannot pop from empty stack"
+#define zerrstr_badinstr    "illegal instruction"
+#define zerrstr_badvarno    "invalid variable number"
+#define zerrstr_divzero     "divide by 0"
+#define zerrstr_badobj      "invalid object"
+#define zerrstr_badattr     "attribute number out of range"
+#define zerrstr_noprop      "object missing property"
+#define zerrstr_badprop     "invalid property length"
+#define zerrstr_badchar     "bad character"
+#define zerrstr_argc        "too many arguments"
+#define zerrstr_intr        "interrupt"
+#define zerrstr_zchar       "not a ZSCII character"
+#define zerrstr_txtbuf      "text buffer too small"
+#define zerrstr_prsbuf      "parse buffer too small"
+#define zerrstr_toolong     "name is too long"
+#define zerrstr_badname     "name contains invalid character"
+#define zerrstr_rdonly      "write attempt to read-only memory"
+#define zerrstr_stackover   "stack overflow"
+#define zerrstr_internal    "internal error"
+#define zerrstr_readeof     "read past EOF"
+
 #endif

@@ -67,4 +67,6 @@
 
 #define EX_CDE_BHL_ZA ex de,hl
 
+#define file_readza file_readl
+
 #endif

@@ -1,5 +1,1 @@
-[ ] errors in zwin
-    CURRENT: zwin_newline
-
-ADD ERRORS TO...
-[ ] zstr_putn
+[ ] Eliminate zaddr_to_paddr; use file_read* and file_write* instead.

@@ -132,4 +132,25 @@ zaddr_trap_cde.trap:
   ret
 #endif  
 
+
+;; file_readza -- read Z-address from file
+;; INPUTS:
+;;  ix = file pointer
+;;  hl = offset to read from
+;; OUTPUTS:
+;;  [b:hl] = Z-address
+;; DESTROYS: ???
+;; ERRORS: yes.
+file_readza:
+  ld de,file_readza.buf
+  ld bc,3
+  call file_readn
+  ld hl,(file_readza.buf)
+  ld a,(file_readza.buf+2)
+  ld b,a
+  ret
+
+file_readza.buf: RESB(3)
+
+
 #endif

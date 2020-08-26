@@ -46,7 +46,7 @@ zaddr_valid.write:
    LD_CDE_FROM_IX_ZAW(ZMAP_HDR_STATIC)
    jr zaddr_valid.cmp
 
-;; zaddr_page -- get page number of Z-address
+;; zaddr_pageno -- get page number of Z-address
 ;; INPUTS:
 ;;  [b:hl] = Z-address
 ;;  ix = pointer to zmap header
@@ -117,35 +117,28 @@ zaddr_pageent:
   ret
 
 
-;; zaddr_to_paddr -- get physical byte address of Z-machine byte address
+;; zaddr_to_paddr
 ;; INPUTS:
 ;;  [b:hl] = Z-address
 ;;  a = access mode
 ;; OUTPUTS:
-;;  hl = physical address
-;; ERRORS: yes.
-;; DESTROYS: (all)
-;; NOTE: Only access the single byte pointed to by the physical address.
-;; OPTIM: preserve registers to minimize code size.
-;; *** portable ***
+;;  [a:hl] = generalized address
+;; ERRORS: yes. 
 zaddr_to_paddr:
   push ix
+   ld c,a                  ; save access mode
    call zmap_header
-   call nc,zaddr_valid       ; check if Z-address is valid, given access mode
-   push hl                   ; preserve Z-address, lower 16 bits
-    ld d,a                   ; access mode
-    call nc,zaddr_pageno     ; get page number -> a
-    ld b,d                   ; access mode
-    call nc,zmap_fetchpage   ; get page file -> ix
+   call nc,zaddr_valid
+   call nc,zaddr_offset
+   call nc,zaddr_pageno
+   push de
+    ld b,c                 ; restore access mode
+    call nc,zmap_fetchpage
    pop hl
-   push ix                   ; save page file
-    call nc,zmap_header
-    call nc,zaddr_offset     ; get page offset -> de
-    ex de,hl
-   pop ix                    ; restore page file
-   call nc,file_addr         ; get physical address
+   call nc,file_addr
   pop ix
   ret
+
 
 ;; zaddr_fetch -- fetch byte at logical address
 ;; INPUTS:
@@ -160,9 +153,9 @@ zaddr_fetch:
   push bc
    push de
     PUSH_BHL_ZA
-    ld a,MASK(ZADDR_READ)
-    call zaddr_to_paddr
-    ex de,hl
+     ld a,MASK(ZADDR_READ)
+     call zaddr_to_paddr
+     ex de,hl
     POP_BHL_ZA
     jr c,zaddr_fetch.cleanup
     ld a,(de) ; load byte
@@ -175,6 +168,8 @@ zaddr_fetch.cleanup:
    ld c,l
   pop hl
   ret
+
+
 
 
 

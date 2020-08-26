@@ -7,7 +7,7 @@ add_subdirectory(ti84pce)
 add_subdirectory(file)
 
 
-foreach(DRIVER flash putc)
+foreach(DRIVER)
   add_8xp(${DRIVER}83plus ${DRIVER}.z80
     NAME ${DRIVER}83plus
     PLATFORM TI83PLUS

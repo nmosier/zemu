@@ -108,11 +108,12 @@ zaddr_offset:
 ;; OUTPUTS:
 ;;  ix = pointer to page entry
 ;; DESTROYS: de
-;; ERRORS: no (but always NC)
+;; ERRORS: yes.
 ;; *** portable ***
 zaddr_pageent:
   MLT_A(SIZEOF_ZMAP_ENT, R_DE)
   call zmap_table
+  ret c
   add ix,de ; pointer to table entry
   ret
 

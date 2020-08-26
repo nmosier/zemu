@@ -259,7 +259,11 @@ file_appvar_to_OP1:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_memcpy:
-  call file_addr
+  push bc
+   push de
+    call file_addr
+   pop de
+  pop bc
   ret c
 #if TI83PLUS
   SYSCALL(_FlashToRAM)

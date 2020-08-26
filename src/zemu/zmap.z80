@@ -18,6 +18,7 @@
 ;; TODO: this should check if INRAM flag of page for writes.
 zmap_fetchpage:
   call zaddr_pageent
+  ret c
   bit ZADDR_WRITE,b
   ret z
   bit ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS)
@@ -46,6 +47,7 @@ zmap_fetchpage:
 zmap_copypage:
   ;; get pointer to entry
   call zaddr_pageent
+  ret c
 zmap_copypage_ent:
   ;; get src and dst var names
   ;; name page
@@ -154,6 +156,7 @@ zmap_header:
    pop de
   pop hl
   ret
+
 
 ;; zmap_table -- get pointer to zmap table
 ;; INPUTS: (none)

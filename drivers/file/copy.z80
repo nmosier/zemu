@@ -48,7 +48,7 @@ done:
   SYSCALL(_GetKey)
   ret
 
-src_file: D_FILE("ZORKRAA", 0)
+src_file: D_FILE("ZORK", 0)
 dst_file: D_FILE("BABA", 0)
 
 win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)

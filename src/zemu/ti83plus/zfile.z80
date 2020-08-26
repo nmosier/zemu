@@ -14,24 +14,43 @@
 file_addr:
   push hl
    call file_info
-  pop hl
-  ret c
-  ld a,b
-  or a,a
-  jr z,file_addr.RAM ; hl >= $8000, so in RAM, and size bytes skipped
+   jr c,file_addr.err1
+   ld a,b
+   or a,a
+   jr z,file_addr.RAM ; hl >= $8000, so in RAM, and size bytes skipped
 file_addr.flash:
-  ld bc,19 ; magic number for AppVars in flash
-  add hl,bc
+   ;; get length of symbol
+   ld hl,9 ; offset of name length
+   call add_flash
+   ld de,file_addr.namelen
+   ld bc,1
+   push af
+    SYSCALL(_FlashToRAM)
+    ex de,hl
+    dec hl
+    ld c,(hl)
+    ld b,0
+    inc c \ inc c ; skip size bytes
+   pop af
+  pop hl
+  add hl,bc ; add name length plus size bytes to requested offset
   ex de,hl
   call add_flash
   or a,a
   ret
 
 file_addr.RAM:
+  pop hl
   inc hl \ inc hl ; skip size bytes
   add hl,de       
   or a,a         ; NC, Z
   ret             ; success
+
+file_addr.err1:
+  pop hl
+  ret
+
+file_addr.namelen: .db 0
 
 
 ;; add_flash -- add offset to flash pointer

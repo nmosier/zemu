@@ -13,7 +13,9 @@
 _lea_hl_ix:
   push de
    LD_DE_IX
-   ld hl,$ffff
+   rla
+   sbc hl,hl
+   rra
    ld l,a
    add hl,de
   pop de

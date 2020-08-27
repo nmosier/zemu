@@ -38,7 +38,7 @@ zvar_localaddr:
 ;; INPUTS:
 ;;  a = global variable number
 ;; OUTPUTS:
-;;  hl = logical address of global variable
+;;  [b:hl] = logical address of global variable
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 ;; *** portable ***

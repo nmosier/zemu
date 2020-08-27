@@ -123,11 +123,13 @@ zmem_init_str: .db "zmem_init",0
 ;  zemu_appvar, zemu_header, zemu_table set
 ; DESTROYS: (all)
 zemu_open:
+#if 0
    ld de,zmap_name_canonical
    ld bc,VARNAMELEN
    call strncpy
    ld hl,zmap_name_canonical
 zemu_open.find_zmap:
+#endif
    call zmap_load
    jp nc,zhdr_defaults
    ret   
@@ -173,9 +175,11 @@ zork_zmap: .db "ZORK",0
 ;; GLOBALS ;;
 ;;;;;;;;;;;;;
 
+#if ZSELECT_GAME
 ;; story_name -- name of current story (max of STORY_NAME_MAXLEN) bytes
 story_name: RESB(STORY_NAME_MAXLEN)
 zemu_prompt_game: .db "Story name: ",0
+#endif
 
 ;;; OTHER SOURCES ;;;
 #include "zaddr.z80"

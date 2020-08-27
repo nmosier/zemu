@@ -156,10 +156,17 @@ zaddr_fetch:
     PUSH_BHL_ZA
      ld a,MASK(ZADDR_READ)
      call zaddr_to_paddr
-     ex de,hl
+     jr c,zaddr_fetch.err3
+#if TI83PLUS
+     ld de,zaddr_fetch.buf
+     ld bc,1
+     SYSCALL(_FlashToRAM)
+     dec de
+     ld a,(de)
+#elif TI84PCE
+     ld a,(hl)
+#endif
     POP_BHL_ZA
-    jr c,zaddr_fetch.cleanup
-    ld a,(de) ; load byte
     INC_BHL_ZA ; inc z-addr in [b:hl]
     ; C reset (nc)
 zaddr_fetch.cleanup:
@@ -170,7 +177,13 @@ zaddr_fetch.cleanup:
   pop hl
   ret
 
+zaddr_fetch.err3:
+  POP_BHL_ZA
+  pop hl
+  pop hl
+  ret
 
+zaddr_fetch.buf: .db 0
 
 
 
@@ -275,23 +288,23 @@ zaddr_fetchb:
 ;; DESTROYS: a
 ;; *** portable ***
 zaddr_store:
-   push bc
+  push bc
    push hl
-   push de
-   push af
-   ld a,MASK(ZADDR_WRITE)
-   call zaddr_to_paddr
-   pop bc ; restore byte to store (in b)
-   jr c,zaddr_store.cleanup
-   ld (hl),b ; store byte
-   ex de,hl
+    push de
+     push af
+      ld a,MASK(ZADDR_WRITE)
+      call zaddr_to_paddr
+     pop bc ; restore byte to store (in b)
+     jr c,zaddr_store.cleanup
+     ld (hl),b ; store byte
+     ex de,hl
 zaddr_store.cleanup:
-   pop de
+    pop de
    pop hl
-   pop bc
-   ret c
-   INC_BHL_ZA
-   ret
+  pop bc
+  ret c
+  INC_BHL_ZA
+  ret
 
 
 ;; zaddr_storew -- store word at logical address

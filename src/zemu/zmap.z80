@@ -21,8 +21,11 @@ zmap_fetchpage:
   ret c
   bit ZADDR_WRITE,b
   ret z
+#if 0
+  ;; NOTE -- written pages should ALWAYS be copied, so the copy bit is meaningless.
   bit ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS)
   ret z
+#endif
   ld hl,zemu_pagepfx
   call zmap_copypage_ent
   ret c

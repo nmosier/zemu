@@ -100,11 +100,7 @@ sbc_flash:
 ;;  hl = size
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
-;; OPTIM: preserve more registers.
 file_size:
-  ;; first check if already cached
-  bit FILE.FLAGS.SIZE,(ix+FILE.FLAGS)
-  jr nz,file_size.done
   LD_HL_0
   call file_addr
   ret c
@@ -113,24 +109,20 @@ file_size.flash:
   ld de,2
   call sub_flash
   ld bc,2
-  LEA_DE_IX(FILE.SIZE)
+  ld de,file_size.buf
   SYSCALL(_FlashToRAM)
-  jr file_size.done
+  ld hl,(file_size.buf)
+  or a,a
+  ret
 
 file_size.RAM:
   ld a,(hl)
   inc hl
   ld h,(hl)
   ld l,a
-  ld (ix+FILE.SIZE),l
-  ld (ix+FILE.SIZE+1),h
-file_size.done:
-  ld l,(ix+FILE.SIZE)
-  ld h,(ix+FILE.SIZE+1)
-  set FILE.FLAGS.SIZE,(ix+FILE.FLAGS)
-  or a,a
   ret
 
+file_size.buf: .dw 0
 
 ;; file_readn -- read bytes from file into buffer
 ;; INPUTS:

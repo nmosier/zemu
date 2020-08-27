@@ -160,15 +160,14 @@ file_copy:
    jr c,file_copy.err1
    ex (sp),ix
    ret c
-   ;; get old file size
-   push de ; save dst
-    call file_size
-    push hl
-     ld hl,0
-     call nc,file_addr
-    pop bc
+   sbc hl,hl ; ld hl,0
+   push de ; save dst data ptr
+    call file_addr
    pop de
    jr c,file_copy.err1
+   CLEAR_UPPER_BC
+   ld c,(ix+FILE.SIZE)
+   ld b,(ix+FILE.SIZE+1)
 #if TI83PLUS
    SYSCALL(_FlashToRAM)
 #elif TI84PCE

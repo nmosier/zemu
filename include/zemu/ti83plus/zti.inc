@@ -91,7 +91,6 @@ LONG_SIZE .equ WORD_SIZE
   ld de,off
   call _ld_ix_from_ix
   pop de
-  ret
 #endmacro
 
 #macro LD_HL_TO_IX(off)

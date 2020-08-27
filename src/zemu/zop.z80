@@ -78,7 +78,7 @@ zop_readn.loop:
    pop ix
    ret c
    LD_HL_TO_IX(0)
-   LEA_IX_IX_REG(3, R_DE)
+   LEA_IX_IX_REG(LONG_SIZE, R_DE)
    djnz zop_readn.loop
 zop_readn.load:
    ld a,c

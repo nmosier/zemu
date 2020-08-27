@@ -1,20 +1,23 @@
 #ifndef TI83PLUS_ZTI83PLUS_Z80
 #define TI83PLUS_ZTI83PLUS_Z80
 
+#include "zti.inc"
+
 ;; lea_hl_ix -- load effective address from ix into hl
 ;; INPUTS:
 ;;  ix
 ;;  a = offset
 ;; OUTPUTS:
 ;;  hl
-;; DESTROYS: a,f
+;; DESTROYS: (none)
 _lea_hl_ix:
-   push ix \ pop hl
-   add a,l
+  push de
+   LD_DE_IX
+   ld hl,$ffff
    ld l,a
-   ret nc
-   inc h
-   ret
+   add hl,de
+  pop de
+  ret
 
 
 ;; lea_de_ix -- load effective address from ix into de
@@ -39,11 +42,11 @@ _lea_de_ix:
 ;; DESTROYS: (none)
 _ld_hl_from_hl:
   push af
-  ld a,(hl)
-  inc hl
-  ld h,(hl)
-  ld l,a
-  dec hl
+   ld a,(hl)
+   inc hl
+   ld h,(hl)
+   ld l,a
+   dec hl
   pop af
   ret
 

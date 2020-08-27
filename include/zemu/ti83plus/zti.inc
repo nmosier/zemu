@@ -50,28 +50,38 @@ LONG_SIZE .equ WORD_SIZE
 #endmacro
 
 #macro LEA_IX_IX(off)
+#if off != 0
   push de
   ld de,off
   add ix,de
   pop de
+#endif
 #endmacro
 
 ;; LEA_HL_IX -- load effective address from ix into hl
 ;; DESTROYS: (none, including flags)
 #macro LEA_HL_IX(off)
+#if off == 0
+   LD_HL_IX
+#else
    push af
    ld a,off
    call _lea_hl_ix
    pop af
+#endif
 #endmacro
 
 ;; LEA_DE_IX -- load effective address from ix into de
 ;; DESTROYS: (none, including flags)
 #macro LEA_DE_IX(off)
+#if off == 0
+  LD_DE_IX
+#else
   push af
   ld a,off
   call _lea_de_ix
   pop af
+#endif
 #endmacro
 
 #macro LD_HL_FROM_IX(off)

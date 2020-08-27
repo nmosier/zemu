@@ -25,10 +25,6 @@
 
 #define MASK(bit) (1 << bit)
 
-struct zmap_storysize {
-   
-};
-
 struct zmap_header {
    uint8_t zmh_pagemask; // high byte page mask
    uint8_t zmh_pagebits;
@@ -39,6 +35,7 @@ struct zmap_header {
 
 struct zfile {
    char varname[VARNAMELEN];
+  uint8_t flags;
    uint16_t size;
 };
 
@@ -219,9 +216,9 @@ int main(int argc, char *argv[]) {
       }
 
       /* copy strings into table entry */
+      memset(&tab[i].file, 0, sizeof(struct zfile));
       strncpy(tab[i].file.varname, stem, stem_len);
       memset(tab[i].file.varname + stem_len, 0, VARNAMELEN - stem_len);
-      tab[i].file.size = 0; /* determined at runtime */
 
       /* initialize flags */
       tab[i].flags = (i * zpage_size < hdr.zmh_staticaddr) ? MASK(ZMAP_ENT_FLAGS_COPY) : 0;
@@ -276,13 +273,18 @@ void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
    }
 }
 
+void zmap_file_write(FILE *outf, const struct zfile *zf) {
+  fwrite(zf->varname, 1, VARNAMELEN, outf);
+  fputc(zf->flags, outf);
+  for (int byte = 0; byte < 2; ++byte) {
+    fputc(BYTE(zf->size, byte), outf);
+  }
+}
+
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {
    for (int i = 0; i < cnt; ++i) {
-      fwrite(tab[i].file.varname, 1, VARNAMELEN, outf);
-      for (int byte = 0; byte < sizeof(tab[i].file.size); ++byte) {
-         fputc(BYTE(tab[i].file.size, byte), outf);
-      }
-      fputc(tab[i].flags, outf);
+     zmap_file_write(outf, &tab[i].file);
+     fputc(tab[i].flags, outf);
    }
 }
 

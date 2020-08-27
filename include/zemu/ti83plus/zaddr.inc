@@ -114,6 +114,14 @@
 #define UCAST_HL_TO_BHL_ZA ld b,0
 #define UCAST_DE_TO_CDE_ZA ld c,0
 
+#macro SCAST_HL_TO_BHL_ZA
+  ld b,0
+  bit 7,h
+  jr z,_
+  dec b ; ld b,$ff
+_
+#endmacro
+
 #define ADD_BHL_CDE_ZA call zaddr_add
 #macro ADD_BHL_DE_ZA
   add hl,de

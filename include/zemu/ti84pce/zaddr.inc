@@ -56,6 +56,8 @@
 #endmacro
 #macro UCAST_DE_TO_CDE_ZA
 #endmacro
+#macro SCAST_HL_TO_BHL_ZA
+#endmacro
 
 #define ADD_BHL_CDE_ZA add hl,de
 #define ADD_BHL_DE_ZA  add hl,de

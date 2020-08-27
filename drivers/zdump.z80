@@ -1,0 +1,125 @@
+#include "zti.inc"
+#include "zwin.inc"
+#include "zfile.inc"
+#include "zaddr.inc"
+#include "zstr.inc"
+
+.org userMem-2
+#if TI83PLUS
+.db t2ByteTok,tAsmCmp
+#elif TI84PCE
+.db tExtTok,tAsm84CeCmp
+#endif
+
+start:
+  call reset
+  call read_za
+  PUSH_BHL_ZA
+   call reset
+  POP_BHL_ZA
+  ld c,32
+  call zdump
+  jr c,err
+  jr done
+
+  
+
+
+reset:
+#if TI83PLUS
+  ld hl,0
+  ld (curRow),hl
+#elif TI84PCE
+  ld hl,0
+  ld (curCol),hl
+  ld a,0
+  ld (curRow),a
+#endif
+  SYSCALL(_ClrScrnFull)
+  ret
+
+  ;; read z-addr from stdin
+read_za:
+  ld ix,win_main
+  LD_BHL_IMM(0)
+read_za.loop:
+  PUSH_BHL_ZA
+   SYSCALL(_GetKey)
+   call ktoch
+   push af
+    call zwin_putc_bare
+   pop af
+   call nc,ctox
+  POP_BHL_ZA
+  ret c
+  ;; SLA_BHL_ZA
+  add hl,hl \ rl b
+  add hl,hl \ rl b
+  add hl,hl \ rl b
+  add hl,hl \ rl b
+  or a,l
+  ld l,a
+  jr read_za.loop
+
+
+
+err:
+  ld hl,0
+  call zemu_perror
+  jr done
+
+done:
+  SYSCALL(_GetKey)
+  ret
+
+
+win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
+
+
+;; INPUTS:
+;;  [b:hl] = Z-address
+;;  c = count
+zdump:
+  call zaddr_fetch
+  ret c
+  push hl
+   push bc
+    ld hl,zdump.buf
+    call xtos
+    ld hl,zdump.buf
+    SYSCALL(_PutS)
+   pop bc
+  pop hl
+  dec c
+  jr nz,zdump
+  or a,a
+  ret
+
+zdump.buf: .db 0,0,0
+
+
+
+ctox:
+   JCLASS('0','9',ctox.digit)
+   JCLASS('a','f',ctox.lwr)
+   JCLASS('A','F',ctox.cap)
+   scf
+   ret
+
+ctox.digit:
+   sub a,'0'
+   ret ; NC
+
+ctox.lwr:
+   sub a,'a'-10
+   ret ; NC
+
+ctox.cap:
+   sub a,'A'-10
+   ret ; NC
+
+
+#include "zerr.z80"
+#include "zfile.z80"
+#include "zaddr.z80"
+#include "util.z80"

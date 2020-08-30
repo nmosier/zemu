@@ -44,6 +44,7 @@ file_open:
   ld (ix+FILE.SIZE+1),h
   ret
 
+
 ;; file_create -- create file of given size, removing an existing file of the same name
 ;; INPUTS:
 ;;  ix = file struct, with name field and size populated
@@ -67,6 +68,7 @@ file_create.create:
   inc de \ inc de ; skip size bytes
   or a,a
   ret
+  
 
 
 ;; file_writeb -- write byte to file
@@ -141,45 +143,50 @@ _ pop hl
 
 ;; file_copy -- copy file
 ;; INPUTS:
-;;  ix = source file struct
+;;  hl = function pointer that produces source file struct in %ix
 ;;  iy = destination file struct
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_copy:
-  ;; copy size bytes
-  ld a,(ix+FILE.SIZE)
-  ld (iy+FILE.SIZE),a
-  ld a,(ix+FILE.SIZE+1)
-  ld (iy+FILE.SIZE+1),a
-  push iy
-   ld iy,flags ; calls require iy = flags unless iy is a parameter
-   ex (sp),ix
-   ;; create new file
+  ;; get orig file size
+  ;; TODO -- shouldn't need to store this.
+  call file_copy.call ; get %ix
+  push hl
+   call nc,file_size
+   ex de,hl
+  pop hl
+  ret c
+  LD_DE_TO_IX_W(FILE.SIZE)
+  LD_DE_TO_IY_W(FILE.SIZE)
+  LD_IX_IY
+  ld iy,flags ; calls require iy = flags unless iy is a parameter
+  push hl
    call file_create
-   jr c,file_copy.err1
-   ex (sp),ix
-   ret c
+  pop hl
+  ret c
+  push iy
+   call file_copy.call ; get %ix
+   jr c,file_copy.done
    sbc hl,hl ; ld hl,0
    push de ; save dst data ptr
     call file_addr
    pop de
-   jr c,file_copy.err1
-   CLEAR_UPPER_BC
-   ld c,(ix+FILE.SIZE)
-   ld b,(ix+FILE.SIZE+1)
+   jr c,file_copy.done
+   LD_BC_FROM_IX_W(FILE.SIZE)
 #if TI83PLUS
    SYSCALL(_FlashToRAM)
+   or a,a
 #elif TI84PCE
    ldir
 #endif
+file_copy.done:
   pop iy
-  or a,a
   ret
 
-file_copy.err1:
-  pop hl
-  ret
+file_copy.call:
+  jp (hl)
+
 
 ;=== INTERNAL ===;
 
@@ -218,8 +225,7 @@ file_info:
   LEA_HL_IX(FILE.NAME)
   call appvar_to_OP1
   SYSCALL(_ChkFindSym)
-  ld a,ZERR_NOVAR
-  ret c
+  jr c,file_info.err
 #if TI83PLUS
   ld a,b
   or a,a
@@ -227,6 +233,10 @@ file_info:
   call _ChkInRAM
   scf \ ccf ; NC
 #endif
+  ret
+
+file_info.err:
+  ld a,ZERR_NOVAR
   ret
 
 

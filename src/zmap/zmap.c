@@ -17,7 +17,7 @@
 #define ZPAGE_SIZE_ENV "ZPAGE_SIZE"
 #define VARNAMELEN 8
 
-#define ZMAP_ENT_FLAGS_COPY 1
+#define ZMAP_ENT_FLAGS_COPY 0
 
 #define ZHDR_STATIC 0xe
 

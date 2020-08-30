@@ -392,9 +392,7 @@ zdbg_cmd.print.obj.props.buf_bytes: RESB(8)
 zdbg_cmd.print.obj.props.buf_hex: RESB(32)
 
 zdbg_cmd.print.locals:
-   call zdbg_disp_locals
-   or a,a
-   ret
+   jp zdbg_disp_locals
 
 ;; hexdump at given address
 ;; format: X<addr>/<count>/<size>/<ipl>
@@ -761,18 +759,20 @@ zdbg_readaddr.buf: RESB(16)
 ;; OUTPUTS:
 ;;  hl = pointer to output buffer
 ;;  bc = count read
-;; DESTROYS: all bux ix
+;; DESTROYS: (all)
 ;; ERRORS: no.
 ;; NOTE: only supports A-Z, 0-9.
 zdbg_getsn:
-   push ix
+  push ix
    ld ix,win_dbgin
-   push hl \ push bc
-   call zwin_reset
-   pop bc \ pop hl
+   push hl
+    push bc
+     call zwin_reset
+    pop bc
+   pop hl
    call zwin_getsn
-   pop ix
-   ret
+  pop ix
+  ret
 
 
 ;; zdbg_watch_hook -- check if var was accessed
@@ -829,15 +829,16 @@ zdbg_watch_hook.fmt: .db "%2x/%c/%4x",0
 
 
 ;; zdbg_disp_locals -- display locals
-;; INPUTS:
-;; OUTPUTS:
-;; DESTROYS:
-;; ERRORS:
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
 zdbg_disp_locals:
-   ld hl,(zframe_fp) ; address of locals
+   ld hl,(zframe_fp) ; offset of locals
+   call zstack_addr  ; get address
+   ret c
    ld a,(zframe_nl)
-   ld de,0
-   ld e,a
+   UCAST_A_TO_DE
    jp zdbg_disp_stack_bare
 
 

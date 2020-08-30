@@ -26,8 +26,9 @@ zwin_buf:
       call file_addr
      pop ix
     pop bc
+    jr c,_
     ld a,b
-   pop de
+_  pop de
   pop bc
   ret
 
@@ -641,7 +642,7 @@ zwin_split_vert.cont:
 ;; NOTES:
 ;;  Both cursors reset to origin.
 ;;  Doesn't modify buffer of either window.
-;; OPTIM: Could be optimized for TI83PLUS.
+;; TODO: Don't touch flags in new window; remove flags parameter.
 ;; *** portable ***
 zwin_split_left:
    ld c,0

@@ -31,8 +31,9 @@ ZMAP_ENT.FLAGS.SAVE .equ 1   ; whether page should be saved
 
 ZPACK .equ 2 ; scaling factor
 
+#if ZDBG
 WIN_DBGIN_BUFSIZE .equ 32
-
+#endif
 
 ;; NAMING CONVENTION ;;
 ZNAME_CURMAP .equ 'M'

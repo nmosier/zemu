@@ -26,6 +26,7 @@ start:
   jr c,err
 
   push iy
+   ld hl,getfile
    ld iy,dst_file
    call file_copy
   pop iy
@@ -46,6 +47,11 @@ err:
 
 done:
   SYSCALL(_GetKey)
+  ret
+
+getfile:
+  ld ix,src_file
+  or a,a
   ret
 
 src_file: D_FILE("ZORK", 0)

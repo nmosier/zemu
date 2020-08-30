@@ -64,10 +64,10 @@ LONG_SIZE .equ WORD_SIZE
 #if off == 0
    LD_HL_IX
 #else
-   push af
+  push af
    ld a,off
    call _lea_hl_ix
-   pop af
+  pop af
 #endif
 #endmacro
 
@@ -78,8 +78,8 @@ LONG_SIZE .equ WORD_SIZE
   LD_DE_IX
 #else
   push af
-  ld a,off
-  call _lea_de_ix
+   ld a,off
+   call _lea_de_ix
   pop af
 #endif
 #endmacro
@@ -156,7 +156,6 @@ LONG_SIZE .equ WORD_SIZE
 #define LD_HL_FROM_IY_W(off) LD_HL_FROM_IY(off)
 #define LD_DE_FROM_IY_W(off) LD_DE_FROM_IY(off)
 #define LD_BC_FROM_IY_W(off) LD_BC_FROM_IY(off)
-
 
 #macro MLT_A(off, reg16) 
 #if reg16 == R_HL        

@@ -49,11 +49,12 @@ file_addr.err1:
 file_size:
   LD_HL_0
   call file_addr
+  ld de,0
   dec hl
-  ld a,(hl)
+  ld d,(hl)
   dec hl
-  ld l,(hl)
-  ld h,a
+  ld e,(hl)
+  ex de,hl
   ret
 
 

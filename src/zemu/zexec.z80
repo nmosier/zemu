@@ -821,6 +821,9 @@ zexec.verify:
 ;------------------------------------;
 ;           VAR opcodes              ;
 ;------------------------------------;
+
+;; OPTIM: can optimize how frame is set up. Rather than copying locals to tmp location, do it in
+;;        the right order to begin with.
 zexec.call:
   ;; NOTE: 6.4.4 Arguments are written onto local variables.
   ;; read packed address of routine
@@ -866,58 +869,55 @@ zexec.call.done:
 
 ;; get variables before setting up new call frame
 zexec.call.readvars:
-   ld de,zexec.call.locals ; locals are temporarily stored here
-   or a,a
-   jr zexec.call.readvars.entry
+  ld de,zexec.call.locals ; locals are temporarily stored here
+  or a,a
+  jr zexec.call.readvars.entry
 zexec.call.readvars.loop:
-   ex de,hl
-   ld (hl),d
-   inc hl
-   ld (hl),e
-   inc hl
-   ex de,hl
+  ex de,hl
+  ld (hl),d
+  inc hl
+  ld (hl),e
+  inc hl
+  ex de,hl
 zexec.call.readvars.entry:
-   push de
+  push de
    call zcode_readop
-   pop de
-   ret c ; error
-   jr nz,zexec.call.readvars.loop
+  pop de
+  ret c ; error
+  jr nz,zexec.call.readvars.loop
 zexec.call.readvars.done:
-   ex de,hl
-   ld de,zexec.call.locals
-   or a,a
-   sbc hl,de
-   ld b,l
-   rr b ; b = # of locals
-   or a,a ; NC
-   ret
+  ex de,hl
+  ld de,zexec.call.locals
+  or a,a
+  sbc hl,de
+  ld b,l
+  rr b ; b = # of locals
+  or a,a ; NC
+  ret
 
 ;; store variables after setting up new call frame
 ;; b = # of vars
 zexec.call.storevars:
-   ld hl,zexec.call.locals
-   UCAST_B_TO_DE
-   add hl,de
-   add hl,de
-   ld a,b
-   or a,a
-   ret z ; no vars to store
+  ld hl,zexec.call.locals
+  UCAST_B_TO_DE
+  add hl,de
+  add hl,de
+  ld a,b
+  or a,a
+  ret z ; no vars to store
 zexec.call.storevars.loop:
-   CLEAR_UPPER_DE
-   dec hl
-   ld e,(hl)
-   dec hl
-   ld d,(hl)
-   push hl
+  CLEAR_UPPER_DE
+  dec hl
+  ld e,(hl)
+  dec hl
+  ld d,(hl)
+  push hl
    ex de,hl
    ld a,b
-   call zvar_store
-   pop hl
-   ret c ; error
-   djnz zexec.call.storevars.loop
-zexec.call.storevars.done:
-   or a,a
-   ret
+   call nc,zvar_store
+  pop hl
+  djnz zexec.call.storevars.loop
+  ret
 
 zexec.call.locals: RESW(16) ; 16 = max # of locals
 

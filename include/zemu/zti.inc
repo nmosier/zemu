@@ -59,4 +59,26 @@ ULONG_MAX .equ (1 << LONG_BITS) - 1
   neg
 #endmacro
 
+#macro LD_HL_TO_IX_W(off)
+  ld (ix+off),l
+  ld (ix+off+1),h
+#endmacro
+
+#macro LD_HL_TO_IY_W(off)
+  ld (iy+off),l
+  ld (iy+off+1),h
+#endmacro
+
+#macro LD_DE_TO_IX_W(off)
+  ld (ix+off),e
+  ld (ix+off+1),d
+#endmacro
+
+#macro LD_DE_TO_IY_W(off)
+  ld (iy+off),e
+  ld (iy+off+1),d
+#endmacro
+
+#define LD_IX_IY push iy \\ pop ix
+
 #endif

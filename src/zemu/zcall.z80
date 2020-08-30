@@ -18,45 +18,42 @@
 ;; TODO: use stack, not global mem.
 ;; *** portable ***
 zcall0:
-   call zaddr_unpack
+  call zaddr_unpack
 zcall0.unpacked:
-   call zaddr_fetch
-   ret c
-   push hl ; save PC (b also preserved)
+  call zaddr_fetch
+  ret c
+  push hl ; save PC (b also preserved)
    call zstack_enter ; a = # of locals
-   pop hl ; restore PC
-   ret c
-   ;; enter frame
-   push ix
+  pop hl ; restore PC
+  ret c
+  ;; enter frame
+  push ix
    ld ix,0
    add ix,sp
    dec sp
    dec sp
    ; initialize locals
    or a,a
-   jr z,zcall0.jump ; no locals to initialize
+   jr z,zcall0.done ; no locals to initialize
    ld (ix-2),1
    ld (ix-1),a
 zcall0.loop:
-   call zaddr_fetchw ; fetch default val
-   ret c
+   call nc,zaddr_fetchw ; fetch default val
    ld a,(ix-2)
    push ix
-   PUSH_BHL_ZA ; preserve new PC
-   ex de,hl
-   call zvar_store ; store val in local
-   POP_BHL_ZA  ; restore new PC
+    PUSH_BHL_ZA ; preserve new PC
+     ex de,hl
+     call nc,zvar_store ; store val in local
+    POP_BHL_ZA  ; restore new PC
    pop ix
-   ret c
    inc (ix-2)
    dec (ix-1)
    jr nz,zcall0.loop
-zcall0.jump:
+zcall0.done:
    ; hl points to byte address after last local init val
-   inc sp
-   inc sp
-   pop ix
-   ret
+   ld sp,ix
+  pop ix
+  ret
 
 #ifdef ZDBG
 

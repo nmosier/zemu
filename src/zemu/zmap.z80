@@ -24,11 +24,16 @@ zmap_fetchpage:
   bit ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS)
   ret z
   ld hl,zemu_pagepfx
-  call zmap_copypage_ent
+  push af
+   call zmap_copypage
+  pop bc
+  ld a,b
+  call nc,zaddr_pageent
   ret c
   set ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
   LEA_IX_IX(ZMAP_ENT.FILE)
   jp file_to_RAM
+
 
 
 ;; zmap_copypage -- copy page (used when write to page is read-only)
@@ -36,36 +41,47 @@ zmap_fetchpage:
 ;; INPUTS:
 ;;  a = page number
 ;;  hl = name prefix
-;;  ix = pointer to page entry in zmap (zmap_copypage_ent)
-;; OUTPUTS:
-;;  hl = pointer to zpage in RAM (skips over size bytes)
-;;  current zmap updated
+;; OUTPUTS: (none)
 ;; DESTROYS: (all) but ix
 ;; ERRORS: yes.
 ;; TODO: parameterize page naming.
 ;; *** portable ***
 zmap_copypage:
-  ;; get pointer to entry
-  call zaddr_pageent
-  ret c
-zmap_copypage_ent:
   ;; get src and dst var names
   ;; name page
+  ld (zmap_copypage.pageno),a
   ld de,zmap_copypage.file + FILE.NAME
   call zmap_namepage
   push ix
    push iy
-    LEA_IX_IX(ZMAP_ENT.FILE)
+    ld hl,zmap_copypage.getfile ; getter for source
     ld iy,zmap_copypage.file
     call file_copy
    pop iy
+   call nc,zmap_copypage.getfile
+   jr c,zmap_copypage.err1
+   ld hl,zmap_copypage.file
+   LEA_DE_IX(ZMAP_ENT.FILE) ; flags preserved
+   ld bc,SIZEOF_FILE
+   ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
   pop ix
-  ret c ; error
-  ld hl,zmap_copypage.file
-  LEA_DE_IX(ZMAP_ENT.FILE)
-  ld bc,SIZEOF_FILE
   ldir
   ret
+
+zmap_copypage.err1:
+  pop hl
+  ret
+
+zmap_copypage.getfile:
+  ld a,(zmap_copypage.pageno)
+  push de
+   call zaddr_pageent
+  pop de
+  ret c
+  LEA_IX_IX(ZMAP_ENT.FILE)
+  ret
+
+zmap_copypage.pageno: .db 0
 
 zmap_copypage.file: RES_FILE
 
@@ -128,11 +144,17 @@ zmap_load:
     ld ix,zmap_canonical_file
     ld iy,zmap_working_file
     call file_open
+    ld hl,zmap_load.getfile
     call nc,file_copy
    pop iy
   pop ix
   ret
-  
+
+zmap_load.getfile:
+  ld ix,zmap_canonical_file
+  or a,a
+  ret
+
 
 ;; zmap_header -- get pointer to zmap header
 ;; INPUTS: (none)

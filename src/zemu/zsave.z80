@@ -63,7 +63,7 @@ zsave_savemap.loop:
    push hl
    push bc
    ld a,c
-   call zmap_copypage_ent
+   call zmap_copypage
    pop bc
    pop hl
    jr c,zsave_savemap.err

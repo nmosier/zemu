@@ -226,20 +226,18 @@ zaddr_fetch.err:
 zaddr_fetchwu .equ zaddr_fetchw
 #elif TI84PCE
 zaddr_fetchwu:
-   push af
+  push af
    call zaddr_fetch
    ld d,a
    call nc,zaddr_fetch
-   ret c
    ld e,a
    ex (sp),hl
    ld a,h
-   pop hl
-   ex de,hl
-   call wtolu ; upcast
-   ex de,hl
-   or a,a ; NC
-   ret
+  pop hl
+  ex de,hl
+  call nc,wtolu ; upcast, preserves flags
+  ex de,hl
+  ret
 #endif
 
 ;; zaddr_fetchz -- fetch byte Z-address at Z-address

@@ -45,6 +45,22 @@ zstack_begin:
   pop ix
   ret
 
+#if ZDBG
+;; zstack_addr -- get address of stack given offset
+;; INPUTS:
+;;  hl = offset
+;; OUTPUTS:
+;;  hl = pointer (RAM)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zstack_addr:
+  push ix
+   ld ix,f_stack
+   call file_addr
+  pop ix
+  ret
+#endif
+
 ;; zmem_init -- initialize memory for zemu. Empty call state and program stack.
 ;; INPUTS: (none)
 ;; OUTPUTS:

@@ -150,21 +150,23 @@ zvar_fetch.global:
 ;; DESTROYS: (all)
 zvar_store:
 #ifdef ZDBG
-   ; debug watch hook
-   push hl
-   ld ix,ZDBG_FLAGS
-   bit ZDBG_FLAGS_WATCH,(ix)
-   scf
-   call nz,zdbg_watch_hook
-   pop hl
+  ; debug watch hook
+  push hl
+   push ix
+    ld ix,ZDBG_FLAGS
+    bit ZDBG_FLAGS_WATCH,(ix)
+    scf
+    call nz,zdbg_watch_hook
+   pop ix
+  pop hl
 #endif   
-   ; switch on var type
-   ex de,hl
-   cp ZVAR_STACK
-   jp z,zvar_store.stack
-   cp ZVAR_GLOBALMIN
-   jp c,zvar_store.local
-   jp zvar_store.global
+  ; switch on var type
+  ex de,hl
+  cp a,ZVAR_STACK
+  jr z,zvar_store.stack
+  cp a,ZVAR_GLOBALMIN
+  jr c,zvar_store.local
+  jr zvar_store.global
 
 zvar_store.stack:
   ld hl,(zframe_sp)
@@ -185,17 +187,17 @@ zvar_store.stack:
   ret
 
 zvar_store.local:
-   ; get addr
-   push de
+  ; get addr
+  push de
    call zvar_localaddr
-   pop de
-   ret c ; error
-   ; store val
-   ld (hl),d
-   inc hl
-   ld (hl),e
-   or a,a
-   ret ; NC
+  pop de
+  ret c ; error
+  ; store val
+  ld (hl),d
+  inc hl
+  ld (hl),e
+  ; or a,a
+  ret ; NC
 
 zvar_store.global:
    push de

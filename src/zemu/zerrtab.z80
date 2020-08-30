@@ -42,6 +42,8 @@ zerrtab:
    DERR zerrmsg_stackover
    DERR zerrmsg_internal
    DERR zerrmsg_readeof
+   DERR zerrmsg_badfd
+   DERR zerrmsg_toomanyf
 
 
 zerrmsg_success:    .db "success",0
@@ -70,5 +72,7 @@ zerrmsg_rdonly:     .db "write attempt to read-only memory",0
 zerrmsg_stackover:  .db "stack overflow",0
 zerrmsg_internal:   .db "internal error",0
 zerrmsg_readeof:    .db "read past EOF",0
+zerrmsg_badfd:      .db "bad file descriptor",0
+zerrmsg_toomanyf:   .db "too many open files",0
 
 #endif

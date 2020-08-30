@@ -6,6 +6,7 @@
 #include "zaddr.inc"
 #include "zemu.inc"
 
+
 ;; zmap_fetchpage -- fetch pointer to zpage.
 ;; INPUTS:
 ;;  a = page number
@@ -132,7 +133,7 @@ _  pop hl
 ;;  hl = name of saved zmap (zmap_load)
 ;; OUTPUTS:
 ;;  touches & resizes working zmap and copies contents of saved zmap into it
-;; DESTROYS: (all, including ix)
+;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; *** portable ***
 zmap_load:
@@ -140,13 +141,28 @@ zmap_load:
   ld bc,VARNAMELEN
   call strncpy
   push ix
+   ld ix,zmap_canonical_file
    push iy
-    ld ix,zmap_canonical_file
     ld iy,zmap_working_file
     call file_open
     ld hl,zmap_load.getfile
     call nc,file_copy
    pop iy
+   call zmap_header
+   jr c,zmap_load.done
+   ld b,(ix+ZMAP_HDR_NPAGES)
+   call zmap_table
+   jr c,zmap_load.done
+zmap_load.open_loop:
+   LEA_IX_IX(ZMAP_ENT.FILE)
+   push bc
+    call file_open
+   pop bc
+   jr c,zmap_load.done
+   LEA_IX_IX(SIZEOF_ZMAP_ENT - ZMAP_ENT.FILE)
+   djnz zmap_load.open_loop
+   or a,a
+zmap_load.done:
   pop ix
   ret
 

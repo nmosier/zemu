@@ -35,6 +35,7 @@ LONG_SIZE .equ WORD_SIZE
 
 #define UCAST_FROM_HL_TO_BC ld b,0 \\ ld c,(hl)
 #define UCAST_FROM_IX_TO_BC ld b,0 \\ ld c,(ix+0)
+#define UCAST_FROM_IX_TO_HL(off) ld h,0 \\ ld l,(ix+off)
 
 #macro LTOWU_HL
 #endmacro
@@ -52,8 +53,8 @@ LONG_SIZE .equ WORD_SIZE
 #macro LEA_IX_IX(off)
 #if off != 0
   push de
-  ld de,off
-  add ix,de
+   ld de,off
+   add ix,de
   pop de
 #endif
 #endmacro

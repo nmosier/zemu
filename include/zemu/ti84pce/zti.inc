@@ -28,6 +28,7 @@ LONG_SIZE .equ 3
 
 #define UCAST_FROM_HL_TO_BC ld bc,0 \\ ld c,(hl)
 #define UCAST_FROM_IX_TO_BC ld bc,0 \\ ld c,(ix+0)
+#define UCAST_FROM_IX_TO_HL(off) ld hl,0 \\ ld l,(ix+off)
 
 #define LTOWU_HL call ltowu
 

@@ -40,9 +40,10 @@ appvar_to_OP1.zero:
 file_open:
   call file_size
   ret c
-  ld (ix+FILE.SIZE),l
-  ld (ix+FILE.SIZE+1),h
-  ret
+  LD_HL_TO_IX_W(FILE.SIZE)
+  call file_allocate_fd
+  ld (ix+FILE.FD),a
+  jp file_dirty
 
 
 ;; file_create -- create file of given size, removing an existing file of the same name
@@ -53,6 +54,7 @@ file_open:
 ;; DESTROYS: all but ix
 ;; ERRORS: yes.
 file_create:
+  call file_dirty_all ; mark all files as dirty
   LEA_HL_IX(FILE.NAME)
   call appvar_to_OP1
   SYSCALL(_ChkFindSym)
@@ -68,9 +70,9 @@ file_create.create:
   inc de \ inc de ; skip size bytes
   or a,a
   ret
-  
 
 
+#if 0
 ;; file_writeb -- write byte to file
 ;; INPUTS:
 ;;  ix = file struct
@@ -139,7 +141,7 @@ _ pop hl
   ret c
   ldir
   ret
-
+#endif
 
 ;; file_copy -- copy file
 ;; INPUTS:
@@ -209,8 +211,8 @@ file_to_RAM:
   inc de \ inc de ; skip size bytes
   ret z           ; already in RAM
   SYSCALL(_Arc_Unarc)
-  or a,a 
-  ret
+  call file_dirty_all
+  jr file_to_RAM  ; try again
 
 
 ;; file_info -- get file info
@@ -282,6 +284,79 @@ file_memcpy:
 #endif
   or a,a
   ret
+
+
+;; file_dirty_all -- mark all files as dirty
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: b, hl
+;; ERRORS: no.
+file_dirty_all:
+  push hl
+   push bc
+    ld hl,file_table
+    ld b,MAX_FILES
+file_dirty_all.loop:
+    set FILETAB_ENT.FLAGS.DIRTY,(hl)
+    inc hl
+    djnz file_dirty_all.loop
+   pop bc
+  pop hl
+  ret
+
+
+;; file_tabent -- get file table entry for file
+;; INPUTS:
+;;  ix = file pointer
+;; OUTPUTS:
+;;  hl = file table entry pointer
+;; DESTROYS: de
+;; ERRORS: yes.
+file_tabent:
+  UCAST_FROM_IX_TO_HL(FILE.FD)
+  ld de,file_table
+  add hl,de
+  ret
+
+
+;; file_dirty -- set dirty bit for file
+;; INPUTS:
+;;  ix = file pointer
+;; OUTPUTS: (none)
+;; DESTROYS: de
+;; ERRORS: yes.
+file_dirty:
+  call file_tabent
+  set FILETAB_ENT.FLAGS.DIRTY,(hl)
+  ret
+
+
+;; file_allocate_fd:
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  a = file descriptor
+;; DESTROYS: hl, b
+;; ERRORS: yes.
+file_allocate_fd:
+  ld hl,file_table
+  ld b,MAX_FILES
+file_allocate_fd.loop:
+  bit FILETAB_ENT.FLAGS.USED,(hl)
+  jr z,file_allocate_fd.found
+  djnz file_allocate_fd.loop
+  ld a,ZERR_TOOMANYF
+  scf
+  ret
+
+file_allocate_fd.found:
+  set FILETAB_ENT.FLAGS.USED,(hl)
+  ld a,MAX_FILES
+  sub a,b
+  ret ; NC
+
+;---- FILE TABLE ----;
+; Each index corresponds to a file descriptor.
+file_table: RESB(MAX_FILES * SIZEOF_FILETAB_ENT)
 
 
 #if TI83PLUS

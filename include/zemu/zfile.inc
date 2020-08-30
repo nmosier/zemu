@@ -8,19 +8,36 @@
 ;  uint16_t size;
 ; } 
 
-FILE.NAME .equ 0
-FILE.SIZE .equ FILE.NAME + VARNAMELEN
+FILE.NAME  .equ 0
+FILE.SIZE  .equ FILE.NAME + VARNAMELEN
+FILE.FD    .equ FILE.SIZE + WORD_SIZE
 
-SIZEOF_FILE .equ FILE.SIZE + WORD_SIZE
+SIZEOF_FILE .equ FILE.FD + BYTE_SIZE
+
+;; File Flags
+;; TODO
 
 #macro D_FILE(name, size)
    ; for label
 _  .db name
    RESB(VARNAMELEN - $ + (-_)) ; pad name
    .dw size
+   .db 0 ; file descriptor
 #endmacro
 
 
 #define RES_FILE RESB(SIZEOF_FILE)
+
+; struct FILETAB_ENT {
+;  uint8_t flags;
+; }
+FILETAB_ENT.FLAGS .equ 0
+
+SIZEOF_FILETAB_ENT .equ FILETAB_ENT.FLAGS + 1
+
+FILETAB_ENT.FLAGS.USED  .equ 0 ; used bit  -- whether currently assigned to open file
+FILETAB_ENT.FLAGS.DIRTY .equ 1 ; dirty bit -- whether generalized address is correct
+
+MAX_FILES .equ 32
 
 #endif

@@ -40,6 +40,7 @@ struct zmap_header {
 struct zfile {
    char varname[VARNAMELEN];
    uint16_t size;
+   uint8_t zfd;
 };
 
 struct zmap_tabent {
@@ -222,6 +223,7 @@ int main(int argc, char *argv[]) {
       strncpy(tab[i].file.varname, stem, stem_len);
       memset(tab[i].file.varname + stem_len, 0, VARNAMELEN - stem_len);
       tab[i].file.size = 0; /* determined at runtime */
+      tab[i].file.zfd = 0;
 
       /* initialize flags */
       tab[i].flags = (i * zpage_size < hdr.zmh_staticaddr) ? MASK(ZMAP_ENT_FLAGS_COPY) : 0;
@@ -276,12 +278,17 @@ void zmap_header_write(FILE *outf, const struct zmap_header *hdr) {
    }
 }
 
+void zfile_write(FILE *outf, const struct zfile *zf) {
+   fwrite(zf->varname, 1, VARNAMELEN, outf);
+   for (int byte = 0; byte < 2; ++byte) {
+      fputc(BYTE(zf->size, byte), outf);
+   }
+   fputc(zf->zfd, outf);
+}
+
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {
    for (int i = 0; i < cnt; ++i) {
-      fwrite(tab[i].file.varname, 1, VARNAMELEN, outf);
-      for (int byte = 0; byte < sizeof(tab[i].file.size); ++byte) {
-         fputc(BYTE(tab[i].file.size, byte), outf);
-      }
+      zfile_write(outf, &tab[i].file);
       fputc(tab[i].flags, outf);
    }
 }
@@ -294,4 +301,3 @@ uint16_t read_be16(void *ptr) {
    uint8_t *ptr8 = (uint8_t *) ptr;
    return (ptr8[0] << 8) + ptr8[1];
 }
-

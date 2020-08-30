@@ -29,8 +29,10 @@ ZERR_RDONLY      .equ 22
 ZERR_STACKOVER   .equ 23
 ZERR_INTERNAL    .equ 24
 ZERR_READEOF     .equ 25
+ZERR_BADFD       .equ 26
+ZERR_TOOMANYF    .equ 27
 
-ZERR_COUNT       .equ 26
+ZERR_COUNT       .equ 28
 
 ZERR_MAX_STRLEN  .equ 36
 
@@ -60,5 +62,7 @@ ZERR_MAX_STRLEN  .equ 36
 #define zerrstr_stackover   "stack overflow"
 #define zerrstr_internal    "internal error"
 #define zerrstr_readeof     "read past EOF"
+#define zerrstr_badfd       "bad file descriptor"
+#define zerrstr_toomanyf    "too many files open"
 
 #endif

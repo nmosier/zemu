@@ -6,13 +6,14 @@
 ; struct FILE {
 ;  char name[VARNAMELEN];
 ;  uint16_t size;
-; } 
+; }
 
 FILE.NAME  .equ 0
 FILE.SIZE  .equ FILE.NAME + VARNAMELEN
 FILE.FD    .equ FILE.SIZE + WORD_SIZE
+FILE.PTR   .equ FILE.FD   + 1
 
-SIZEOF_FILE .equ FILE.FD + BYTE_SIZE
+SIZEOF_FILE .equ FILE.PTR + 3
 
 ;; File Flags
 ;; TODO
@@ -23,6 +24,7 @@ _  .db name
    RESB(VARNAMELEN - $ + (-_)) ; pad name
    .dw size
    .db 0 ; file descriptor
+   RESB(3) ; ptr
 #endmacro
 
 

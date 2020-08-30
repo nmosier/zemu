@@ -41,6 +41,7 @@ struct zfile {
    char varname[VARNAMELEN];
    uint16_t size;
    uint8_t zfd;
+   uint32_t ptr;
 };
 
 struct zmap_tabent {
@@ -224,6 +225,7 @@ int main(int argc, char *argv[]) {
       memset(tab[i].file.varname + stem_len, 0, VARNAMELEN - stem_len);
       tab[i].file.size = 0; /* determined at runtime */
       tab[i].file.zfd = 0;
+      tab[i].file.ptr = 0;
 
       /* initialize flags */
       tab[i].flags = (i * zpage_size < hdr.zmh_staticaddr) ? MASK(ZMAP_ENT_FLAGS_COPY) : 0;
@@ -284,6 +286,9 @@ void zfile_write(FILE *outf, const struct zfile *zf) {
       fputc(BYTE(zf->size, byte), outf);
    }
    fputc(zf->zfd, outf);
+   for (int byte = 0; byte < 3; ++byte) {
+      fputc(BYTE(zf->ptr, byte), outf);
+   }
 }
 
 void zmap_table_write(FILE *outf, const struct zmap_tabent *tab, int cnt) {

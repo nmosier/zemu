@@ -864,6 +864,7 @@ zwin_page.test:
    pop de
    jr nz,zwin_page.done ; don't need to update anchor, since it was already set
 zwin_page.newanc:
+   LD_HL_FROM_IX(ZWIN.BUFPTR) ; test
    LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_page.done:
    pop hl

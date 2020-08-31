@@ -108,6 +108,7 @@ win_main: D_ZWIN(2, 2, DISP_WIDTH-4, DISP_HEIGHT-4, MASK(ZWIN.FLAGS.BUFD), win_m
 #if ZTEST
 win_main.cksum .equ win_main + ZWIN.CKSUM
 #endif
+win_main.bufanc .equ win_main + ZWIN.BUFANC
 
 
 #ifdef ZDBG

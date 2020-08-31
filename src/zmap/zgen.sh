@@ -45,7 +45,9 @@ OUTDIR="."
 
 # get filename
 STORY_FILENAME=$(basename "${STORY_FILE}")
-STORY_NAME="${STORY_FILENAME%.*}"
+STORY_BASENAME="${STORY_FILENAME%.*}"
+STORY_NAME="${STORY_BASENAME:0:4}"
+STORY_NAME_UC=$(tr a-z A-Z <<< $STORY_NAME)
 
 echo $STORY_NAME
 
@@ -58,6 +60,6 @@ fi
 "${ZPAGES_SH}" -n "${ZPAGE_SIZE}" "${STORY_FILE}" "${OUTDIR}"
 
 # create zmap
-"${ZMAP_BIN}" -n "${ZPAGE_SIZE}" ${VERBOSE} "${STORY_FILE}" "${OUTDIR}/${STORY_NAME}R"[a-z][a-z]".8xv" | tipack -n "${STORY_NAME}" -t 8xv -o "${OUTDIR}/${STORY_NAME}.8xv"
+"${ZMAP_BIN}" -n "${ZPAGE_SIZE}" ${VERBOSE} "${STORY_FILE}" "${OUTDIR}/${STORY_NAME}R"[a-z][a-z]".8xv" | tipack -n "${STORY_NAME_UC}" -t 8xv -o "${OUTDIR}/${STORY_NAME}.8xv"
 
 exit 0

@@ -965,7 +965,10 @@ zdbg_disp_backtrace.loop:
     call zwin_newline
    pop ix
    jr c,zdbg_disp_backtrace.done
-   ld de,(ix+zframe_fp-zframe_end)
+   ld hl,(ix+zframe_fp-zframe_end)
+   call cp_hl_0
+   jr z,zdbg_disp_backtrace.done
+   ex de,hl
    call zstack_begin
    jr c,zdbg_disp_backtrace.done
    add hl,de

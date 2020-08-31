@@ -41,7 +41,7 @@ start:
    ld sp,hl
    rra
 #else
-   ld hl,zork_zmap
+   ld hl,storyname
    call zemu_open
 #endif
    ; ret c
@@ -167,8 +167,7 @@ zemu_selectgame:
    ret
 #endif
 
-;; TESTING ;;
-zork_zmap: .db "ZORK",0
+storyname: .db ZSTORYNAME,0
 
 ;;;;;;;;;;;;;
 ;; GLOBALS ;;

@@ -50,4 +50,8 @@ win_main.buflen .equ 512
 #endif
 
 
+#ifndef ZSTORYNAME
+#define ZSTORYNAME "ZORK"
+#endif
+
 #endif

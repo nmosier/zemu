@@ -38,12 +38,16 @@ appvar_to_OP1.zero:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_open:
+  ;; NOTE: need to allocate fd first, then get size
+  call file_allocate_fd
+  ld (ix+FILE.FD),a
+  call file_tabent
+  set FILETAB_ENT.FLAGS.DIRTY,(hl)
+  ;; populate fields
   call file_size
   ret c
   LD_HL_TO_IX_W(FILE.SIZE)
-  call file_allocate_fd
-  ld (ix+FILE.FD),a
-  jp file_dirty
+  ret
 
 
 ;; file_create -- create file of given size, removing an existing file of the same name
@@ -62,13 +66,15 @@ file_create:
   SYSCALL(_DelVarArc)
 file_create.create:
   SYSERR_PUSH(file_error.nomem) ; destroys hl
-  CLEAR_UPPER_HL
-  ld l,(ix+FILE.SIZE)
-  ld h,(ix+FILE.SIZE+1)
-  SYSCALL(_CreateAppVar)
+   CLEAR_UPPER_HL
+   ld l,(ix+FILE.SIZE)
+   ld h,(ix+FILE.SIZE+1)
+   SYSCALL(_CreateAppVar)
   SYSERR_POP
   inc de \ inc de ; skip size bytes
-  or a,a
+  push de
+   call file_open
+  pop de
   ret
 
 
@@ -317,18 +323,6 @@ file_tabent:
   UCAST_FROM_IX_TO_HL(FILE.FD)
   ld de,file_table
   add hl,de
-  ret
-
-
-;; file_dirty -- set dirty bit for file
-;; INPUTS:
-;;  ix = file pointer
-;; OUTPUTS: (none)
-;; DESTROYS: de
-;; ERRORS: yes.
-file_dirty:
-  call file_tabent
-  set FILETAB_ENT.FLAGS.DIRTY,(hl)
   ret
 
 

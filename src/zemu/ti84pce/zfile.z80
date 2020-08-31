@@ -36,17 +36,31 @@ file_addr:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_baseaddr:
+  call file_tabent
+  bit FILETAB_ENT.FLAGS.DIRTY,(hl)
+  jr nz,file_baseaddr.dirty ; dirty, so need to recompute
+  ld de,(ix+FILE.PTR)
+  call _ChkInRAM
+  ex de,hl
+  scf \ ccf
+  ret
+  
+file_baseaddr.dirty:
+  res FILETAB_ENT.FLAGS.DIRTY,(hl)
   call file_info
   ret c
-  jr z,file_addr.RAM
-file_baseaddr.archive:
+  jr z,file_addr.dirty.RAM
+file_baseaddr.dirty.archive:
   ld hl,19
   add hl,de
-  ret ; always NC
-file_addr.RAM:
+  jr file_addr.dirty.done
+
+file_addr.dirty.RAM:
   ex de,hl
   inc hl \ inc hl ; skip size bytes
-  ret ; always NC
+file_addr.dirty.done:
+  ld (ix+FILE.PTR),hl
+  ret  
 
 
 ;; file_size -- get size of file
@@ -57,8 +71,8 @@ file_addr.RAM:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_size:
-  LD_HL_0
-  call file_addr
+  call file_baseaddr
+  ret c
   ld de,0
   dec hl
   ld d,(hl)

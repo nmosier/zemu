@@ -78,8 +78,8 @@ zwin_putc.base.other:
     call c,zwin_newline_bare ; don't buffer
     jr c,zwin_putc.base.other.err2
     
-    call zwin_select ; select window for writing
-    call _VPutMap ; display char
+    call zwin_select  ; select window for writing
+    SYSCALL(_VPutMap) ; display char
    pop bc
   pop ix
   ; update current column

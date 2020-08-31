@@ -423,53 +423,59 @@ zwin_trunc:
   LD_BC_HL
   ; bc = count
   ; de = EOL ptr
-  push de ; save EOL ptr
-   ;; calculate deleted bytes
-   call zwin_buf
-   jr c,zwin_trunc.pop
-   ex de,hl ; hl = EOL ptr
-   or a,a
-   sbc hl,de ; size of bytes to delete
-   ex de,hl
-   ;; shift bufptr
-   LD_HL_FROM_IX(ZWIN.BUFPTR)
-   or a,a
-   sbc hl,de ; shifted bufptr
-   LD_HL_TO_IX(ZWIN.BUFPTR)
-   ;; try to shift bufanc
-   or a,a
-   bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
-   jr z,zwin_trunc.move
-   ;; paging enabled
-   LD_HL_FROM_IX(ZWIN.BUFANC)
-   or a,a
-   sbc hl,de   ; shifted anchor
-   ld de,0
-   ;; if CF is set, then anchored region will be scrolled offscreen
-   jr nc,_
-   ex de,hl
-_  LD_HL_TO_IX(ZWIN.BUFANC)
-zwin_trunc.move:
-   call zwin_buf
-   ex de,hl
-zwin_trunc.pop:
-  pop hl ; restore EOL ptr
-  ret c
-  ; hl = EOL ptr
-  ; de = buf begin
-  ; bc = number of bytes to keep
   push af
-   call memmove
-  pop af
+   push de ; save EOL ptr
+    ;; calculate deleted bytes
+    call zwin_buf
+    jr c,zwin_trunc.err2
+    ex de,hl ; hl = EOL ptr
+    or a,a
+    sbc hl,de ; size of bytes to delete
+    ex de,hl
+    ;; shift bufptr
+    LD_HL_FROM_IX(ZWIN.BUFPTR)
+    or a,a
+    sbc hl,de ; shifted bufptr
+    LD_HL_TO_IX(ZWIN.BUFPTR)
+    ;; try to shift bufanc
+    xor a,a
+    bit ZWIN.FLAGS.PAGD,(ix+ZWIN.FLAGS)
+    jr z,zwin_trunc.move
+    ;; paging enabled
+    LD_HL_FROM_IX(ZWIN.BUFANC)
+    or a,a
+    sbc hl,de   ; shifted anchor
+    ld de,0
+    ;; if CF is set, then anchored region will be scrolled offscreen
+    jr nc,_
+    ex de,hl
+_   LD_HL_TO_IX(ZWIN.BUFANC)
+    sbc a,a
+zwin_trunc.move:
+    call zwin_buf
+    ex de,hl
+   pop hl
+   jr c,zwin_trunc.err1
+   ; hl = EOL ptr
+   ; de = buf begin
+   ; bc = number of bytes to keep
+   push af
+    call memmove
+   pop af
 #if ZTEST
-  call zwin_cksum ; recompute cksum
+   call zwin_cksum ; recompute cksum
+   jr c,zwin_trunc.err1
 #endif
-  ld b,a
-  sbc a,a
+  pop bc
+  or a,a
   ld a,b
-  scf \ ccf
   ret
 
+zwin_trunc.err2:
+  pop hl
+zwin_trunc.err1:
+  pop hl
+  ret
 
 ;; zwin_puts -- put string in window, buffered, null-terminated
 ;; zwin_puts_bare -- put string in window, unbuffered

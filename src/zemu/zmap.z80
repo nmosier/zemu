@@ -148,7 +148,7 @@ zmap_load:
     ld hl,zmap_load.getfile
     call nc,file_copy
    pop iy
-   call zmap_header
+   call nc,zmap_header
    jr c,zmap_load.done
    ld b,(ix+ZMAP_HDR_NPAGES)
    call zmap_table

@@ -902,10 +902,15 @@ zexec.call.storevars:
   UCAST_B_TO_DE
   add hl,de
   add hl,de
-  ld a,b
+  ld a,(zframe_nl)
+  cp a,b
+  jr nc,_
+  ld b,a
+_ ld a,b
   or a,a
   ret z ; no vars to store
 zexec.call.storevars.loop:
+  ld a,b
   CLEAR_UPPER_DE
   dec hl
   ld e,(hl)
@@ -913,9 +918,9 @@ zexec.call.storevars.loop:
   ld d,(hl)
   push hl
    ex de,hl
-   ld a,b
-   call nc,zvar_store
+   call zvar_store
   pop hl
+  ret c
   djnz zexec.call.storevars.loop
   ret
 

@@ -220,6 +220,7 @@ file_to_RAM:
 ;;  ix = file pointer
 ;; OUTPUTS:
 ;;  [b:de] = address
+;;  a = b = page no
 ;;  ZF = whether in RAM (Z = RAM, NZ = archive)
 ;; DESTROYS: ???
 ;; ERRORS: yes.

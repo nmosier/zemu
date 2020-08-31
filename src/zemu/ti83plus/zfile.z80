@@ -13,44 +13,54 @@
 ;; ERRORS: yes.
 file_addr:
   push hl
-   call file_info
-   jr c,file_addr.err1
-   ld a,b
-   or a,a
-   jr z,file_addr.RAM ; hl >= $8000, so in RAM, and size bytes skipped
-file_addr.flash:
-   ;; get length of symbol
-   ld hl,9 ; offset of name length
-   call add_flash
-   ld de,file_addr.namelen
-   ld bc,1
-   push af
+   call file_baseaddr
+  pop de
+  ret c
+  jp nz,add_flash
+  add hl,de ; always NC
+  ret
+  
+
+;; file_baseaddr -- get address of byte in file
+;; INPUTS:
+;;  ix = file pointer
+;; OUTPUTS:
+;;  [a:hl] = RAM/flash address of file, offset 0
+;;  ZF = whether in RAM (Z = RAM, NZ = flash)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_baseaddr:
+  call file_info
+  ret c
+  jr z,file_baseaddr.RAM ; hl >= $8000, so in RAM, and size bytes skipped
+file_baseaddr.flash:
+  ;; get length of symbol
+  ld hl,9 ; offset of name length
+  call add_flash
+  ld de,file_baseaddr.namelen
+  ld bc,1
+  push de
+   push af ; save page no
     SYSCALL(_FlashToRAM)
     ex de,hl
-    dec hl
-    ld c,(hl)
-    ld b,0
-    inc c \ inc c ; skip size bytes
-   pop af
-  pop hl
-  add hl,bc ; add name length plus size bytes to requested offset
-  ex de,hl
+    dec de
+    ld a,(de)
+    add a,9+1+2
+    UCAST_A_TO_DE
+   pop af ; restore page no
+  pop de
   call add_flash
   or a,a
   ret
 
-file_addr.RAM:
-  pop hl
-  inc hl \ inc hl ; skip size bytes
-  add hl,de       
-  or a,a         ; NC, Z
+file_baseaddr.RAM:
+  inc de \ inc de ; skip size bytes
+  ex de,hl
+  or a,a          ; NC, Z
   ret             ; success
 
-file_addr.err1:
-  pop hl
-  ret
+file_baseaddr.namelen: .db 0
 
-file_addr.namelen: .db 0
 
 
 ;; add_flash -- add offset to flash pointer

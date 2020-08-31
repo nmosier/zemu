@@ -21,22 +21,32 @@ file_addr:
   ret c
 #endif
   push hl
-  call file_info
-  pop hl
+   call file_baseaddr
+  pop de
   ret c
   add hl,de
+  ret ; always NC
+
+;; file_baseaddr -- get pointer to beginning of file
+;; INPUTS:
+;;  ix = file pointer
+;; OUTPUTS:
+;;  [a:hl] = RAM/flash address of byte
+;;  ZF = whether in RAM (Z = RAM, NZ = flash)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_baseaddr:
+  call file_info
+  ret c
   jr z,file_addr.RAM
-file_addr.archive:
-  ld de,19
+file_baseaddr.archive:
+  ld hl,19
   add hl,de
   ret ; always NC
 file_addr.RAM:
+  ex de,hl
   inc hl \ inc hl ; skip size bytes
   ret ; always NC
-
-file_addr.err1:
-  pop hl
-  ret
 
 
 ;; file_size -- get size of file

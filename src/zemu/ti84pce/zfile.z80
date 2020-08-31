@@ -49,23 +49,25 @@ file_baseaddr.dirty:
   res FILETAB_ENT.FLAGS.DIRTY,(hl)
   call file_info
   ret c
+  ex de,hl
   jr z,file_addr.dirty.RAM
 file_baseaddr.dirty.archive:
-  ld hl,19
+  ld de,9
   add hl,de
-  jr file_addr.dirty.done
-
+  ld de,0
+  ld e,(hl) ; name length
+  inc hl    ; skip byte
+  add hl,de ; skip name
 file_addr.dirty.RAM:
-  ex de,hl
-  inc hl \ inc hl ; skip size bytes
 file_addr.dirty.done:
+  inc hl \ inc hl ; skip size bytes
   ld (ix+FILE.PTR),hl
   ret  
 
 
 ;; file_size -- get size of file
 ;; INPUTS:
-;;  ix = file pointer
+;;  ix = file ointer
 ;; OUTPUTS:
 ;;  hl = size
 ;; DESTROYS: (all)

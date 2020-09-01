@@ -39,3 +39,9 @@ add_zemu_test(zork-leaflet
   "take leaflet\\n" AC617D04
   "read leaflet\\n" 1D5A1C5F
   )  
+
+add_zemu_test(zork-save
+  COMMANDS
+  "''"              1A7BB317
+  "save\\n"         D6163777
+  )

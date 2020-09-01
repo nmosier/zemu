@@ -1,7 +1,7 @@
 ;; zsave.inc -- routines for saving & restoring games
 
-#ifndef __ZSAVE_INC
-#define __ZSAVE_INC
+#ifndef ZSAVE_INC
+#define ZSAVE_INC
 
 #include "zemu.inc" ;; TODO -- the equates needed in this header should
                     ;;         really be in zmap.inc
@@ -12,5 +12,12 @@
 ;;  2. map (variable)
 ;;  3. mem (variable)
 
+; struct zsave {
+;  struct zframe frame;
+;  uint16_t zmap_size;
+;  char zmap_data[zmap_size];
+;  uint16_t zmem_size;
+;  char zmem_data[
+; }
 
 #endif

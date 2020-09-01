@@ -43,7 +43,7 @@ zmap_fetchpage:
 ;;  a = page number
 ;;  hl = name prefix
 ;; OUTPUTS: (none)
-;; DESTROYS: (all) but ix
+;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; TODO: parameterize page naming.
 ;; *** portable ***
@@ -217,6 +217,18 @@ zmap_table:
     pop bc
    pop de
   pop hl
+  ret
+
+
+;; zmap_get_working_file -- return pointer to working zmap file
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  ix <- zmap_working_file
+;; DESTROYS: (none)
+;; ERRORS: no, but NC.
+zmap_get_working_file:
+  ld ix,zmap_working_file
+  or a,a
   ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;

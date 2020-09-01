@@ -155,7 +155,7 @@ _ pop hl
 ;;  hl = function pointer that produces source file struct in %ix
 ;;  iy = destination file struct
 ;; OUTPUTS: (none)
-;; DESTROYS: (all)
+;; DESTROYS: (all), ix
 ;; ERRORS: yes.
 file_copy:
   ;; get orig file size
@@ -220,6 +220,20 @@ file_to_RAM:
   SYSCALL(_Arc_Unarc)
   call file_dirty_all
   jr file_to_RAM  ; try again
+
+
+;; file_to_archive -- archive file
+;; INPUTS:
+;;  ix = file pointer
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+file_to_archive:
+  call file_info
+  ret c
+  ret nz ; already in archive
+  SYSCALL(_Arc_Unarc)
+  jp file_dirty_all
 
 
 ;; file_info -- get file info
@@ -295,6 +309,7 @@ file_memcpy:
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
 ;; DESTROYS: b, hl
+;; PRESERVES: CF
 ;; ERRORS: no.
 file_dirty_all:
   push hl

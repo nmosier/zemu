@@ -3,11 +3,24 @@
 #include "zemu.inc"
 #include "zsave.inc"
 #include "zutil.inc"
+#include "util.inc"
+
+;---- SAVES ----;
+; There are 3 components to a save:
+; - Stack contents
+; - Modified page contents
+; - Frame contents
+; - zmap
+; 1. Copy page contents and archive.
+; 2. Create save appvar.
+; 3. Save frame.
+; 4. Save stack contents.
 
 ;; zsave_size -- compute number of bytes required to save current game state
-;; INPUTS: (none)
+;; INPUTS:
+;;  ix = save file pointer
 ;; OUTPUTS:
-;;  hl = size
+;;  (ix+FILE.SIZE) updated
 ;; DESTROYS: bc, de
 ;; ERRORS: no.
 ;; *** portable ***
@@ -27,6 +40,7 @@ zsave_size:
   ;; add fixed-sized fields
   ld de,ZFRAME_SIZE+3*WORD_SIZE ; words to store length & size bytes
   add hl,de
+  LD_HL_TO_IX_W(FILE.SIZE)
   ret
 
 zsave_size.err1:
@@ -36,14 +50,14 @@ zsave_size.err1:
 
 ;; zsave_savemap -- save a map
 ;; INPUTS:
-;;  ix = zmap pointer
 ;;  hl = name prefix (recommended: ${SAVENAME}P)
 ;; OUTPUTS: ???
 ;; DESTROYS: ???
 ;; ERRORS: yes.
+;; TODO: delete intermediate variables on error.
 ;; *** portable ***
 zsave_savemap:
-   ;; frame setup
+  ;; frame setup
    ld b,(ix+ZMAP_HDR_NPAGES)  ; pages remaining
    ld c,0                     ; page ID
    ;; Iterate thru table. For each page entry, if flag `SAVE' is set,
@@ -57,115 +71,246 @@ zsave_savemap.loop:
    ;;  b = pages remaining
    ;;  c = page ID
    bit ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
-   jr z,_
-   
-   ;; copy page
-   push hl
+   jr z,zsave_savemap.next
+  
+  ;; copy page
+  push hl
    push bc
-   ld a,c
-   call zmap_copypage
+    ld a,c
+    call zmap_copypage
    pop bc
-   pop hl
-   jr c,zsave_savemap.err
+  pop hl
+  ret c
 
-   ;; update name of page & put into OP1
-   push hl
+  push hl
    push bc
-   ld a,c
-   LEA_DE_IX(ZMAP_ENT.FILE + FILE.NAME)
-   call zmap_namepage
-   call appvar_to_OP1
-
-   ;; archive copied page
-   push ix
-   push iy
-   ld iy,flags
-   SYSCALL(_Arc_Unarc)
-   pop iy
-   pop ix
-   
+    ;; rename page in zmap
+    ld a,c
+    LEA_DE_IX(ZMAP_ENT.FILE + FILE.NAME)
+    call zmap_namepage
+    ;; archive copied page
+    push ix
+     LEA_IX_IX(ZMAP_ENT.FILE)
+     call file_to_archive
+    pop ix
    pop bc
-   pop hl
+  pop hl
+  ret c
 
-   ;; update flags
-   ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.COPY)
-_  LEA_IX_IX(SIZEOF_ZMAP_ENT)
-   inc c
-   djnz zsave_savemap.loop
+  ;; update flags
+  ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.COPY)
+zsave_savemap.next:
+  LEA_IX_IX(SIZEOF_ZMAP_ENT)
+  inc c
+  djnz zsave_savemap.loop
 zsave_savemap.leave:
-   or a,a   ; SUCCESS
-   ret
+  ; or a,a   ; SUCCESS
+  ret
 
-zsave_savemap.err:
-   ;; TODO -- this should delete any variables that were created
-   ret
+
+
 
 ;; zsave_save -- save game
 ;; INPUTS:
-;;  hl = name of save
-;; OUTPUTS:
-;;  a = whether save was successful
+;;  ix = save file pointer
+;; OUTPUTS: (none)
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 ;; *** portable ***
+;; TODO: check length of save name string.
 zsave_save:
-  scf
-  ld a,ZERR_INTERNAL
-  ret
-#if 0
-  ;; create empty appvar of required size
-  push hl           ; preserve name
-   push hl
-    call zsave_size   ; size -> hl
-    LD_BC_HL
-   pop hl            ; name -> hl
-   call appvar_touch_trunc
-   ex de,hl          ; save data ptr -> de
-   ;; copy in frame
-   ld hl,zframe_begin
-   ld bc,ZFRAME_SIZE
-   ldir
-   ;; find offsets of frame pointers (fp and sp)
-   ;; copy in map appvar
-   push de    ; save for update
-    push ix
-     call zmap_header
-     jr c,zsave_save.err3
-     UCAST_FROM_IX_TO_BC
-    pop ix
-    inc hl
-    ld b,(hl)
-    dec hl
-    ldir
-   pop ix
-   ;; update map
-  pop hl   ; name
+  ;; set name prefix
+  ld ix,zsave_save.file
+  ld de,zsave_save.file + FILE.NAME
+  ld bc,VARNAMELEN
+  push hl
+   call strncpy
+  pop hl
+  ;; save pages
   push de
-   call zsave_savemap
+   push bc 
+    call zsave_save.pages
+   pop bc
   pop de
-  ret c    ; ERROR
-  ;; copy in mem
-  ld bc,(zframe_sp)    ; NOTE: sp as an offset is also size of zmem.
-  ld a,c
-  ld (de),a
-  inc de
-  ld a,b
-  ld (de),a
-  inc de
-  call zstack_begin
-  ret c
-  ldir
-zsave_save.done:
-  xor a,a
-  dec a       ; ld a,$ff && NC -- SUCCESS
+  ;; save frame
+  push de
+   push bc
+    call nc,zsave_save.frame
+   pop bc
+  pop de
+  ;; save stack
+  push de
+   push bc
+    call nc,zsave_save.stack
+   pop bc
+  pop de
+  ;; save zmap
+  push de
+   push bc
+    call nc,zsave_save.zmap
+   pop bc
+  pop de
   ret
 
-zsave_save.err3:
+zsave_save.file: RES_FILE
+
+
+
+;; zsave_save.frame -- save frame
+;; INPUTS:
+;;  ix = zsave_save.file, with savename prefix set in FILE.NAME field
+;;  de = pointer to end of prefix in FILE.NAME field
+;;  bc = remaining characters in FILE.NAME field (to be used with strncpy)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; NOTE: produces file with name '{SAVE}F'
+zsave_save.frame:
+  ;; set filename suffix
+  ld hl,zsave_save.frame.suffix
+  call strncpy
+  ;; set file size
+#if TI83PLUS
+  ld hl,ZFRAME_SIZE
+  ld (zsave_save.file + FILE.SIZE),hl
+#elif TI84PCE
+  ld (ix+FILE.SIZE),LOW_IMM(ZFRAME_SIZE)
+  ld (ix+FILE.SIZE),HIGH_IMM(ZFRAME_SIZE)
+#endif
+  ;; create file
+  call file_create 
+  ;; copy in data
+  call nc,file_baseaddr
+  ret c
+  ex de,hl
+  ld hl,zframe_begin
+  ld bc,ZFRAME_SIZE
+  ldir
+  ret
+  
+zsave_save.frame.suffix: .db "F",0
+
+
+;; zsave_save.stack -- save stack
+;; INPUTS:
+;;  ix = zsave_save.file, with savename prefix set in FILE.NAME field
+;;  de = pointer to end of prefix in FILE.NAME field
+;;  bc = remaining characters in FILE.NAME field (to be used with strncpy)
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; NOTE: Produces file with name '{SAVE}S'
+zsave_save.stack:
+  ;; set filename suffix
+  ld hl,zsave_save.stack.suffix
+  call strncpy
+  ;; set file size
+  ld hl,zframe_sp ; since sp is offset, it gives exact size
+  LEA_DE_IX(FILE.SIZE)
+  ld bc,2
+  ldir
+  ;; create file
+  call file_create
+  ;; copy stack into file
+  call nc,file_baseaddr
+  ret c
+  ex de,hl
+  call zstack_begin
+  ld bc,(zframe_sp)
+  ldir
+  ret
+
+zsave_save.stack.suffix: .db "S",0
+  
+
+;; zsave_save.zmap -- save zmap
+;; INPUTS:
+;;  ix = zsave_save.file, with savename prefix set in FILE.NAME field
+;;  de = pointer to end of prefix in FILE.NAME field
+;;  bc = remaining characters in FILE.NAME field (to be used with strncpy)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+zsave_save.zmap:
+  ;; set filename suffix
+  ld hl,zsave_save.zmap.suffix
+  call strncpy
+  ;; copy file
+  ld hl,zmap_get_working_file
+  ld iy,zsave_save.file
+  call file_copy
+  ld ix,zsave_save.file
+  ret 
+
+zsave_save.zmap.suffix: .db "M",0
+
+
+;; zsave_save.pages -- save pages
+;; INPUTS:
+;;  hl = name prefix
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; OPTIM: Stack usage.
+zsave_save.pages:
+  push ix
+   ld ix,zmap_working_file
+   push hl
+    ld hl,ZMAP_HDR_NPAGES
+    call file_addr
+   pop de
+   jr c,zsave_save.pages.done
+   ld b,(hl)      ; pages remaining
+   ld c,0         ; page ID
+   ;; Iterate thru table. For each page entry, if flag `SAVE' is set,
+   ;; copy the page and rename it using the given name prefix
+   ;; move copied page to flash
+   ;; change flags: flags <- COPY
+   ld hl,ZMAP_HDRSIZE
+zsave_save.pages.loop:
+   ;; INVARIANTS:
+   ;;  hl = current table entry
+   ;;  de = name prefix
+   ;;  b  = pages remaining
+   ;;  c  = page ID
+   push hl
+    push bc
+     push de
+      ld ix,zmap_working_file
+      call file_addr
+      jr c,zsave_save.pages.err4
+      LD_IX_HL
+      bit ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
+     pop hl
+    pop bc
+    jr z,zsave_save.pages.next
+    push bc
+     push hl
+      ;; copy page
+      ld a,c
+      call zmap_copypage
+      jr c,zsave_save.pages.err4
+     pop de
+    pop bc
+zsave_save.pages.next:
+   pop hl
+   push de
+    ld de,SIZEOF_ZMAP_ENT
+    add hl,de
+   pop de
+   inc c
+   djnz zsave_save.pages.loop
+zsave_save.pages.done:
+  pop ix
+  ret
+
+zsave_save.pages.err4:
+  pop hl
   pop hl
   pop hl
   pop hl
   ret
-#endif
+
+
 
 ;; zstate_restore -- restore game
 ;; INPUTS:

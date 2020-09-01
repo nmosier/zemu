@@ -40,6 +40,6 @@ SIZEOF_FILETAB_ENT .equ FILETAB_ENT.FLAGS + 1
 FILETAB_ENT.FLAGS.USED  .equ 0 ; used bit  -- whether currently assigned to open file
 FILETAB_ENT.FLAGS.DIRTY .equ 1 ; dirty bit -- whether generalized address is correct
 
-MAX_FILES .equ 32
+MAX_FILES .equ 64
 
 #endif

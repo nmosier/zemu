@@ -762,13 +762,18 @@ zexec.nop:
    or a,a
    ret
 
+;; TODO -- this doesn't actually check if the save succeeds.
 zexec.save:
-   ;; TODO -- shouldn't always succeed, e.g. if not enough RAM
-   ld a,$ff                    ; preemptively declare the SAVE a success!
-   call zexec_cjmp
-   ld hl,zexec.save.name
-   jp zsave_save
+  ld a,$ff                    ; preemptively declare the SAVE a success!
+  call zexec_cjmp
+  ld hl,zexec.save.name
+  call zsave_save
+  ld hl,zexec.save.errmsg
+  call c,zemu_perror
+  or a,a
+  ret
 zexec.save.name: .db "SAVE",0
+zexec.save.errmsg: .db "save",0
 
 zexec.restore:
    ld hl,zexec.save.name

@@ -16,98 +16,6 @@
 ; 3. Save frame.
 ; 4. Save stack contents.
 
-;; zsave_size -- compute number of bytes required to save current game state
-;; INPUTS:
-;;  ix = save file pointer
-;; OUTPUTS:
-;;  (ix+FILE.SIZE) updated
-;; DESTROYS: bc, de
-;; ERRORS: no.
-;; *** portable ***
-zsave_size:
-  ;; get size of current zmap
-  push ix 
-   call zmap_header
-   jr c,zsave_size.err1
-   UCAST_FROM_IX_TO_BC
-  pop ix
-  inc hl
-  ld b,(hl)
-  ;; get size of current zmem
-  ld hl,(zframe_sp)
-  ;; zmap + zmem
-  add hl,bc
-  ;; add fixed-sized fields
-  ld de,ZFRAME_SIZE+3*WORD_SIZE ; words to store length & size bytes
-  add hl,de
-  LD_HL_TO_IX_W(FILE.SIZE)
-  ret
-
-zsave_size.err1:
-  pop hl
-  ret
-
-
-;; zsave_savemap -- save a map
-;; INPUTS:
-;;  hl = name prefix (recommended: ${SAVENAME}P)
-;; OUTPUTS: ???
-;; DESTROYS: ???
-;; ERRORS: yes.
-;; TODO: delete intermediate variables on error.
-;; *** portable ***
-zsave_savemap:
-  ;; frame setup
-   ld b,(ix+ZMAP_HDR_NPAGES)  ; pages remaining
-   ld c,0                     ; page ID
-   ;; Iterate thru table. For each page entry, if flag `SAVE' is set,
-   ;; copy the page and rename it using the given name prefix
-   ;; move copied page to flash
-   ;; change flags: flags <- COPY
-   LEA_IX_IX(ZMAP_HDR_END)   ; table ptr -> ix
-zsave_savemap.loop:
-   ;; INVARIANTS:
-   ;;  hl = name prefix
-   ;;  b = pages remaining
-   ;;  c = page ID
-   bit ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
-   jr z,zsave_savemap.next
-  
-  ;; copy page
-  push hl
-   push bc
-    ld a,c
-    call zmap_copypage
-   pop bc
-  pop hl
-  ret c
-
-  push hl
-   push bc
-    ;; rename page in zmap
-    ld a,c
-    LEA_DE_IX(ZMAP_ENT.FILE + FILE.NAME)
-    call zmap_namepage
-    ;; archive copied page
-    push ix
-     LEA_IX_IX(ZMAP_ENT.FILE)
-     call file_to_archive
-    pop ix
-   pop bc
-  pop hl
-  ret c
-
-  ;; update flags
-  ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.COPY)
-zsave_savemap.next:
-  LEA_IX_IX(SIZEOF_ZMAP_ENT)
-  inc c
-  djnz zsave_savemap.loop
-zsave_savemap.leave:
-  ; or a,a   ; SUCCESS
-  ret
-
-
 
 
 ;; zsave_save -- save game
@@ -120,8 +28,8 @@ zsave_savemap.leave:
 ;; TODO: check length of save name string.
 zsave_save:
   ;; set name prefix
-  ld ix,zsave_save.file
-  ld de,zsave_save.file + FILE.NAME
+  ld ix,zsave_file
+  ld de,zsave_file + FILE.NAME
   ld bc,VARNAMELEN
   push hl
    call strncpy
@@ -152,13 +60,12 @@ zsave_save:
   pop de
   ret
 
-zsave_save.file: RES_FILE
 
 
 
 ;; zsave_save.frame -- save frame
 ;; INPUTS:
-;;  ix = zsave_save.file, with savename prefix set in FILE.NAME field
+;;  ix = zsave_file, with savename prefix set in FILE.NAME field
 ;;  de = pointer to end of prefix in FILE.NAME field
 ;;  bc = remaining characters in FILE.NAME field (to be used with strncpy)
 ;; OUTPUTS: (none)
@@ -167,15 +74,15 @@ zsave_save.file: RES_FILE
 ;; NOTE: produces file with name '{SAVE}F'
 zsave_save.frame:
   ;; set filename suffix
-  ld hl,zsave_save.frame.suffix
+  ld hl,zsave_suffix.frame
   call strncpy
   ;; set file size
 #if TI83PLUS
   ld hl,ZFRAME_SIZE
-  ld (zsave_save.file + FILE.SIZE),hl
+  ld (zsave_file + FILE.SIZE),hl
 #elif TI84PCE
   ld (ix+FILE.SIZE),LOW_IMM(ZFRAME_SIZE)
-  ld (ix+FILE.SIZE),HIGH_IMM(ZFRAME_SIZE)
+  ld (ix+FILE.SIZE+1),HIGH_IMM(ZFRAME_SIZE)
 #endif
   ;; create file
   call file_create 
@@ -186,14 +93,12 @@ zsave_save.frame:
   ld hl,zframe_begin
   ld bc,ZFRAME_SIZE
   ldir
-  ret
+  jp file_close
   
-zsave_save.frame.suffix: .db "F",0
-
 
 ;; zsave_save.stack -- save stack
 ;; INPUTS:
-;;  ix = zsave_save.file, with savename prefix set in FILE.NAME field
+;;  ix = zsave_file, with savename prefix set in FILE.NAME field
 ;;  de = pointer to end of prefix in FILE.NAME field
 ;;  bc = remaining characters in FILE.NAME field (to be used with strncpy)
 ;; OUTPUTS: (none)
@@ -202,7 +107,7 @@ zsave_save.frame.suffix: .db "F",0
 ;; NOTE: Produces file with name '{SAVE}S'
 zsave_save.stack:
   ;; set filename suffix
-  ld hl,zsave_save.stack.suffix
+  ld hl,zsave_suffix.stack
   call strncpy
   ;; set file size
   ld hl,zframe_sp ; since sp is offset, it gives exact size
@@ -218,30 +123,26 @@ zsave_save.stack:
   call zstack_begin
   ld bc,(zframe_sp)
   ldir
-  ret
+  jp file_close
 
-zsave_save.stack.suffix: .db "S",0
-  
 
 ;; zsave_save.zmap -- save zmap
 ;; INPUTS:
-;;  ix = zsave_save.file, with savename prefix set in FILE.NAME field
+;;  ix = zsave_file, with savename prefix set in FILE.NAME field
 ;;  de = pointer to end of prefix in FILE.NAME field
 ;;  bc = remaining characters in FILE.NAME field (to be used with strncpy)
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 zsave_save.zmap:
   ;; set filename suffix
-  ld hl,zsave_save.zmap.suffix
+  ld hl,zsave_suffix.zmap
   call strncpy
   ;; copy file
   ld hl,zmap_get_working_file
-  ld iy,zsave_save.file
+  ld iy,zsave_file
   call file_copy
-  ld ix,zsave_save.file
-  ret 
-
-zsave_save.zmap.suffix: .db "M",0
+  ld ix,zsave_file
+  jp file_close
 
 
 ;; zsave_save.pages -- save pages
@@ -287,8 +188,13 @@ zsave_save.pages.loop:
      push hl
       ;; copy page
       ld a,c
-      call zmap_copypage
+      push bc
+       call zmap_copypage
+      pop bc
+      ld a,c
+      call nc,zaddr_pageent
       jr c,zsave_save.pages.err4
+      set ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS) ; mark pages as copy
      pop de
     pop bc
 zsave_save.pages.next:
@@ -320,66 +226,97 @@ zsave_save.pages.err4:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zsave_restore:
-  ld a,ZERR_INTERNAL
-  scf
-  ret
-#if 0
-   call appvar_find
-   jr c,zsave_restore.false   ; not found, so false
-   ex de,hl
-   ;; copy saved frame into current frame
-   ld de,zframe_begin
-   ld bc,ZFRAME_SIZE
-   ldir
-   ;; get size of map
-   call ldw_bc_from_hl  ; bc.s <- (hl)   
-   ;; create/resize working zmap and bring into RAM
-   push hl
+  ld ix,zsave_file
+  ld de,zsave_file + FILE.NAME
+  ld bc,VARNAMELEN
+  call strncpy
+  ;; restore frame
+  push de
    push bc
-   ld hl,zmap_name_current       ; working zmap name
-   call appvar_touch_trunc
-   ex de,hl                      ; set destination for copy
+    call zsave_restore.frame
    pop bc
-   pop hl
-   ret c          ; ERROR
-   ;; load saved zmap into working zmap
-   push de
-   ldir
-   ex (sp),hl     ; preserve save ptr and restore working zmap pointer
-   LD_IX_HL
-   LEA_IX_IX(2)
-   ; call zmap_markupdate
-   pop hl         ; restore save ptr
-   ;; get size of zmem
-   CLEAR_UPPER_BC
-   ld c,(hl)
-   inc hl
-   ld b,(hl)
-   inc hl
-   ex de,hl
-   ld hl,ZMEM_SIZE
-   call cp_hl_bc
-   ex de,hl   
-   jr c,zsave_restore.stackoverflow    ; exceeds allocated memory for stack
-   ;; restore memory
-   ex de,hl
-   call zstack_begin
-   ex de,hl
-   ret c
-   ldir
-zsave_restore.true:
-   xor a,a
-   dec a       ; ld a,$ff && NC -- SUCCESS
-   ret
+  pop de
+  ;; restore stack
+  push de
+   push bc
+    call nc,zsave_restore.stack
+   pop bc
+  pop de
+  ;; restore zmap
+  push de
+   push bc
+    call nc,zsave_restore.zmap
+   pop bc
+  pop de
+  ret
+  
 
-zsave_restore.stackoverflow:
-   ld a,ZERR_STACKOVER
-   ret
+;; zsave_restore.frame -- restore frame
+;; INPUTS:
+;;  ix = zsave_file
+;;  de = where to put suffix in zsave_file
+;;  bc = characters left in zsave_file name
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zsave_restore.frame:
+  ld hl,zsave_suffix.frame
+  call strncpy
+  call file_open
+  call file_baseaddr
+  ret c
+  ld bc,ZFRAME_SIZE
+  ld de,zframe_begin
+  ldir
+  jp file_close
 
-zsave_restore.false:
-   xor a,a
-   ret
-#endif
+
+;; zsave_restore.stack -- restore stack
+;; INPUTS:
+;;  ix = zsave_file
+;;  de = where to put suffix in zsave_file
+;;  bc = characters left in zsave_file name
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zsave_restore.stack:
+  ld hl,zsave_suffix.stack
+  call strncpy
+  call file_open
+  call nc,zstack_begin
+  push hl
+   call nc,file_baseaddr
+  pop de
+  ret c
+  ld bc,(zframe_sp)
+  ldir
+  jp file_close
+
+
+;; zsave_restore.zmap -- restore zmap
+;; INPUTS:
+;;  ix = zsave_file
+;;  de = where to put suffix in zsave_file
+;;  bc = characters left in zsave_file name
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+zsave_restore.zmap:
+  ld hl,zsave_suffix.zmap
+  call strncpy
+  call zmap_close
+  call nc,file_open
+  push iy
+   ld hl,zsave_get_file
+   ld iy,zmap_working_file
+   call nc,file_copy
+  pop iy
+  call nc,zmap_open
+  ld ix,zsave_file
+  jp nc,file_close
+  ret
+  
+
 
 ;; zsave_restart -- restart game
 ;; INPUTS:
@@ -394,3 +331,22 @@ zsave_restart:
    ret
    ;; TODO -- should actually preserve two bits; see spec.
    ;; TODO -- should delete all pages that are marked as 'SAVE' in the current map.
+
+
+;; [INTERNAL] zsave_get_file -- get temporary zsave file
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: no, but always NC.
+zsave_get_file:
+  ld ix,zsave_file
+  or a,a
+  ret
+
+
+;--- DATA ---;
+zsave_suffix.frame: .db "F",0
+zsave_suffix.stack: .db "S",0
+zsave_suffix.zmap: .db "M",0
+
+zsave_file: RES_FILE

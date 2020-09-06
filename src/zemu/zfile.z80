@@ -51,6 +51,19 @@ file_open:
   ret
 
 
+;; file_close -- close file
+;; INPUTS:
+;;  ix = file struct
+;; OUTPUTS: (none)
+;; DESTROYS: de
+;; ERRORS: no, but NC.
+file_close:
+  call file_tabent
+  res FILETAB_ENT.FLAGS.USED,(hl)
+  ret
+
+
+
 ;; file_create -- create file of given size, removing an existing file of the same name
 ;; INPUTS:
 ;;  ix = file struct, with name field and size populated
@@ -331,7 +344,7 @@ file_dirty_all.loop:
 ;; OUTPUTS:
 ;;  hl = file table entry pointer
 ;; DESTROYS: de
-;; ERRORS: yes.
+;; ERRORS: no, but NC.
 file_tabent:
   UCAST_FROM_IX_TO_HL(FILE.FD)
   ld de,file_table

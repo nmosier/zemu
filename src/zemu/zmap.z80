@@ -31,21 +31,20 @@ zmap_fetchpage:
   ld a,b
   call nc,zaddr_pageent
   ret c
-  set ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
+  ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
   LEA_IX_IX(ZMAP_ENT.FILE)
   jp file_to_RAM
 
 
 
 ;; zmap_copypage -- copy page (used when write to page is read-only)
-;; zmap_copypage_ent -- copy page, given pointer to entry
 ;; INPUTS:
 ;;  a = page number
 ;;  hl = name prefix
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
-;; TODO: parameterize page naming.
+;; NOTE: Doesn't touch zmap entry flags. Caller must set them properly.
 ;; *** portable ***
 zmap_copypage:
   ;; get src and dst var names
@@ -64,7 +63,7 @@ zmap_copypage:
    ld hl,zmap_copypage.file
    LEA_DE_IX(ZMAP_ENT.FILE) ; flags preserved
    ld bc,SIZEOF_FILE
-   ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
+   ; ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
   pop ix
   ldir
   ret
@@ -148,27 +147,65 @@ zmap_load:
     ld hl,zmap_load.getfile
     call nc,file_copy
    pop iy
-   call nc,zmap_header
-   jr c,zmap_load.done
-   ld b,(ix+ZMAP_HDR_NPAGES)
-   call zmap_table
-   jr c,zmap_load.done
-zmap_load.open_loop:
-   LEA_IX_IX(ZMAP_ENT.FILE)
-   push bc
-    call file_open
-   pop bc
-   jr c,zmap_load.done
-   LEA_IX_IX(SIZEOF_ZMAP_ENT - ZMAP_ENT.FILE)
-   djnz zmap_load.open_loop
-   or a,a
-zmap_load.done:
   pop ix
+  jp nc,zmap_open
   ret
 
 zmap_load.getfile:
   ld ix,zmap_canonical_file
   or a,a
+  ret
+
+
+;; zmap_open -- open zmap
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+zmap_open:
+  push ix
+   call nc,zmap_header
+   jr c,zmap_open.done
+   ld b,(ix+ZMAP_HDR_NPAGES)
+   call zmap_table
+   jr c,zmap_open.done
+zmap_open.loop:
+   LEA_IX_IX(ZMAP_ENT.FILE)
+   push bc
+    call file_open
+   pop bc
+   jr c,zmap_open.done
+   LEA_IX_IX(SIZEOF_ZMAP_ENT - ZMAP_ENT.FILE)
+   djnz zmap_open.loop
+   or a,a
+zmap_open.done:
+  pop ix
+  ret
+
+
+;; zmap_close -- close zmap
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; DESTROYS: (all)
+;; ERRORS: yes.
+;; OPTIM: write function that takes function and iterates over all entries.
+zmap_close:
+  push ix 
+   call zmap_header
+   ld b,(ix+ZMAP_HDR_NPAGES)
+   call zmap_table
+   jr c,zmap_close.done
+zmap_close.loop:
+   LEA_IX_IX(ZMAP_ENT.FILE)
+   push bc
+    call file_close
+   pop bc
+   jr c,zmap_close.done
+   LEA_IX_IX(SIZEOF_ZMAP_ENT - ZMAP_ENT.FILE)
+   djnz zmap_close.loop
+   or a,a
+zmap_close.done:
+  pop ix
   ret
 
 

@@ -40,8 +40,12 @@ add_zemu_test(zork-leaflet
   "read leaflet\\n" 1D5A1C5F
   )  
 
-add_zemu_test(zork-save
+add_zemu_test(zork-restore
   COMMANDS
   "''"              1A7BB317
   "save\\n"         D6163777
+  "north\\n"        CDA06A7D
+  "restore\\n"      184594DD
+  "open mailbox\\n" E4BB66FF
   )
+

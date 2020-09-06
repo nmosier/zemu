@@ -93,7 +93,9 @@ zsave_save.frame:
   ld hl,zframe_begin
   ld bc,ZFRAME_SIZE
   ldir
-  jp file_close
+  call file_to_archive
+  jp nc,file_close
+  ret
   
 
 ;; zsave_save.stack -- save stack
@@ -123,7 +125,9 @@ zsave_save.stack:
   call zstack_begin
   ld bc,(zframe_sp)
   ldir
-  jp file_close
+  call file_to_archive
+  jp nc,file_close
+  ret
 
 
 ;; zsave_save.zmap -- save zmap
@@ -142,7 +146,9 @@ zsave_save.zmap:
   ld iy,zsave_file
   call file_copy
   ld ix,zsave_file
-  jp file_close
+  call nc,file_to_archive
+  jp nc,file_close
+  ret ; error
 
 
 ;; zsave_save.pages -- save pages
@@ -195,10 +201,13 @@ zsave_save.pages.loop:
       call nc,zaddr_pageent
       jr c,zsave_save.pages.err4
       set ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS) ; mark pages as copy
+      LEA_IX_IX(ZMAP_ENT.FILE)
+      call file_to_archive
      pop de
     pop bc
 zsave_save.pages.next:
    pop hl
+   jr c,zsave_save.pages.done
    push de
     ld de,SIZEOF_ZMAP_ENT
     add hl,de

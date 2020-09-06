@@ -75,7 +75,7 @@ function(add_zemu_test NAME)
     # Generate test command
     add_custom_command(OUTPUT ${NAME}.json
       COMMAND ${TESTGEN} -r ${ZT_ROM} -t ${TARGET_NAME} -v ${ZT_VARDIR} -x ${ZT_8XP} -o ${NAME}.json -k $<TARGET_FILE:str2keys> -R $<TARGET_FILE:readlab> ${LOC} ${COMMANDS}
-      DEPENDS ${TESTGEN} str2keys ${ZT_8XP} ${ZT_LAB}
+      DEPENDS ${TESTGEN} str2keys ${ZT_8XP} ${ZT_LAB} ${ZT_VARDIR}
       )
     
     # Generate test target

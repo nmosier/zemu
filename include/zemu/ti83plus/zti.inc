@@ -1,5 +1,5 @@
-#ifndef __ZTI83PLUS_INC
-#define __ZTI83PLUS_INC
+#ifndef TI83PLUS_ZTI_INC
+#define TI83PLUS_ZTI_INC
 
 #include "util.inc"
 

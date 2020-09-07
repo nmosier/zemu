@@ -2,6 +2,7 @@
 #define TI84PCE_ZADDR_INC
 
 #include "zti.inc"
+#include "zhdr.inc"
 
 #define DZA(zaddr) .dl zaddr
 

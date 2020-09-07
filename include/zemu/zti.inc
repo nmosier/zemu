@@ -1,20 +1,16 @@
-#ifndef __ZTI_INC
-#define __ZTI_INC
-
+#ifndef ZTI_INC
+#define ZTI_INC
 
 BYTE_SIZE .equ 1
 WORD_SIZE .equ 2
 
-
 #define DB .db
 #define DW .dw
 
-#ifdef TI84PCE
-#include "ti84pce/zti.inc"
-#endif
-
-#ifdef TI83PLUS
+#if TI83PLUS
 #include "ti83plus/zti.inc"
+#elif TI84PCE
+#include "ti84pce/zti.inc"
 #endif
 
 LONG_BITS .equ LONG_SIZE * 8

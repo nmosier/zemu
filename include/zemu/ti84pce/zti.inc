@@ -1,5 +1,5 @@
-#ifndef __ZTI84PCE_INC
-#define __ZTI84PCE_INC
+#ifndef TI84PCE_ZTI_INC
+#define TI84PCE_ZTI_INC
 
 #undef TI84PCE
 #include "ti84pce/ti84pce.inc"

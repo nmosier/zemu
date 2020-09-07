@@ -1,20 +1,18 @@
 ;; zdisp.inc -- display routines & system entry points
 
-#ifndef __ZDISP_INC
-#define __ZDISP_INC
+#ifndef ZDISP_INC
+#define ZDISP_INC
 
 #include "zti.inc"
 
 ROW_SIZE .equ 1
 #define DROW DB
 
-#if TI84PCE
-#include "ti84pce/zdisp.inc"
-#endif
 #if TI83PLUS
 #include "ti83plus/zdisp.inc"
+#elif TI84PCE
+#include "ti84pce/zdisp.inc"
 #endif
-
 
 ;; struct zrect
 ;; C orgcol

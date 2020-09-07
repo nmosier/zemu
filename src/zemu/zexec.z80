@@ -1,4 +1,8 @@
-#include "zutil.inc"
+#ifndef ZEXEC_Z80
+#define ZEXEC_Z80
+
+#include "util.inc"
+#include "zaddr.inc"
 
 ;; TODO: create table for zexec.* to reduce code size
 
@@ -633,6 +637,7 @@ zexec.dec:
 zexec.print_addr:
    ld a,1
    call zop_readn
+   ret c
    ;; cast op back to unsigned
    LTOWU_HL
    UCAST_HL_TO_BHL_ZA
@@ -1072,3 +1077,12 @@ zexec.input_stream:
 
 zexec.sound_effect:
 
+#include "zop.z80"
+#include "util.z80"
+#include "zobj.z80"
+#include "zaddr.z80"
+#include "zbranch.z80"
+#include "zvar.z80"
+#include "util.z80"
+
+#endif

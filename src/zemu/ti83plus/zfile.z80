@@ -1,6 +1,7 @@
 #ifndef TI83PLUS_ZFILE_Z80
 #define TI83PLUS_ZFILE_Z80
 
+#include "zti.inc"
 
 ;; file_addr -- get address of byte in file
 ;; INPUTS:

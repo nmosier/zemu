@@ -5,6 +5,8 @@
 #define ZMEM_Z80
 
 #include "zfile.inc"
+#include "zaddr.inc"
+#include "zmem.inc"
 
 ZMEM_SIZE .equ $400 ; 1K -- absolute minimum is 1K by Z-machine standard
 

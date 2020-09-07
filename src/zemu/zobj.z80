@@ -1,7 +1,9 @@
+#ifndef ZOBJ_Z80
+#define ZOBJ_Z80
+
 #include "zobj.inc"
 #include "zutil.inc"
-
-
+#include "zaddr.inc"
 
 ;; zobj_tabaddr -- return logical address of object table
 ;; INPUTS: (none)
@@ -610,3 +612,5 @@ zobj_downcast:
 ;; zobj_validate -- validate tree rooted at object
 ;; zobj_validate:
 
+
+#endif

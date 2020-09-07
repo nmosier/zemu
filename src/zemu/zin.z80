@@ -1,6 +1,11 @@
 ;; zin.z80 -- input routines
 
+#ifndef ZIN_Z80
+#define ZIN_Z80
+
 #include "zin.inc"
+#include "zti.inc"
+#include "zaddr.inc"
 
 ;; zin_read -- perform read operation (see online reference)
 ;; INPUTS:
@@ -308,4 +313,4 @@ zin_parse_word.leave:
    pop iy
    ret
 
-
+#endif

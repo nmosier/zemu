@@ -1126,7 +1126,7 @@ zdbg_str: .db "zdbg",0
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; DEPENDENCIES ;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
-#include "zhex.z80"
+#include "ti84pce/zhex.z80"
 
 #endif
 #endif

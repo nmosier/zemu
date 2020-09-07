@@ -1,6 +1,8 @@
 #ifndef TI83PLUS_ZWIN_Z80
 #define TI83PLUS_ZWIN_Z80
 
+#include "zti.inc"
+
 ;; zwin_select -- select window for displaying characters
 ;; INPUTS:
 ;;  ix = pointer to window struct

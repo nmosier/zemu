@@ -4,6 +4,7 @@
 #define ZCALL_Z80
 
 #include "zcall.inc"
+#include "zaddr.inc"
 
 ;; zcall0 -- call Z-routine without setting any arguments or return value
 ;; zcall0_unpacked -- same, but don't unpack address

@@ -59,8 +59,15 @@ assemble_dir() {
             cat $LOG $LOG2
             exit 1
         fi
-        wc -c "$BIN"
+
+        # BEFORE=$(wc -c "$BIN" | awk '{ print $1 }')
+        ZIP="$(dirname "$BIN")/$(basename "$BIN" bin)zip"
+        PCT=$(zip "$ZIP" "$BIN" | grep -E "(deflated|stored)" | awk '/[[:digit:]]%+/ { print $NF }' | grep -Eo "[[:digit:]]+%")
+        # AFTER=$(wc -c "$ZIP" | awk '{ print $1 }')
+
+        echo "$1/$(basename "$BIN")" $PCT
+        
     done
 }
 
-(assemble_dir . && assemble_dir ti83plus) | sort -n -k1
+(assemble_dir . && assemble_dir ti83plus) | sort -rn -k2 | column -t

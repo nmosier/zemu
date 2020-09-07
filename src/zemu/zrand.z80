@@ -1,6 +1,7 @@
 ;; zrand.z80 -- random number generator
 
 #include "zrand.inc"
+#include "zti.inc"
 
 zrand_reg: DRAND(0)
 

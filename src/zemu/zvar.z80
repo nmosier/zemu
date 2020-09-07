@@ -1,6 +1,11 @@
 ;; zvar.z80 -- variable manip routines
 
+#ifndef ZVAR_Z80
+#define ZVAR_Z80
+
 #include "zvar.inc"
+#include "util.inc"
+#include "zaddr.inc"
 
 #if ZDBG
 #include "zdbg.inc"
@@ -259,3 +264,8 @@ zvar_write:
    jp nc,zvar_store
    ret ; C
 
+#include "zmem.z80"
+#include "zaddr.z80"
+#include "zcode.z80"
+
+#endif

@@ -1,4 +1,8 @@
+#ifndef ZHDR_Z80
+#define ZHDR_Z80
+
 #include "zhdr.inc"
+#include "zaddr.inc"
 
 ;; zhdr_defaults -- initialize story file header
 ;; INPUTS: (none)
@@ -85,3 +89,5 @@ zhdr_defaults.actions:
    DL zhdr_defaults.resbit
    DL zhdr_defaults.byte
    DL zhdr_defaults.word
+
+#endif

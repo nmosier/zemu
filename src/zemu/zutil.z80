@@ -7,7 +7,7 @@
 #include "zerr.inc"
 #include "zutil.inc"
 #include "zstr.inc"
-
+#include "zaddr.inc"
 
 ;; pmemcmpz_b -- compare physical buffer with Z-addr buffer
 ;; INPUTS:

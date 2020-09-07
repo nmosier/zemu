@@ -3,6 +3,7 @@
 #define ZDICT_Z80
 
 #include "zdict.inc"
+#include "zaddr.inc"
 
 ;; zdict_addr -- get z-addr of dictionary
 ;; zdict_hdraddr -- get z-addr of dictionary header

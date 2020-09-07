@@ -5,6 +5,7 @@
 #define ZERR_Z80
 
 #include "zerr.inc"
+#include "zti.inc"
 
 #if ZERREXTERN
 zerr_tabfile: D_FILE("ZEMUERR",0)

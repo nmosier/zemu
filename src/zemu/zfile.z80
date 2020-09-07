@@ -3,6 +3,8 @@
 
 #include "zfile.inc"
 #include "zti.inc"
+#include "zerr.inc"
+#include "util.inc"
 
 ; appvar_to_OP1 -- put AppVarObj token followed by varname in OP1
 ; INPUTS:
@@ -386,6 +388,5 @@ file_table: RESB(MAX_FILES * SIZEOF_FILETAB_ENT)
 #elif TI84PCE
 #include "ti84pce/zfile.z80"
 #endif
-
 
 #endif

@@ -1,5 +1,8 @@
 ; zop.z80 -- utilities for reading/writing operands
 
+#ifndef ZOP_Z80
+#define ZOP_Z80
+
 #include "zti.inc"
 #include "util.inc"
 #include "zaddr.inc"
@@ -95,3 +98,7 @@ zop_readn.load:
    ret
 
 zop_readn.data: DL 0,0,0,0
+
+#include "zmem.z80"
+
+#endif

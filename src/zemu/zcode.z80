@@ -37,6 +37,7 @@ zcode_decode.types: .db 0
 ;; decode and execute the instruction. Never called directly.
 ;; Upon entry, a = first byte of opcode.
 zcode_decode_short:
+   LD_BHL_TO_ABS_ZA(zframe_pc)
    ld c,a ; save
 zcode_decode_short.operand:
    ; 4.3.1 opcode type (& count) is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
@@ -45,12 +46,11 @@ zcode_decode_short.operand:
    rlca
    and a,$c0 ; mask of op1 type
    cp a,$c0
-   ld ix,zcode_LUT.1OP
+   ld hl,zcode_LUT.1OP
    jr nz,_
-   ld ix,zcode_LUT.0OP
+   ld hl,zcode_LUT.0OP
 _  or a,$3f ; mask in 3 omitteds
    ld (zcode_decode.types),a
-   LD_BHL_TO_ABS_ZA(zframe_pc)
 zcode_decode_short.opnum:
    ; 4.3.1 opcode number given in bottom 4 bits.
    ld a,c
@@ -87,7 +87,7 @@ zcode_decode_long.store_opinfo
 zcode_decode_long.opnum:
    ld a,c ; restore opcode
    and a,$1f
-   ld ix,zcode_LUT.2OP ; always 2OP
+   ld hl,zcode_LUT.2OP ; always 2OP
    jp zcode_decode.exec
    
 
@@ -105,9 +105,9 @@ zcode_decode_variable:
 zcode_decode_variable.opnum:
    ld a,d
    bit 5,a
-   ld ix,zcode_LUT.VAR
+   ld hl,zcode_LUT.VAR
    jr nz,_
-   ld ix,zcode_LUT.2OP
+   ld hl,zcode_LUT.2OP
 _  and a,$1f
    jp zcode_decode.exec
 
@@ -118,9 +118,16 @@ _  and a,$1f
 ;; OUTPUTS: see zexec.* functions
 zcode_decode.exec:
   MLT_A(LONG_SIZE, R_DE)
-  add ix,de
-  LD_IX_FROM_IX(0)
-  jp (ix)
+  add hl,de
+#if TI83PLUS
+  ld a,(hl)
+  inc hl
+  ld h,(hl)
+  ld l,a
+#elif TI84PCE
+  ld hl,(hl)
+#endif
+  jp (hl)
 
 
 ;;-- NOT SUPPORTED --;;

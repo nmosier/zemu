@@ -28,4 +28,11 @@ _
 #macro WTOLS_HL
 #endmacro
 
+#macro BTOLU
+  ld l,a
+  ld h,0
+#endmacro
+
+#define BTOLU_C BTOLU ; preserves CF
+
 #endif

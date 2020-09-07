@@ -398,24 +398,6 @@ btols.transfer:
 btols.done:
    ret
 
-;; btolu -- byte to long, unsigned
-;; INPUTS:
-;;  a = byte, unsigned
-;; OUTPUTS:
-;;  hl = 24-bit unsigned long from %a
-;; DESTROYS: hl
-;; ERRORS: no.
-;; *** portable ***
-btolu:
-#if TI84PCE
-   ld hl,0
-   ld l,a
-   ret
-#elif TI83PLUS
-   ld h,0
-   ld l,a
-   ret
-#endif
 
 ;; ltobu -- long to byte, unsigned
 ;; INPUTS:

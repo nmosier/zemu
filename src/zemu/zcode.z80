@@ -179,7 +179,7 @@ zcode_fetch_op.small:
    call zaddr_fetch ; [b:hl]++
    ret c
    ex de,hl
-   call btolu ; upcast
+   BTOLU      ; upcast
    ex de,hl
    or a,a
    ret

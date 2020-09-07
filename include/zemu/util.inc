@@ -166,6 +166,13 @@ _
 #endmacro
 
 
+#macro BTOLU
+  or a,a
+  sbc hl,hl
+  ld l,a
+#endmacro
+
+
 #if TI83PLUS
 #include "ti83plus/util.inc"
 #elif TI84PCE

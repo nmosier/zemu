@@ -248,7 +248,7 @@ zstr_A2.tab:
 ;;  ix = window
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; *** portable ***
 zstr_putn:
    ; 0. Enable paging for window.

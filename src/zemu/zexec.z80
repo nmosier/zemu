@@ -365,9 +365,6 @@ zexec.jg:
    ret
 
 zexec.dec_chk:
-   ld a,2
-   call zop_readn
-   ret c
    call zvar_downcast
    ld hl,zexec_unop.dec
    push de
@@ -378,9 +375,6 @@ zexec.dec_chk:
    ret
 
 zexec.inc_chk:
-   ld a,2
-   call zop_readn
-   ret c
    call zvar_downcast
    ld hl,zexec_unop.inc
    push de
@@ -403,17 +397,13 @@ zexec.test:
    ret
 
 zexec.or:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.or
+   call zexec_binop.or
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.and:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.and
+   call zexec_binop.and
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
@@ -425,116 +415,84 @@ zexec.test_attr:
    ret
 
 zexec.set_attr:
-   ld a,2
-   call zop_readn
    ;; TODO -- obj downcast
    ld a,l
    ld c,e
-   jp nc,zobj_attrset
-   ret
+   jp zobj_attrset
 
 zexec.clear_attr:
-   ld a,2
-   call zop_readn
    ;; TODO -- obj downcast
    ld a,l
    ld c,e
-   jp nc,zobj_attrclear
-   ret
+   jp zobj_attrclear
 
 zexec.store:
-   ld a,2
-   call zop_readn
-   ret c
    call zvar_downcast
    ex de,hl
    jp zvar_store
 
 zexec.insert_obj:
-   ld a,2
-   call zop_readn
    ;; TODO -- obj downcast
    ld a,l
    ld c,e
-   jp nc,zobj_insert
-   ret
+   jp zobj_insert
 
 zexec.loadw:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.loadw
+   call zexec_binop.loadw
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.loadb:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.loadb
+   call zexec_binop.loadb
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.get_prop:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.propval
+   call zexec_binop.propval
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.get_prop_addr:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.propaddr
+   call zexec_binop.propaddr
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.get_next_prop:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.nextprop
+   call zexec_binop.nextprop
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.add:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.add
+   call zexec_binop.add
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.sub:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.sub
+   call zexec_binop.sub
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.mul:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.mul
+   call zexec_binop.mul
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.div:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.div
+   call zexec_binop.div
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.mod:
-   ld a,2
-   call zop_readn
-   call nc,zexec_binop.mod
+   call zexec_binop.mod
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
@@ -555,9 +513,6 @@ zexec.jz:
    ret
 
 zexec.get_sibling:
-   ld a,1
-   call zop_readn
-   ret c
    ;; TODO -- obj downcast
    ld a,l
    call zobj_sibling
@@ -571,9 +526,6 @@ zexec.get_sibling:
    ret
 
 zexec.get_child:
-   ld a,1
-   call zop_readn
-   ret c
    ;; TODO -- obj downcast
    ld a,l
    call zobj_child
@@ -587,9 +539,6 @@ zexec.get_child:
    ret
 
 zexec.get_parent:
-   ld a,1
-   call zop_readn
-   ret c
    ;; TODO -- obj downcast
    ld a,l
    call zobj_parent
@@ -600,9 +549,6 @@ zexec.get_parent:
 
 zexec.get_prop_len:
    ;; TODO -- does this handle case when addr = 0? (Should return 0.)
-   ld a,1
-   call zop_readn
-   ret c
    ;; NOTE -- this is an address, not an obj/prop number.
    UCAST_HL_TO_BHL_ZA
    DEC_BHL_ZA
@@ -615,9 +561,6 @@ zexec.get_prop_len:
    ret
 
 zexec.inc:
-   ld a,1
-   call zop_readn
-   ret c
    ;; TODO -- obj downcast
    ld a,l
    ld hl,zexec_unop.inc
@@ -625,9 +568,6 @@ zexec.inc:
    ret
 
 zexec.dec:
-   ld a,1
-   call zop_readn
-   ret c
    ;; TODO -- obj downcast
    ld a,l
    ld hl,zexec_unop.dec
@@ -635,9 +575,6 @@ zexec.dec:
    ret
 
 zexec.print_addr:
-   ld a,1
-   call zop_readn
-   ret c
    ;; cast op back to unsigned
    LTOWU_HL
    UCAST_HL_TO_BHL_ZA
@@ -648,50 +585,39 @@ zexec.print_addr:
 ;; 4 -- zexec.call_1s
 
 zexec.remove_obj:
-   ld a,1
-   call zop_readn
-   ret c
    ;; TODO -- obj downcast
    ld a,l
    jp zobj_remove
    ret
 
 zexec.print_obj:
-   ld a,1
-   call zop_readn
-   ;; TODO -- obj downcast
-   ld a,l
-   push bc
+  ;; TODO -- obj downcast
+  ld a,l
+  push bc
    call zobj_objaddr
    LD_IX_HL
-   pop bc
-   ret c
-   LEA_HL_IX(ZOBJ_O_PROPS)
-   UCAST_HL_TO_BHL_ZA
-   call zaddr_fetchz
-   ex de,hl
+  pop bc
+  ret c
+  LEA_HL_IX(ZOBJ_O_PROPS)
+  UCAST_HL_TO_BHL_ZA
+  call zaddr_fetchz
+  ex de,hl
 #if TI83PLUS
-   ld b,c
+  ld b,c
 #endif
-   INC_BHL_ZA ; skip length byte
-   ld ix,win_main
-   jp zstr_puts
+  INC_BHL_ZA ; skip length byte
+  ld ix,win_main
+  jp zstr_puts
 
 zexec.ret:
-   ld a,1
-   call zop_readn
-   ret c
-   ld a,(zframe_rv)
-   push hl
+  ld a,(zframe_rv)
+  push hl
    call zstack_leave ; %a preserved
-   pop hl
-   ret c
-   jp zvar_store
+  pop hl
+  jp nc,zvar_store
+  ret
 
 zexec.jump:
-   ld a,1
-   call zop_readn
-   ret c
    ;; NOTE -- this is encoded differently from a branch instruction.
    SCAST_HL_TO_BHL_ZA
    LD_CDE_FROM_ABS_ZA(zframe_pc)
@@ -703,29 +629,20 @@ zexec.jump:
    ret
 
 zexec.print_paddr:
-   ld a,1
-   call zop_readn
-   ret c
    LTOWU_HL
    call zaddr_unpack
    ld ix,win_main
    jp zstr_puts
 
 zexec.load:
-   ld a,1
-   call zop_readn
-   ret c
    call zvar_downcast
    call zvar_fetch
-   ret c
-   call zcode_readvarnum
+   call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.not:
-   ld a,1
-   call zop_readn
-   call nc,zexec_unop.not
+   call zexec_unop.not
    call nc,zcode_readvarnum
    jp nc,zvar_store
    ret
@@ -940,9 +857,6 @@ zexec.storew:
    ; hl = array
    ; de = word-index
    ; bc = value
-   ld a,3
-   call zop_readn
-   ret c
    WTOLU_HL
    ex de,hl
    WTOLU_HL
@@ -960,9 +874,6 @@ zexec.storeb:
    ; hl = array
    ; de = byte-index
    ; bc = value
-   ld a,3
-   call zop_readn
-   ret c
    WTOLU_HL
    ex de,hl
    WTOLU_HL
@@ -976,9 +887,6 @@ zexec.put_prop:
    ; hl = object
    ; de = property
    ; bc = value
-   ld a,3
-   call zop_readn
-   ret c
    ld a,l ; object
    ld c,e ; property
    push bc
@@ -1001,36 +909,22 @@ zexec.put_prop.err:
    ret
 
 zexec.read:
-   ld a,2
-   call zop_readn
    UCAST_HL_TO_BHL_ZA
    UCAST_DE_TO_CDE_ZA
-   jp nc,zin_read ; read text into buffer
-   ret
-   ;; TODO ???
+   jp zin_read ; read text into buffer
 
 zexec.print_char:
-   ld a,1
-   call zop_readn
-   call nc,ltobu     ; downcast to byte
+   call ltobu     ; downcast to byte
    ld ix,win_main
    jp nc,zstr_putcode
    ret               ; ERROR
 
 ;; print_num -- print signed number in decimal
 zexec.print_num:
-   ld a,1
-   call zop_readn
-   ret c
    ld ix,win_main
-   call zstr_putn
-   or a,a ; NC
-   ret
+   jp zstr_putn
 
 zexec.random:
-   ld a,1
-   call zop_readn
-   ret c
    call sgnl
    jr c,zexec.random.seed
    call cp_hl_0
@@ -1049,11 +943,8 @@ zexec.random.seed:
    jr zexec.random.store
 
 zexec.push:
-   ld a,1
-   call zop_readn
    ld a,ZVAR_STACK
-   jp nc,zvar_store
-   ret
+   jp zvar_store
 
 zexec.pull:
    ld a,ZVAR_STACK

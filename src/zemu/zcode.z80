@@ -130,8 +130,10 @@ zcode_decode.exec:
   ld hl,(hl)
 #endif
   push hl     ; actually return address
-  ld a,0
-  jp zop_readn
+  call zop_readn
+  ret nc      ; jump to handler on success
+  pop hl      ; discard handler on error
+  ret
 
 
 ;;-- NOT SUPPORTED --;;

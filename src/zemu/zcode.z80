@@ -6,6 +6,7 @@
 
 #include "zaddr.inc"
 #include "zcode.inc"
+#include "util.inc"
 
 ;; zcode_decode -- decode single instruction
 ;; INPUTS:
@@ -54,12 +55,8 @@ zcode_decode_short.opnum:
    ; 4.3.1 opcode number given in bottom 4 bits.
    ld a,c
    and a,$0f ; opcode num
-   MLT_A(LONG_SIZE, R_DE)
-   add ix,de
-zcode_decode_short.exec:
-   LD_IX_FROM_IX(0)
-   jp (ix)
-   
+   jp zcode_decode.exec
+
 
 zcode_decode_long:
    ; 4.3.2 opcode count is always 2OP
@@ -91,12 +88,7 @@ zcode_decode_long.opnum:
    ld a,c ; restore opcode
    and a,$1f
    ld ix,zcode_LUT.2OP ; always 2OP
-   MLT_A(LONG_SIZE, R_DE)
-   add ix,de
-   LD_IX_FROM_IX(0)
-zcode_decode_long.exec:
-   jp (ix)
-   ;; NOTE: only possible operand types are SHORT and VAR.
+   jp zcode_decode.exec
    
 
 zcode_decode_variable:
@@ -117,11 +109,18 @@ zcode_decode_variable.opnum:
    jr nz,_
    ld ix,zcode_LUT.2OP
 _  and a,$1f
-   MLT_A(LONG_SIZE, R_DE)
-   add ix,de
-zcode_decode_variable.exec:
-   LD_IX_FROM_IX(0)
-   jp (ix)
+   jp zcode_decode.exec
+
+
+;; [INTERNAL] zcode_decode.exec -- look up opcode handler and execute
+;; INPUTS:
+;;  ix = pointer to table
+;; OUTPUTS: see zexec.* functions
+zcode_decode.exec:
+  MLT_A(LONG_SIZE, R_DE)
+  add ix,de
+  LD_IX_FROM_IX(0)
+  jp (ix)
 
 
 ;;-- NOT SUPPORTED --;;
@@ -417,5 +416,6 @@ zcode_stepuntil.fn: .dl 0
 
 #endif
 
+#include "zexec.z80"
 
 #endif

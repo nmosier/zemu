@@ -114,20 +114,24 @@ _  and a,$1f
 
 ;; [INTERNAL] zcode_decode.exec -- look up opcode handler and execute
 ;; INPUTS:
-;;  ix = pointer to table
+;;  hl = pointer to table
 ;; OUTPUTS: see zexec.* functions
 zcode_decode.exec:
-  MLT_A(LONG_SIZE, R_DE)
+  MLT_A(SIZEOF_ZCODE_ENT, R_DE)
   add hl,de
-#if TI83PLUS
   ld a,(hl)
   inc hl
+#if TI83PLUS
+  ld b,(hl)
+  inc hl
   ld h,(hl)
-  ld l,a
+  ld l,b
 #elif TI84PCE
   ld hl,(hl)
 #endif
-  jp (hl)
+  push hl     ; actually return address
+  ld a,0
+  jp zop_readn
 
 
 ;;-- NOT SUPPORTED --;;
@@ -275,94 +279,94 @@ zcode_decode_branch.de_signed:
 
 
 zcode_LUT.2OP:
-   DL zcode_err.bad       ; $00
-   DL zexec.je            ; $01
-   DL zexec.jl            ; $02
-   DL zexec.jg            ; $03
-   DL zexec.dec_chk       ; $04
-   DL zexec.inc_chk       ; $05
-   DL zexec.jin           ; $06
-   DL zexec.test          ; $07
-   DL zexec.or            ; $08
-   DL zexec.and           ; $09
-   DL zexec.test_attr     ; $0A
-   DL zexec.set_attr      ; $0B
-   DL zexec.clear_attr    ; $0C
-   DL zexec.store         ; $0D
-   DL zexec.insert_obj    ; $0E
-   DL zexec.loadw         ; $0F
-   DL zexec.loadb         ; $10
-   DL zexec.get_prop      ; $11
-   DL zexec.get_prop_addr ; $12
-   DL zexec.get_next_prop ; $13
-   DL zexec.add           ; $14
-   DL zexec.sub           ; $15
-   DL zexec.mul           ; $16
-   DL zexec.div           ; $17
-   DL zexec.mod           ; $18
-   DL zcode_err.notavail  ; $19
-   DL zcode_err.notavail  ; $1A
-   DL zcode_err.notavail  ; $1B
-   DL zcode_err.notavail  ; $1C
-   DL zcode_err.bad       ; $1D
-   DL zcode_err.bad       ; $1E
-   DL zcode_err.bad       ; $1F
+   D_ZCODE_ENT(0, zcode_err.bad      ) ; $00
+   D_ZCODE_ENT(0, zexec.je           ) ; $01
+   D_ZCODE_ENT(0, zexec.jl           ) ; $02
+   D_ZCODE_ENT(0, zexec.jg           ) ; $03
+   D_ZCODE_ENT(2, zexec.dec_chk      ) ; $04
+   D_ZCODE_ENT(2, zexec.inc_chk      ) ; $05
+   D_ZCODE_ENT(0, zexec.jin          ) ; $06
+   D_ZCODE_ENT(0, zexec.test         ) ; $07
+   D_ZCODE_ENT(2, zexec.or           ) ; $08
+   D_ZCODE_ENT(2, zexec.and          ) ; $09
+   D_ZCODE_ENT(0, zexec.test_attr    ) ; $0A
+   D_ZCODE_ENT(2, zexec.set_attr     ) ; $0B
+   D_ZCODE_ENT(2, zexec.clear_attr   ) ; $0C
+   D_ZCODE_ENT(2, zexec.store        ) ; $0D
+   D_ZCODE_ENT(2, zexec.insert_obj   ) ; $0E
+   D_ZCODE_ENT(2, zexec.loadw        ) ; $0F
+   D_ZCODE_ENT(2, zexec.loadb        ) ; $10
+   D_ZCODE_ENT(2, zexec.get_prop     ) ; $11
+   D_ZCODE_ENT(2, zexec.get_prop_addr) ; $12
+   D_ZCODE_ENT(2, zexec.get_next_prop) ; $13
+   D_ZCODE_ENT(2, zexec.add          ) ; $14
+   D_ZCODE_ENT(2, zexec.sub          ) ; $15
+   D_ZCODE_ENT(2, zexec.mul          ) ; $16
+   D_ZCODE_ENT(2, zexec.div          ) ; $17
+   D_ZCODE_ENT(2, zexec.mod          ) ; $18
+   D_ZCODE_ENT(0, zcode_err.notavail ) ; $19
+   D_ZCODE_ENT(0, zcode_err.notavail ) ; $1A
+   D_ZCODE_ENT(0, zcode_err.notavail ) ; $1B
+   D_ZCODE_ENT(0, zcode_err.notavail ) ; $1C
+   D_ZCODE_ENT(0, zcode_err.bad      ) ; $1D
+   D_ZCODE_ENT(0, zcode_err.bad      ) ; $1E
+   D_ZCODE_ENT(0, zcode_err.bad      ) ; $1F
 
 zcode_LUT.1OP:
-   DL zexec.jz            ; $0
-   DL zexec.get_sibling   ; $1
-   DL zexec.get_child     ; $2
-   DL zexec.get_parent    ; $3
-   DL zexec.get_prop_len  ; $4
-   DL zexec.inc           ; $5
-   DL zexec.dec           ; $6
-   DL zexec.print_addr    ; $7
-   DL zcode_err.notavail  ; $8
-   DL zexec.remove_obj    ; $9
-   DL zexec.print_obj     ; $A
-   DL zexec.ret           ; $B
-   DL zexec.jump          ; $C
-   DL zexec.print_paddr   ; $D
-   DL zexec.load          ; $E
-   DL zexec.not           ; $F
+   D_ZCODE_ENT(0, zexec.jz          )  ; $0
+   D_ZCODE_ENT(1, zexec.get_sibling )  ; $1
+   D_ZCODE_ENT(1, zexec.get_child   )  ; $2
+   D_ZCODE_ENT(1, zexec.get_parent  )  ; $3
+   D_ZCODE_ENT(1, zexec.get_prop_len)  ; $4
+   D_ZCODE_ENT(1, zexec.inc         )  ; $5
+   D_ZCODE_ENT(1, zexec.dec         )  ; $6
+   D_ZCODE_ENT(1, zexec.print_addr  )  ; $7
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $8
+   D_ZCODE_ENT(1, zexec.remove_obj  )  ; $9
+   D_ZCODE_ENT(1, zexec.print_obj   )  ; $A
+   D_ZCODE_ENT(1, zexec.ret         )  ; $B
+   D_ZCODE_ENT(1, zexec.jump        )  ; $C
+   D_ZCODE_ENT(1, zexec.print_paddr )  ; $D
+   D_ZCODE_ENT(1, zexec.load        )  ; $E
+   D_ZCODE_ENT(1, zexec.not         )  ; $F
 
 zcode_LUT.0OP:
-   DL zexec.rtrue         ; $0
-   DL zexec.rfalse        ; $1
-   DL zexec.print         ; $2
-   DL zexec.print_ret     ; $3
-   DL zexec.nop           ; $4
-   DL zexec.save          ; $5
-   DL zexec.restore       ; $6
-   DL zexec.restart       ; $7
-   DL zexec.ret_popped    ; $8
-   DL zexec.pop           ; $9
-   DL zexec.quit          ; $A
-   DL zexec.new_line      ; $B
-   DL zcode_err.notavail  ; $C
-   DL zexec.verify        ; $D
+   D_ZCODE_ENT(0, zexec.rtrue       )  ; $0
+   D_ZCODE_ENT(0, zexec.rfalse      )  ; $1
+   D_ZCODE_ENT(0, zexec.print       )  ; $2
+   D_ZCODE_ENT(0, zexec.print_ret   )  ; $3
+   D_ZCODE_ENT(0, zexec.nop         )  ; $4
+   D_ZCODE_ENT(0, zexec.save        )  ; $5
+   D_ZCODE_ENT(0, zexec.restore     )  ; $6
+   D_ZCODE_ENT(0, zexec.restart     )  ; $7
+   D_ZCODE_ENT(0, zexec.ret_popped  )  ; $8
+   D_ZCODE_ENT(0, zexec.pop         )  ; $9
+   D_ZCODE_ENT(0, zexec.quit        )  ; $A
+   D_ZCODE_ENT(0, zexec.new_line    )  ; $B
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $C
+   D_ZCODE_ENT(0, zexec.verify      )  ; $D
 
 zcode_LUT.VAR:
-   DL zexec.call          ; $00
-   DL zexec.storew        ; $01
-   DL zexec.storeb        ; $02
-   DL zexec.put_prop      ; $03
-   DL zexec.read          ; $04
-   DL zexec.print_char    ; $05
-   DL zexec.print_num     ; $06
-   DL zexec.random        ; $07
-   DL zexec.push          ; $08
-   DL zexec.pull          ; $09
-   DL zcode_err.notavail  ; $0A
-   DL zcode_err.notavail  ; $0B
-   DL zcode_err.notavail  ; $0C
-   DL zcode_err.notavail  ; $0D
-   DL zcode_err.notavail  ; $0E
-   DL zcode_err.notavail  ; $0F
-   DL zcode_err.notavail  ; $10
-   DL zcode_err.notavail  ; $11
-   DL zcode_err.notavail  ; $12
-   DL zcode_err.notavail  ; $13
+   D_ZCODE_ENT(0, zexec.call        )  ; $00
+   D_ZCODE_ENT(3, zexec.storew      )  ; $01
+   D_ZCODE_ENT(3, zexec.storeb      )  ; $02
+   D_ZCODE_ENT(3, zexec.put_prop    )  ; $03
+   D_ZCODE_ENT(2, zexec.read        )  ; $04
+   D_ZCODE_ENT(1, zexec.print_char  )  ; $05
+   D_ZCODE_ENT(1, zexec.print_num   )  ; $06
+   D_ZCODE_ENT(1, zexec.random      )  ; $07
+   D_ZCODE_ENT(1, zexec.push        )  ; $08
+   D_ZCODE_ENT(0, zexec.pull        )  ; $09
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $0A
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $0B
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $0C
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $0D
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $0E
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $0F
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $10
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $11
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $12
+   D_ZCODE_ENT(0, zcode_err.notavail)  ; $13
 
 #if 0
 ;; zcode_decoden -- decode and execute a given number of instructions

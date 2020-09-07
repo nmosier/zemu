@@ -24,4 +24,15 @@ ZOP_LARGE .equ $00
 ; ZCODE_0OP_TABSIZE .equ (zcode.0OP_end - zcode.0OP) / LONG_SIZE
 ; ZCODE_VAR_TABSIZE .equ (zcode.VAR_end - zcode.VAR) / LONG_SIZE
 
+ZCODE_ENT.NPARAMS .equ 0
+ZCODE_ENT.HANDLER .equ ZCODE_ENT.NPARAMS + BYTE_SIZE
+SIZEOF_ZCODE_ENT .equ ZCODE_ENT.HANDLER + LONG_SIZE
+
+#macro D_ZCODE_ENT(nparams, handler)
+  .db nparams
+  DL handler
+#endmacro
+
+
+
 #endif

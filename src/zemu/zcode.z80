@@ -370,64 +370,6 @@ zcode_LUT.VAR:
    D_ZCODE_ENT(0, zcode_err.notavail)  ; $12
    D_ZCODE_ENT(0, zcode_err.notavail)  ; $13
 
-#if 0
-;; zcode_decoden -- decode and execute a given number of instructions
-;; INPUTS:
-;;  [b:hl] = address of 1st instruction
-;;  b = number of instructions
-;; OUTPUTS:
-;;  zframe_pc modified
-;; DESTROYS: (all)
-;; ERRORS: yes.
-zcode_decoden:
-   ld (zframe_pc),hl
-zcode_decoden.loop:
-   push bc
-   call zcode_decode
-   pop bc
-   ret c
-   djnz zcode_decoden.loop
-   ret
-
-;; zcode_rununtil -- execute CPU until given address
-;; INPUTS:
-;;  hl = (unpacked) address of instruction to break at
-;; OUTPUTS: (none)
-;; DESTROYS: (all)
-;; ERRORS: yes.
-zcode_rununtil:
-   ld de,zcode_rununtil.nop
-   ld (zcode_stepuntil.fn),de
-   jp zcode_stepuntil
-zcode_rununtil.nop:
-   or a,a
-   ret
-
-;; zcode_stepuntil -- step thru instructions until reach given address
-;; INPUTS:
-;;  hl = (unpacked) address to break at
-;;  (zcode_stepuntil.fn) = function to call at each step
-;; OUTPUTS: (none)
-;; DESTROYS: (all)
-;; ERRORS: yes.
-zcode_stepuntil:
-   push hl
-   call zcode_stepuntil.call   
-   call nc,zcode_decode
-   pop hl
-   ret c
-   ld de,(zframe_pc)
-   call cp_hl_de
-   jr nz,zcode_stepuntil
-   ret
-
-zcode_stepuntil.call:
-   ld hl,(zcode_stepuntil.fn)
-   jp (hl)
-
-zcode_stepuntil.fn: .dl 0
-
-#endif
 
 #include "zexec.z80"
 

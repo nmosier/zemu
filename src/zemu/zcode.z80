@@ -383,7 +383,7 @@ zcode_LUT.0OP:
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $D
                     
 zcode_LUT.VAR:      
-   D_ZCODE_ENT(0, 0, 0, 0, zexec.call        )  ; $00
+   D_ZCODE_ENT(1, 0, 0, 0, zexec.call        )  ; $00
    D_ZCODE_ENT(3, 0, 0, 0, zexec.storew      )  ; $01
    D_ZCODE_ENT(3, 0, 0, 0, zexec.storeb      )  ; $02
    D_ZCODE_ENT(3, 0, 0, 0, zexec.put_prop    )  ; $03
@@ -392,7 +392,7 @@ zcode_LUT.VAR:
    D_ZCODE_ENT(1, 0, 0, 0, zexec.print_num   )  ; $06
    D_ZCODE_ENT(1, 1, 0, 0, zexec.random      )  ; $07
    D_ZCODE_ENT(1, 0, 0, 0, zexec.push        )  ; $08
-   D_ZCODE_ENT(0, 0, 0, 0, zexec.pull        )  ; $09
+   D_ZCODE_ENT(1, 0, 0, 0, zexec.pull        )  ; $09
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $0A
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $0B
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $0C

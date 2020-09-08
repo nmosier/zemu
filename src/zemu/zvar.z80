@@ -237,20 +237,22 @@ zvar_downcast:
 ;; DESTROYS: (all), ix
 ;; *** portable ***
 zvar_modify:
+  push de
    push af
-   push hl
-   call zvar_fetch
-   pop ix
-   call nc,zvar_modify.jump
+    push hl
+     call zvar_fetch
+    pop ix
+    call nc,zvar_modify.jump
    pop bc
    ld a,b
    push hl
-   call nc,zvar_store
+    call nc,zvar_store
    pop hl
-   ret
+  pop de
+  ret
 
 zvar_modify.jump:
-   jp (ix)
+  jp (ix)
 
 
 ;; zvar_write -- read variable number from memory and then store value to that variable

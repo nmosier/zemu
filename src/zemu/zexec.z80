@@ -347,18 +347,14 @@ zexec.jg:
 zexec.dec_chk:
   call zvar_downcast
   ld hl,zexec_unop.dec
-  push de
-   call zvar_modify
-  pop de
+  call zvar_modify
   jp nc,zexec_cmp.lt
   ret
 
 zexec.inc_chk:
   call zvar_downcast
   ld hl,zexec_unop.inc
-  push de
-   call zvar_modify
-  pop de
+  call zvar_modify
   jp nc,zexec_cmp.gt
   ret
 
@@ -532,6 +528,8 @@ zexec.load:
 ;------------------------------------;
 ;             0OP opcodes            ;
 ;------------------------------------;
+
+
 zexec.rtrue:
    ld a,(zframe_rv)
    call zstack_leave ; %a preserved
@@ -589,15 +587,14 @@ zexec.restart:
    jp zsave_restart
 
 zexec.ret_popped:
-   ld a,ZVAR_STACK
-   call zvar_fetch
-   ret c
-   ld a,(zframe_rv)
-   push hl
-   call zstack_leave ; %a preserved
-   pop hl
-   jp nc,zvar_store
-   ret
+  ld a,ZVAR_STACK
+  call zvar_fetch
+  ld a,(zframe_rv)
+  push hl
+   call nc,zstack_leave ; %a preserved
+  pop hl
+  jp nc,zvar_store
+  ret
 
 zexec.pop:
    ld a,ZVAR_STACK
@@ -635,8 +632,6 @@ zexec.verify:
 zexec.call:
   ;; NOTE: 6.4.4 Arguments are written onto local variables.
   ;; read packed address of routine
-  call zcode_readop_force
-  ret c
   WTOLU_HL
   ;; read parameters into locals
   push hl ; save packed address for after we've read in the params
@@ -766,41 +761,41 @@ zexec.storeb:
    jp zaddr_store
    
 zexec.put_prop:
-   ;; put_prop object property value
-   ; hl = object
-   ; de = property
-   ; bc = value
-   ld a,l ; object
-   ld c,e ; property
-   push bc
+  ;; put_prop object property value
+  ; hl = object
+  ; de = property
+  ; bc = value
+  ld a,l ; object
+  ld c,e ; property
+  push bc
    call zobj_propaddr
-   pop de
-   ret c
-   cp a,3
-   jr nc,zexec.put_prop.err
-   cp a,1
-   ; 1 byte?
-   ld a,e
-   jp z,zaddr_store
-   ; 2 bytes?
-   jp nc,zaddr_storew
-   ; 0 bytes?
-   ret
+  pop de
+  ret c
+  cp a,3
+  jr nc,zexec.put_prop.err
+  cp a,1
+  ; 1 byte?
+  ld a,e
+  jp z,zaddr_store
+  ; 2 bytes?
+  jp nc,zaddr_storew
+  ; 0 bytes?
+  ret
 zexec.put_prop.err:
-   ld a,ZERR_BADPROP
-   scf
-   ret
+  ld a,ZERR_BADPROP
+  scf
+  ret
 
 zexec.read:
-   UCAST_HL_TO_BHL_ZA
-   UCAST_DE_TO_CDE_ZA
-   jp zin_read ; read text into buffer
+  UCAST_HL_TO_BHL_ZA
+  UCAST_DE_TO_CDE_ZA
+  jp zin_read ; read text into buffer
 
 zexec.print_char:
-   call ltobu     ; downcast to byte
-   ld ix,win_main
-   jp nc,zstr_putcode
-   ret               ; ERROR
+  call ltobu     ; downcast to byte
+  ld ix,win_main
+  jp nc,zstr_putcode
+  ret               ; ERROR
 
 ;; print_num -- print signed number in decimal
 zexec.print_num:
@@ -825,17 +820,13 @@ zexec.push:
    jp zvar_store
 
 zexec.pull:
-  ld a,ZVAR_STACK
-  call zvar_fetch ; pop val off stack
-  push hl
-   ; get variable number destination
-   ld a,1
-   call nc,zop_readn
-   ld a,l ; variable number
-  pop hl
+  push hl   ; save variable number
+   call nc,zvar_fetch.stack
+  pop de
+  ld a,e
   jp nc,zvar_store
   ret
-   
+
 zexec.split_window:
 
 zexec.set_window:

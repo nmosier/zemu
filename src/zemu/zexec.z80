@@ -563,14 +563,12 @@ zexec.inc:
    ld a,l
    ld hl,zexec_unop.inc
    jp zvar_modify
-   ret
 
 zexec.dec:
    ;; TODO -- obj downcast
    ld a,l
    ld hl,zexec_unop.dec
    jp zvar_modify
-   ret
 
 zexec.print_addr:
    ;; cast op back to unsigned
@@ -586,7 +584,6 @@ zexec.remove_obj:
    ;; TODO -- obj downcast
    ld a,l
    jp zobj_remove
-   ret
 
 zexec.print_obj:
   ;; TODO -- obj downcast

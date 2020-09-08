@@ -126,22 +126,19 @@ zstack_enter.done:
 ;; zstack_leave -- leave current stack frame
 ;; INPUTS: (none)
 ;; OUTPUTS: (none)
-;; DESTROYS: (all),ix
+;; DESTROYS: bc, de
 ;; ERRORS: yes.
 ;; *** portable ***
 zstack_leave:
-  ; restore stack frame
-  ld ix,(zframe_fp)
-  ex de,hl
-  call zstack_begin
-  ret c
-  ex de,hl
-  add ix,de
-  LEA_HL_IX(-ZFRAME_SIZE)
-  ld de,zframe_begin
-  ld bc,ZFRAME_SIZE
-  ldir
-  or a,a
+  push hl
+   call zstack_begin
+   ld de,(zframe_fp)
+   add hl,de
+   dec hl ; for lddr
+   ld de,zframe_begin + ZFRAME_SIZE - 1
+   ld bc,ZFRAME_SIZE
+   lddr
+  pop hl
   ret
 
 

@@ -497,9 +497,7 @@ zexec.print_obj:
 
 zexec.ret:
   ld a,(zframe_rv)
-  push hl
-   call zstack_leave ; %a preserved
-  pop hl
+  call zstack_leave ; %a preserved
   jp nc,zvar_store
   ret
 
@@ -590,9 +588,7 @@ zexec.ret_popped:
   ld a,ZVAR_STACK
   call zvar_fetch
   ld a,(zframe_rv)
-  push hl
-   call nc,zstack_leave ; %a preserved
-  pop hl
+  call nc,zstack_leave ; %a preserved
   jp nc,zvar_store
   ret
 

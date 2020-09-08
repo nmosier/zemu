@@ -942,16 +942,16 @@ zexec.push:
    jp zvar_store
 
 zexec.pull:
-   ld a,ZVAR_STACK
-   call zvar_fetch ; pop val off stack
-   push hl
+  ld a,ZVAR_STACK
+  call zvar_fetch ; pop val off stack
+  push hl
    ; get variable number destination
    ld a,1
    call nc,zop_readn
    ld a,l ; variable number
-   pop hl
-   jp nc,zvar_store
-   ret
+  pop hl
+  jp nc,zvar_store
+  ret
    
 zexec.split_window:
 

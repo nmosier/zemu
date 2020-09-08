@@ -91,27 +91,31 @@ mul_hl_de.done:
 ;;  a = 8-bit operand
 ;; OUTPUTS:
 ;;  hl <- hl * a
-;; DESTROYS: a
+;; DESTROYS: (none)
 ;; ERRORS: no.
 ;; *** portable ***
 mul_hl_a:
+  push af
    push de
-   ld de,0
-   jr mul_hl_a.entry
+    ld de,0
+    jr mul_hl_a.entry
 mul_hl_a.loop:
-   srl a
-   jr nc,mul_hl_a.adjust
-   ex de,hl
-   add hl,de
-   ex de,hl
+    srl a
+    jr nc,mul_hl_a.adjust
+    ex de,hl
+    add hl,de
+    ex de,hl
 mul_hl_a.adjust:
-   add hl,hl
+    add hl,hl
 mul_hl_a.entry:
-   or a,a
-   jr nz,mul_hl_a.loop
-   ex de,hl
+    or a,a
+    jr nz,mul_hl_a.loop
+    ex de,hl
    pop de
-   ret
+  pop af
+  ret
+
+
 
 #if 0
 ;; memcpl_short -- complement up to 256 bytes of memory

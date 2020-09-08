@@ -160,25 +160,17 @@ LONG_SIZE .equ WORD_SIZE
 
 #macro MLT_A(off, reg16) 
 #if reg16 == R_HL        
-   ld hl,off             
-   push af               
-   call mul_hl_a         
-   pop af                
-#elif reg16 == R_DE      
-   ex de,hl              
-   ld hl,off             
-   push af               
-   call mul_hl_a         
-   pop af                
-   ex de,hl              
+  ld hl,off             
+  call mul_hl_a         
+#elif reg16 == R_DE
+  ld de,off
+  call mul_de_a
 #elif reg16 == R_BC      
-   push hl               
+  push hl               
    ld hl,off             
-   push af               
    call mul_hl_a         
-   pop af                
    LD_BC_HL              
-   pop hl                
+  pop hl                
 #endif
 #endmacro
 

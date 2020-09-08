@@ -29,6 +29,17 @@ div_up_a_8:
   and a,%00011111
   ret
 
-
+;; mul_de_a -- multiply de by a
+;; INPUTS:
+;;  a, de
+;; OUTPUTS:
+;;  de <- de * a
+;; DESTROYS: (none)
+;; ERRORS: no.
+mul_de_a:
+  ex de,hl
+  call mul_hl_a
+  ex de,hl
+  ret
 
 #endif

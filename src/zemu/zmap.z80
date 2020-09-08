@@ -94,35 +94,20 @@ zemu_pagepfx: .db "ZEMUP",0
 ;; DESTROYS: a, bc, de
 ;; ERRORS: no.
 ;; *** portable ***
+;; NOTE: Assumes prefix <= 6 chars.
 zmap_namepage:
-   push de     ; buffer
+  push de     ; buffer
    push af     ; ID
-   ld bc,VARNAMELEN-2
-   call strncpy
+    ld bc,VARNAMELEN
+    call strncpy
    pop af      ; ID
-   ex de,hl
-   ld b,a
-   and a,$f0
-   rrca
-   rrca
-   rrca
-   rrca
-   call xtoc
-   ld (hl),a
-   inc hl
-   ld a,b
-   and a,$0f
-   call xtoc
-   ld (hl),a
-   inc hl
-   ex de,hl
-   ld hl,0
-   call cp_hl_bc
-   ex de,hl
-   jr z,_
-   ld (hl),0
-_  pop hl
-   ret
+   ld hl,xtos.buf
+   call xtos
+   dec hl
+   dec hl
+   call strncpy
+  pop hl
+  ret
 
 ;; zmap_load -- load saved zmap into working zmap
 ;; INPUTS:

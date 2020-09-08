@@ -968,23 +968,25 @@ xtoc.digit:
 ;;  writes hex representation of %a to (hl),(hl+1)
 ;;  hl <- hl + 2
 ;; ERRORS: no.
-;; DESTROYS:
+;; DESTROYS: a
 xtos:
   push af
-  rrca
-  rrca
-  rrca
-  rrca
-  and a,$0f
-  call xtoc
-  ld (hl),a
-  inc hl
+   rrca
+   rrca
+   rrca
+   rrca
+   and a,$0f
+   call xtoc
+   ld (hl),a
+   inc hl
   pop af
   and a,$0f
   call xtoc
   ld (hl),a
   inc hl
   ret
+
+xtos.buf: RESB(2)
 
 ;; cp_hl_0 -- compare hl to 0
 ;; INPUTS:

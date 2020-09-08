@@ -13,17 +13,16 @@
 ;; DESTROYS: (none)
 zobj_tabaddr:
   push de ; save de
-  ld d,a ; save %a
-  push de
-  LD_BHL_IMM(ZHDR_OBJTAB)
-  call zaddr_fetchwu
-  ex de,hl
+   push af
+    LD_BHL_IMM(ZHDR_OBJTAB)
+    call zaddr_fetchwu
+    ex de,hl
 #if TI83PLUS
-  ld b,0
+    ld b,0
 #endif
 zobj_tabaddr.done:
-  pop de
-  ld a,d ; restore %a
+   pop de
+   ld a,d ; restore %a
   pop de ; restore de
   ret
 
@@ -125,16 +124,16 @@ zobj_attrtest:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zobj_attrclear:
-   call zobj_attr
-   ret c
-   cpl
-   push af
+  call zobj_attr
+  ret c
+  cpl
+  push af
    call zaddr_fetch
-   pop de
-   ret c
-   and a,d
-   DEC_BHL_ZA
-   jp zaddr_store
+  pop de
+  ret c
+  and a,d
+  DEC_BHL_ZA
+  jp zaddr_store
 
 ;; zobj_attrset -- set attribute of object
 ;; INPUTS:
@@ -145,15 +144,15 @@ zobj_attrclear:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zobj_attrset:
-   call zobj_attr
-   ret c
-   push af
+  call zobj_attr
+  ret c
+  push af
    call zaddr_fetch
-   pop de
-   ret c
-   or a,d
-   DEC_BHL_ZA
-   jp zaddr_store
+  pop de
+  ret c
+  or a,d
+  DEC_BHL_ZA
+  jp zaddr_store
 
 
 ;; zobj_insert -- transfer childhood of object to another parent

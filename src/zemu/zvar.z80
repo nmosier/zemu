@@ -150,7 +150,8 @@ zvar_fetch.global:
 ;; INPUTS:
 ;;  a = variable number
 ;;  hl = value to store
-;; OUTPUTS: (none)
+;; OUTPUTS:
+;;  de = value stored
 ;; ERRORS: yes.
 ;; DESTROYS: (all)
 zvar_store:
@@ -205,11 +206,11 @@ zvar_store.local:
   ret ; NC
 
 zvar_store.global:
-   push de
+  push de
    call zvar_globaladdr
-   pop de
-   jp nc,zaddr_storew
-   ret ; C
+  pop de
+  jp nc,zaddr_storew
+  ret ; C
 
 
 ;; zvar_downcast -- cast unsigned value to 24 bits to 8 bits
@@ -245,9 +246,8 @@ zvar_modify:
     call nc,zvar_modify.jump
    pop bc
    ld a,b
-   push hl
-    call nc,zvar_store
-   pop hl
+   call nc,zvar_store
+   ex de,hl
   pop de
   ret
 

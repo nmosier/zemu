@@ -18,51 +18,6 @@
 
 
 
-;; zsave_save -- save game
-;; INPUTS:
-;;  ix = save file pointer
-;; OUTPUTS: (none)
-;; ERRORS: yes.
-;; DESTROYS: (all)
-;; *** portable ***
-;; TODO: check length of save name string.
-zsave_save:
-  ;; set name prefix
-  ld ix,zsave_file
-  ld de,zsave_file + FILE.NAME
-  ld bc,VARNAMELEN
-  push hl
-   call strncpy
-  pop hl
-  ;; save pages
-  push de
-   push bc 
-    call zsave_save.pages
-   pop bc
-  pop de
-  ;; save frame
-  push de
-   push bc
-    call nc,zsave_save.frame
-   pop bc
-  pop de
-  ;; save stack
-  push de
-   push bc
-    call nc,zsave_save.stack
-   pop bc
-  pop de
-  ;; save zmap
-  push de
-   push bc
-    call nc,zsave_save.zmap
-   pop bc
-  pop de
-  ret
-
-
-
-
 ;; zsave_save.frame -- save frame
 ;; INPUTS:
 ;;  ix = zsave_file, with savename prefix set in FILE.NAME field
@@ -96,6 +51,79 @@ zsave_save.frame:
   call file_to_archive
   jp nc,file_close
   ret
+
+
+;; zsave_save -- save game
+;; INPUTS:
+;;  ix = save file pointer
+;; OUTPUTS: (none)
+;; ERRORS: yes.
+;; DESTROYS: (all)
+;; *** portable ***
+;; TODO: check length of save name string.
+#if 1
+zsave_save:
+  ;; set name prefix
+  call zsave_get_file ; ld ix,zsave_get_file
+  ld de,zsave_file + FILE.NAME
+  ld bc,VARNAMELEN
+  call strncpy
+  ;; save pages
+  push de
+   push bc 
+    call zsave_save.pages
+   pop bc
+  pop de
+  ;; save frame
+  push de
+   push bc
+    call nc,zsave_save.frame
+   pop bc
+  pop de
+  ;; save stack
+  push de
+   push bc
+    call nc,zsave_save.stack
+   pop bc
+  pop de
+  ;; save zmap
+  push de
+   push bc
+    call nc,zsave_save.zmap
+   pop bc
+  pop de
+  ret
+#else
+zsave_save:
+  ;; set name prefix
+  ld ix,zsave_file
+  ld de,zsave_file + FILE.NAME
+  ld bc,VARNAMELEN
+  call strncpy
+  ld hl,zsave_save.tab
+zsave_save.loop:
+  push hl
+   push de
+    push bc
+     call nc,jp_hl
+    pop bc
+   pop de
+  pop hl
+  inc hl
+  inc hl
+  jr zsave_save.loop  
+
+zsave_save.tab:
+  jr zsave_save.pages
+  jr zsave_save.frame
+  jr zsave_save.stack
+  jr zsave_save.zmap
+  jp pop4
+  
+
+jp_hl:
+  jp (hl)
+#endif
   
 
 ;; zsave_save.stack -- save stack
@@ -120,9 +148,9 @@ zsave_save.stack:
   call file_create
   ;; copy stack into file
   call nc,file_baseaddr
-  ret c
   ex de,hl
-  call zstack_begin
+  call nc,zstack_begin
+  ret c
   ld bc,(zframe_sp)
   ldir
   call file_to_archive
@@ -153,14 +181,15 @@ zsave_save.zmap:
 
 ;; zsave_save.pages -- save pages
 ;; INPUTS:
-;;  hl = name prefix
+;;  ix = zsave_file, with savename prefix set in FILE.NAME field
 ;; OUTPUTS: (none)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 ;; OPTIM: Stack usage.
 zsave_save.pages:
+  LEA_HL_IX(FILE.NAME)
   push ix
-   ld ix,zmap_working_file
+   call zmap_get_working_file
    push hl
     ld hl,ZMAP_HDR_NPAGES
     call file_addr
@@ -182,7 +211,7 @@ zsave_save.pages.loop:
    push hl
     push bc
      push de
-      ld ix,zmap_working_file
+      call zmap_get_working_file
       call file_addr
       jp c,err4
       LD_IX_HL
@@ -227,7 +256,7 @@ zsave_save.pages.done:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zsave_restore:
-  ld ix,zsave_file
+  call zsave_get_file
   ld de,zsave_file + FILE.NAME
   ld bc,VARNAMELEN
   call strncpy
@@ -264,7 +293,7 @@ zsave_restore.frame:
   ld hl,zsave_suffix.frame
   call strncpy
   call file_open
-  call file_baseaddr
+  call nc,file_baseaddr
   ret c
   ld bc,ZFRAME_SIZE
   ld de,zframe_begin

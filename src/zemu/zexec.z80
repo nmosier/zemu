@@ -204,12 +204,10 @@ zexec_binop.propval:
    ;; de = property number
    ex de,hl
    call zobj_downcast
-   ret c
    ld c,a
    ex de,hl
-   call zobj_downcast
-   ret c
-   call zobj_propval
+   call nc,zobj_downcast
+   call nc,zobj_propval
    ex de,hl
    ret
 
@@ -221,7 +219,7 @@ zexec_binop.propaddr:
    ld c,a
    ex de,hl
    call nc,zobj_downcast
-   jp nc, zobj_propaddr
+   jp nc,zobj_propaddr
    ret
    
 zexec_binop.propsize:
@@ -230,7 +228,6 @@ zexec_binop.propsize:
    ld a,l
    ld c,e
    call zobj_propaddr
-   ret c
    UCAST_A_TO_HL
    ret
 
@@ -241,9 +238,7 @@ zexec_binop.nextprop:
    ld c,e
    ld a,l
    call zobj_nextprop
-   ret c
-   call btols
-   or a,a
+   jp nc,btols
    ret
 
 ;----------------------------------;
@@ -260,8 +255,7 @@ zexec_binop.nextprop:
 ;; TODO: Use stack, not global mem.
 zexec_repbcmp:
    ld (zexec_repcmp.cmp),hl ; save comparison function
-   ld a,1
-   call zop_readn
+   call zcode_readop_force
    ret c ; require at least one argument
    ld (zexec_repbcmp.lhs),hl
    xor a,a
@@ -413,9 +407,8 @@ zexec.get_sibling:
   call zobj_sibling
   BTOLU_C       ; upcast obj val
   call nc,zcode_readvarnum
-  push hl
-   call nc,zvar_store
-  pop hl
+  call nc,zvar_store
+  ex de,hl
   jp nc,zexec_cmp.nonzero
   ret
 
@@ -425,9 +418,8 @@ zexec.get_child:
    call zobj_child
    BTOLU_C       ; upcast obj val
    call nc,zcode_readvarnum
-   push hl
    call nc,zvar_store
-   pop hl
+   ex de,hl
    jp nc,zexec_cmp.nonzero
    ret
 

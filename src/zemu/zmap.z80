@@ -122,21 +122,17 @@ zmap_load:
   ld bc,VARNAMELEN
   call strncpy
   push ix
-   ld ix,zmap_canonical_file
+   call zmap_get_canonical_file
    push iy
     ld iy,zmap_working_file
     call file_open
-    ld hl,zmap_load.getfile
+    ld hl,zmap_get_canonical_file
     call nc,file_copy
    pop iy
   pop ix
   jp nc,zmap_open
   ret
 
-zmap_load.getfile:
-  ld ix,zmap_canonical_file
-  or a,a
-  ret
 
 
 ;; zmap_open -- open zmap
@@ -203,7 +199,7 @@ zmap_header:
    push de
     push bc
      push af
-      ld ix,zmap_working_file
+      call zmap_get_working_file
       call file_baseaddr
       LD_IX_HL
       call pop_all
@@ -222,7 +218,7 @@ zmap_table:
    push de
     push bc
      push af
-      ld ix,zmap_working_file
+      call zmap_get_working_file
       ld hl,ZMAP_HDRSIZE
       call file_addr
       LD_IX_HL
@@ -230,7 +226,7 @@ zmap_table:
   ret
 
 
-;; zmap_get_working_file -- return pointer to working zmap file
+;; zmap_get_{working,canonical}_file -- return pointer to working zmap file
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  ix <- zmap_working_file
@@ -240,6 +236,12 @@ zmap_get_working_file:
   ld ix,zmap_working_file
   or a,a
   ret
+
+zmap_get_canonical_file:
+  ld ix,zmap_canonical_file
+  or a,a
+  ret
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; ZMAP GLOBALS ;;;;;

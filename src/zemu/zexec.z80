@@ -254,28 +254,25 @@ zexec_binop.nextprop:
 ;; DESTROYS: (all), ix
 ;; TODO: Use stack, not global mem.
 zexec_repbcmp:
-   ld (zexec_repcmp.cmp),hl ; save comparison function
-   call zcode_readop_force
-   ret c ; require at least one argument
-   ld (zexec_repbcmp.lhs),hl
-   xor a,a
-   jr zexec_repbcmp.entry
+  ld (zexec_repcmp.cmp),hl ; save comparison function
+  call zcode_readop_force
+  ret c ; require at least one argument
+  ld (zexec_repbcmp.lhs),hl
+  xor a,a
+  jr zexec_repbcmp.entry
 zexec_repbcmp.loop:
-   ex de,hl
-   ld hl,(zexec_repbcmp.lhs)
-   or a,a                    ; NC
-   call z,zexec_repcmp.call ; perform comparison (only if truth-value is still FALSE)
-   ret c
+  ex de,hl
+  ld hl,(zexec_repbcmp.lhs)
+  or a,a
+  call z,zexec_repcmp.call ; perform comparison (only if truth-value is still FALSE)
 zexec_repbcmp.entry:
-   push af  ; preserve truth-value
-   call zcode_readop
-   pop bc
-   ld a,b   ; restore truth-value
-   ret c    
-   jr nz,zexec_repbcmp.loop
-zexec_repbcmp.done:
-   or a,a
-   ret
+  push af  ; preserve truth-value
+   call nc,zcode_readop
+  pop bc
+  ld a,b   ; restore truth-value
+  ret c    
+  jr nz,zexec_repbcmp.loop
+  ret
    
 zexec_repbcmp.lhs: DL 0
 

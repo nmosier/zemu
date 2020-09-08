@@ -20,9 +20,10 @@ zrand_init:
 ;;  [b:hl] = seed (long)
 ;; OUTPUTS: (none)
 ;; DESTROYS: (none)
-;; ERRORS: no.
+;; ERRORS: no, but NC.
 zrand_seed:
   LD_BHL_TO_ABS_RAND(zrand_reg)
+  or a,a
   ret
 
 ;; zrand_newseed -- obtain new seed for random value generator
@@ -30,10 +31,11 @@ zrand_seed:
 ;; OUTPUTS:
 ;;  [b:hl] = new seed value to use
 ;; DESTROYS: c,de
-;; ERRORS: no.
+;; ERRORS: no, but NC
 zrand_newseed:
    SYSCALL(_RandInit)
    LD_BHL_FROM_ABS_RAND(seed1)
+   or a,a
    ret
 
 ;; zrand_gen_raw -- generate raw random value with 23-bits of entropy
@@ -61,7 +63,7 @@ _ POP_BHL_RAND
 ;;  hl = range (unsigned word)
 ;; OUTPUTS:
 ;;  hl = random number n such that 1 <= n <= range
-;; ERRORS: no.
+;; ERRORS: no, but NC
 ;; DESTROYS: (all)
 zrand_gen:
 #if 0
@@ -89,6 +91,7 @@ _  pop de
   call div_hl_de
   ex de,hl  ; rand % (range + 1) -> hl
   inc hl
+  or a,a
   ret
 
 

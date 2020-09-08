@@ -544,16 +544,7 @@ zexec.print_paddr:
 
 zexec.load:
    call zvar_downcast
-   call zvar_fetch
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.not:
-   call zexec_unop.not
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
+   jp zvar_fetch
 
 
 ;------------------------------------;
@@ -838,17 +829,12 @@ zexec.random:
    call cp_hl_0
    jr z,zexec.random.newseed
 zexec.random.gen:
-   call zrand_gen
-zexec.random.store:
-   call zcode_readvarnum
-   jp nc,zvar_store
-   ret ; ERROR
+   jp zrand_gen
 
 zexec.random.newseed:
    call zrand_newseed
 zexec.random.seed:
-   call zrand_seed
-   jr zexec.random.store
+   jp zrand_seed
 
 zexec.push:
    ld a,ZVAR_STACK

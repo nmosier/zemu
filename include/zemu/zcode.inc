@@ -35,10 +35,11 @@ SIZEOF_ZCODE_ENT .equ ZCODE_ENT.HANDLER + LONG_SIZE
 
 ZCODE_ENT.INFO.NPARAMS    .equ %00000011
 ZCODE_ENT.INFO.WRITES_VAR .equ 7
-ZCODE_ENT.INFO.CJMP       .equ 6
+ZCODE_ENT.INFO.REPBCMP    .equ 6
+ZCODE_ENT.INFO.CJMP       .equ 5
 
-#macro D_ZCODE_ENT(nparams, var, cjmp, handler)
-  .db nparams | (var * MASK(ZCODE_ENT.INFO.WRITES_VAR)) | (cjmp * MASK(ZCODE_ENT.INFO.CJMP))
+#macro D_ZCODE_ENT(nparams, var, repbcmp, cjmp, handler)
+  .db nparams | (var * MASK(ZCODE_ENT.INFO.WRITES_VAR)) | (cjmp * MASK(ZCODE_ENT.INFO.CJMP)) | (repbcmp * MASK(ZCODE_ENT.INFO.REPBCMP))
   DL handler
 #endmacro
 

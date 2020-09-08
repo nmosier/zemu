@@ -333,16 +333,16 @@ zexec_repcmp.cmp: DL 0
 ;-------------------------;
 
 zexec.je:
-   ld hl,zexec_cmp.eq
-   jp zexec_repbcmp
+  ld hl,zexec_cmp.eq
+  ret
 
 zexec.jl:
-   ld hl,zexec_cmp.lt
-   jp zexec_repbcmp
+  ld hl,zexec_cmp.lt
+  ret
 
 zexec.jg:
-   ld hl,zexec_cmp.gt
-   jp zexec_repbcmp
+  ld hl,zexec_cmp.gt
+  ret
 
 zexec.dec_chk:
   call zvar_downcast
@@ -364,15 +364,15 @@ zexec.inc_chk:
 
 zexec.jin:
    ld hl,zexec_cmp.in
-   jp zexec_repbcmp
+   ret
 
 zexec.test:
    ld hl,zexec_cmp.tst
-   jp zexec_repbcmp
+   ret
 
 zexec.test_attr:
    ld hl,zexec_cmp.attr
-   jp zexec_repbcmp
+   ret
 
 zexec.set_attr:
    ;; TODO -- obj downcast
@@ -596,8 +596,8 @@ zexec.ret_popped:
    push hl
    call zstack_leave ; %a preserved
    pop hl
-   ret c
-   jp zvar_store
+   jp nc,zvar_store
+   ret
 
 zexec.pop:
    ld a,ZVAR_STACK
@@ -614,6 +614,7 @@ zexec.new_line:
    or a,a
    ret
 
+#if 0
 zexec.show_status:
    ld a,ZERR_BADINSTR
    scf
@@ -623,6 +624,7 @@ zexec.verify:
    ld a,ZERR_BADINSTR
    scf
    ret
+#endif
 
 ;------------------------------------;
 ;           VAR opcodes              ;

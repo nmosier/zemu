@@ -995,12 +995,12 @@ xtos:
 ;; DESTROYS: (none)
 ;; *** portable ***
 cp_hl_0:
-   push de
+  push de
    ld de,0
    or a,a
    sbc hl,de
-   pop de
-   ret
+  pop de
+  ret
 
 ;; strchr -- find first occurrence of char in string
 ;; INPUTS:

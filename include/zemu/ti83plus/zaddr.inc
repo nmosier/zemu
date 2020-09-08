@@ -65,9 +65,9 @@
 #endmacro
 #macro LD_CDE_TO_ABS_ZA(addr)
   push af
-  ld (addr),de
-  ld a,c
-  ld (addr+2),a
+   ld (addr),de
+   ld a,c
+   ld (addr+2),a
   pop af
 #endmacro
 

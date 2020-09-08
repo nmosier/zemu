@@ -1097,18 +1097,18 @@ orl:
 andl:
 #if TI83PLUS
   push af
-  ld a,h
-  and a,d
-  ld h,a
-  ld a,l
-  and a,e
-  ld l,a
+   ld a,h
+   and a,d
+   ld h,a
+   ld a,l
+   and a,e
+   ld l,a
   pop af
   ret
 #elif TI84PCE
   push bc
-  LD_BC_DE
-  call __iand
+   LD_BC_DE
+   call __iand
   pop bc
   ret
 #endif

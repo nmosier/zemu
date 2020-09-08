@@ -99,8 +99,8 @@ LONG_SIZE .equ WORD_SIZE
 #endmacro
 #macro LD_IX_FROM_IX(off)
   push de
-  ld de,off
-  call _ld_ix_from_ix
+   ld de,off
+   call _ld_ix_from_ix
   pop de
 #endmacro
 
@@ -158,20 +158,25 @@ LONG_SIZE .equ WORD_SIZE
 #define LD_DE_FROM_IY_W(off) LD_DE_FROM_IY(off)
 #define LD_BC_FROM_IY_W(off) LD_BC_FROM_IY(off)
 
-#macro MLT_A(off, reg16) 
-#if reg16 == R_HL        
-  ld hl,off             
-  call mul_hl_a         
-#elif reg16 == R_DE
-  ld de,off
-  call mul_de_a
-#elif reg16 == R_BC      
-  push hl               
-   ld hl,off             
+#macro MLT_A(imm, reg16)
+ #if off == 1
+  LD_REG8_A(R_LOW(reg16))
+  LD_REG8_IMM(R_HIGH(reg16), 0)
+ #else
+  #if reg16 == R_HL        
+   ld hl,imm
    call mul_hl_a         
-   LD_BC_HL              
-  pop hl                
-#endif
+  #elif reg16 == R_DE
+   ld de,imm
+   call mul_de_a
+  #elif reg16 == R_BC      
+   push hl               
+    ld hl,imm             
+    call mul_hl_a         
+    LD_BC_HL              
+   pop hl                
+  #endif
+ #endif
 #endmacro
 
 

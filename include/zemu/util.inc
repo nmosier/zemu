@@ -165,6 +165,30 @@ _
 #endif
 #endmacro
 
+#macro LD_REG8_A(reg8)
+#if reg8 == R_H               
+   ld h,a                   
+#elif reg8 == R_L             
+   ld l,a                   
+#elif reg8 == R_D             
+   ld d,a                   
+#elif reg8 == R_E             
+   ld e,a                   
+#elif reg8 == R_B             
+   ld b,a                   
+#elif reg8 == R_C             
+   ld c,a                   
+#elif reg8 == R_IXH           
+   ld ixh,a                 
+#elif reg8 == R_IXL           
+   ld ixl,a                 
+#elif reg8 == R_IYH           
+   ld iyh,a                 
+#elif reg8 == R_IYL           
+   ld ixl,a                 
+#endif
+#endmacro
+
 
 #macro BTOLU
   or a,a

@@ -155,4 +155,25 @@ file_readza:
 file_readza.buf: RESB(3)
 
 
+;; INTERNAL MACRO IMPLEMENTATIONS ;;
+
+#if 0
+;; _ld_bhl_from_ix_za -- load Z-addr into BHL from ix at offset
+;; INPUTS:
+;;  ix = pointer to Z-addr
+;;  de = offset
+;; OUTPUTS:
+;;  [b:hl] = Z-addr
+;; DESTROYS: (none)
+;; ERRORS: no.
+_ld_bhl_from_ix_za:
+  add ix,de
+  ld l,(ix+0)
+  ld h,(ix+1)
+  ld b,(ix+2)
+  sbc ix,de
+  ret
+#endif
+
+
 #endif

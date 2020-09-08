@@ -385,12 +385,10 @@ zobj_propaddr.entry:
    jr nc,zobj_propaddr.loop
 zobj_propaddr.notfound:
    ; not found
-   ld hl,0
+   LD_HL_0
 zobj_propaddr.found:
    ; found
-   call zobj_propid_to_size
-   or a,a
-   ret
+   jp zobj_propid_to_size
 
 
 ;; zobj_propid_to_size -- extract raw byte size from property ID byte
@@ -399,7 +397,7 @@ zobj_propaddr.found:
 ;; OUTPUTS:
 ;;  a = byte size
 ;; DESTROYS: a
-;; ERRORS: no.
+;; ERRORS: no, but NC
 ;; *** portable ***
 zobj_propid_to_size:
    and a,$E0 ; 0b1110.0000
@@ -407,6 +405,7 @@ zobj_propid_to_size:
    rlca
    rlca
    inc a
+   or a,a
    ret
 
 ;; zobj_propid_to_num -- extract property number from property ID byte

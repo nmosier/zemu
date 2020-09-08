@@ -219,6 +219,7 @@ zvar_store.global:
 ;;  a = 8-bit unsigned value
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; PRESERVES FLAGS
 ;; *** portable ***
 zvar_downcast:
    ld a,l

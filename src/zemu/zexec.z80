@@ -42,17 +42,15 @@ zexec_cmp.gt:
 
 ;; (hl & de) == hl ?
 zexec_cmp.tst:
-   push de
-   call zexec_binop.and
-   pop de
-   or a,a
-   sbc hl,de
-   ld a,$FF
-   jr z,zexec_cmp.tst.clr
-   xor a,a
+  call andl
+  or a,a
+  sbc hl,de
+  ld a,$FF
+  jr z,zexec_cmp.tst.clr
+  xor a,a
 zexec_cmp.tst.clr:
-   or a,a
-   ret
+  or a,a
+  ret
 
 ;; obj(de) is parent of obj(hl) ?
 ;; TODO: Should this return false if either is 0?
@@ -151,42 +149,11 @@ zexec_unop.not:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 
-zexec_binop.or:
-  call orl
+zexec_binop.mod:
+  call div_hl_de
+  ex de,hl
   or a,a
   ret
-
-zexec_binop.and:
-   call andl
-   or a,a
-   ret
-
-zexec_binop.add:
-   add hl,de
-   or a,a
-   ret
-
-zexec_binop.sub:
-   or a,a
-   sbc hl,de
-   or a,a
-   ret
-
-zexec_binop.mul:
-   call mul_hl_de
-   or a,a
-   ret
-
-zexec_binop.div:
-   call div_hl_de ; TODO: currently doesn't report div-by-zero error 
-   or a,a
-   ret
-
-zexec_binop.mod:
-   call div_hl_de
-   ex de,hl
-   or a,a
-   ret
 
 zexec_binop.loadw:
    ; NOTE: pretend args are unsigned. (???)
@@ -395,14 +362,14 @@ zexec.test:
    ret
 
 zexec.or:
-   call zexec_binop.or
-   call nc,zcode_readvarnum
+   call orl
+   call zcode_readvarnum
    jp nc,zvar_store
    ret
 
 zexec.and:
-   call zexec_binop.and
-   call nc,zcode_readvarnum
+   call andl
+   call zcode_readvarnum
    jp nc,zvar_store
    ret
 
@@ -466,34 +433,35 @@ zexec.get_next_prop:
    ret
 
 zexec.add:
-   call zexec_binop.add
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
+  add hl,de
+  call zcode_readvarnum
+  jp nc,zvar_store
+  ret
 
 zexec.sub:
-   call zexec_binop.sub
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
+  or a,a
+  sbc hl,de
+  call zcode_readvarnum
+  jp nc,zvar_store
+  ret
 
 zexec.mul:
-   call zexec_binop.mul
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
+  call mul_hl_de
+  call zcode_readvarnum
+  jp nc,zvar_store
+  ret
 
 zexec.div:
-   call zexec_binop.div
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
+  call div_hl_de
+  call zcode_readvarnum
+  jp nc,zvar_store
+  ret
 
 zexec.mod:
-   call zexec_binop.mod
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
+  call zexec_binop.mod
+  call zcode_readvarnum
+  jp nc,zvar_store
+  ret
 
 ;; 4 -- zexec.call_2s
 ;; 5 -- zexec.call_2n

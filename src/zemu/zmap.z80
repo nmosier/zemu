@@ -222,11 +222,7 @@ zmap_header:
       LD_HL_0
       call file_addr
       LD_IX_HL
-     pop bc
-     ld a,b
-    pop bc
-   pop de
-  pop hl
+      call pop_all
   ret
 
 
@@ -246,11 +242,7 @@ zmap_table:
       ld hl,ZMAP_HDRSIZE
       call file_addr
       LD_IX_HL
-     pop bc
-     ld a,b
-    pop bc
-   pop de
-  pop hl
+      call pop_all
   ret
 
 

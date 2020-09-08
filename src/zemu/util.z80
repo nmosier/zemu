@@ -1128,6 +1128,25 @@ err1:
 err0:
   ret
 
+
+;; pop_all -- pop all regular registers (not f, ix, iy)
+;; INPUTS:
+;;  CF -- indicates whether to pop %a
+;; OUTPUTS:
+;;  hl, de, bc, a restored
+;; DESTROYS: (none)
+;; ERRORS: (propogates)
+pop_all:
+  pop hl
+  pop bc
+  jr c,_
+  ld a,b
+_ pop bc
+  pop de
+  ex (sp),hl
+  ret
+
+
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;
 ;;;;;;;;;;;;;;;;;

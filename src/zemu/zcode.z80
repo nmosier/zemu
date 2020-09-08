@@ -106,14 +106,19 @@ zcode_decode_variable.opnum:
    ld a,d
    bit 5,a
    ld hl,zcode_LUT.VAR
+   ld b,(zcode_LUT.VAR.end - zcode_LUT.VAR) / SIZEOF_ZCODE_ENT
    jr nz,_
    ld hl,zcode_LUT.2OP
+   ld b,$1f
 _  and a,$1f
-   jp zcode_decode.exec
+   cp a,b
+   jp c,zcode_decode.exec
+   jp zcode_err.notavail
 
 
 ;; [INTERNAL] zcode_decode.exec -- look up opcode handler and execute
 ;; INPUTS:
+;;  a = opcode index into table
 ;;  hl = pointer to table
 ;; OUTPUTS: see zexec.* functions
 zcode_decode.exec:
@@ -389,6 +394,7 @@ zcode_LUT.VAR:
    D_ZCODE_ENT(1, 1, 0, 0, zexec.random      )  ; $07
    D_ZCODE_ENT(1, 0, 0, 0, zexec.push        )  ; $08
    D_ZCODE_ENT(1, 0, 0, 0, zexec.pull        )  ; $09
+#if 0
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $0A
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $0B
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $0C
@@ -399,6 +405,8 @@ zcode_LUT.VAR:
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $11
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $12
    D_ZCODE_ENT(0, 0, 0, 0, zcode_err.notavail)  ; $13
+#endif
+zcode_LUT.VAR.end:
 
 
 #include "zexec.z80"

@@ -334,59 +334,45 @@ zexec_repcmp.cmp: DL 0
 
 zexec.je:
    ld hl,zexec_cmp.eq
-   call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repbcmp
 
 zexec.jl:
    ld hl,zexec_cmp.lt
-   call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repbcmp
 
 zexec.jg:
    ld hl,zexec_cmp.gt
-   call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repbcmp
 
 zexec.dec_chk:
-   call zvar_downcast
-   ld hl,zexec_unop.dec
-   push de
+  call zvar_downcast
+  ld hl,zexec_unop.dec
+  push de
    call zvar_modify
-   pop de
-   call nc,zexec_cmp.lt
-   jp nc,zexec_cjmp
-   ret
+  pop de
+  jp nc,zexec_cmp.lt
+  ret
 
 zexec.inc_chk:
-   call zvar_downcast
-   ld hl,zexec_unop.inc
-   push de
+  call zvar_downcast
+  ld hl,zexec_unop.inc
+  push de
    call zvar_modify
-   pop de
-   call nc,zexec_cmp.gt
-   jp nc,zexec_cjmp
-   ret
+  pop de
+  jp nc,zexec_cmp.gt
+  ret
 
 zexec.jin:
    ld hl,zexec_cmp.in
-   call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repbcmp
 
 zexec.test:
    ld hl,zexec_cmp.tst
-   call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repbcmp
 
 zexec.test_attr:
    ld hl,zexec_cmp.attr
-   call zexec_repbcmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repbcmp
 
 zexec.set_attr:
    ;; TODO -- obj downcast
@@ -423,9 +409,7 @@ zexec.insert_obj:
 ;--------------------;
 zexec.jz:
    ld hl,zexec_cmp.zero
-   call zexec_repucmp
-   jp nc,zexec_cjmp
-   ret
+   jp zexec_repucmp
 
 zexec.get_sibling:
    ;; TODO -- obj downcast
@@ -436,8 +420,7 @@ zexec.get_sibling:
    push hl
    call nc,zvar_store
    pop hl
-   call nc,zexec_cmp.nonzero
-   call nc,zexec_cjmp
+   jp nc,zexec_cmp.nonzero
    ret
 
 zexec.get_child:
@@ -449,8 +432,7 @@ zexec.get_child:
    push hl
    call nc,zvar_store
    pop hl
-   call nc,zexec_cmp.nonzero
-   call nc,zexec_cjmp
+   jp nc,zexec_cmp.nonzero
    ret
 
 zexec.get_parent:

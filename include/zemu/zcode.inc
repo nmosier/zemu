@@ -37,8 +37,8 @@ ZCODE_ENT.INFO.NPARAMS    .equ %00000011
 ZCODE_ENT.INFO.WRITES_VAR .equ 7
 ZCODE_ENT.INFO.CJMP       .equ 6
 
-#macro D_ZCODE_ENT(nparams, var, handler)
-  .db nparams | (var * MASK(ZCODE_ENT.INFO.WRITES_VAR))
+#macro D_ZCODE_ENT(nparams, var, cjmp, handler)
+  .db nparams | (var * MASK(ZCODE_ENT.INFO.WRITES_VAR)) | (cjmp * MASK(ZCODE_ENT.INFO.CJMP))
   DL handler
 #endmacro
 

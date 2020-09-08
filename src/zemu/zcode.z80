@@ -177,7 +177,7 @@ zcode_decode.exec.write_var:
 zcode_decode_extended:
    ld a,ZERR_NOTAVAIL
    scf
-   ret c ; NOT SUPPORTED YET
+   ret ; NOT SUPPORTED YET
 
 
 ;; zcode_fetch_op -- fetch operand from logical address.
@@ -200,33 +200,29 @@ zcode_fetch_op:
 
 zcode_fetch_op.large:
    call zaddr_fetch ; [b:hl]++
-   ret c
+   ; ret c
    ld d,a
-   call zaddr_fetch ; [b:hl]++
-   ret c
+   call nc,zaddr_fetch ; [b:hl]++
    ld e,a
+#if TI84PCE
    ex de,hl
-   WTOLS_HL ; upcast
+   call wtols
    ex de,hl
-   or a,a
+#endif
    ret
 
 zcode_fetch_op.small:
-   call zaddr_fetch ; [b:hl]++
-   ret c
-   ex de,hl
-   BTOLU      ; upcast
-   ex de,hl
-   or a,a
-   ret
+  call zaddr_fetch ; [b:hl]++
+  UCAST_A_TO_DE
+  ret
 
 zcode_fetch_op.variable:
    call zaddr_fetch ; [b:h]l++
-   ret c
+   ; ret c
    ; now %a contains variable no.
    ; fetch variable value
    PUSH_BHL_ZA
-   call zvar_fetch ; hl++
+   call nc,zvar_fetch ; hl++
    ex de,hl
    POP_BHL_ZA
    ; result in %de, errflg set
@@ -308,9 +304,9 @@ zcode_decode_branch.de_signed:
    ex (sp),hl
    ld c,l
    pop hl
-   ret c
+   ; ret c
    ld e,a
-   or a,a
+   ; or a,a
    bit 7,c
    ret
 

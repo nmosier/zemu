@@ -27,6 +27,7 @@ zaddr_cp:
 ;;  [b:hl] <- [b:hl] + 1
 ;; ERRORS: no.
 ;; DESTROYS: (none)
+;; PRESERVES FLAGS: CF
 zaddr_inc:
   inc l
   ret nz

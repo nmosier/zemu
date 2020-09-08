@@ -86,7 +86,7 @@ zexec_cmp.attr:
    ex de,hl
    call nc,zobj_downcast
    call nc,zobj_attrtest ; sets flags properly
-   ret c
+   ; ret c
    ld a,0
    ret z
    dec a ; ld a,$ff
@@ -284,22 +284,20 @@ zexec_repbcmp.lhs: DL 0
 ;; ERRORS: yes.
 ;; DESTROYS: (all), ix
 zexec_repucmp:
-   ld (zexec_repcmp.cmp),hl ; save comparison function
-   xor a,a
-   jr zexec_repucmp.entry
+  ld (zexec_repcmp.cmp),hl ; save comparison function
+  xor a,a
+  jr zexec_repucmp.entry
 zexec_repucmp.loop:
-   or a,a
-   call z,zexec_repcmp.call   ; compare iff truth-value is still FALSE
-   ret c
+  or a,a
+  call z,zexec_repcmp.call   ; compare iff truth-value is still FALSE
 zexec_repucmp.entry:
-   push af  ; preserve truth-value
-   call zcode_readop
-   pop bc
-   ld a,b   ; restore truth-value
-   ret c
-   jr nz,zexec_repucmp.loop
-zexec_repucmp.done:
-   ret
+  push af  ; preserve truth-value
+   call nc,zcode_readop
+  pop bc
+  ld a,b   ; restore truth-value
+  ret c
+  jr nz,zexec_repucmp.loop
+  ret
 
 ;; shared
 zexec_repcmp.call:
@@ -433,8 +431,7 @@ zexec.get_prop_len:
    UCAST_HL_TO_BHL_ZA
    DEC_BHL_ZA
    call zaddr_fetch
-   ret c
-   call zobj_propid_to_size
+   call nc,zobj_propid_to_size
    BTOLU
    ret
 
@@ -472,10 +469,10 @@ zexec.print_obj:
    call zobj_objaddr
    LD_IX_HL
   pop bc
-  ret c
-  LEA_HL_IX(ZOBJ_O_PROPS)
+  LEA_HL_IX(ZOBJ_O_PROPS) ; preserves CF
   UCAST_HL_TO_BHL_ZA
-  call zaddr_fetchz
+  call nc,zaddr_fetchz
+  ret c
   ex de,hl
 #if TI83PLUS
   ld b,c
@@ -635,24 +632,24 @@ zexec.call:
   push bc
    call zcall0
   pop bc
-  ret c
+  ; ret c
   ld a,c
   ld (zframe_rv),a ; save return value
   push hl ; save new address
-   call zexec.call.storevars
+   call nc,zexec.call.storevars
   pop hl ; restore new address
-  ret c
+  ; ret c
 zexec.call.done:
   ld ix,(zframe_fp)
   ex de,hl
-  call zstack_begin
+  call nc,zstack_begin
   ex de,hl
   ret c
   add ix,de
   LD_CDE_FROM_ABS_ZA(zframe_pc) ; end of CALL instruction
   LD_CDE_TO_IX_ZA(zframe_pc-zframe_end) ; save return address
   LD_BHL_TO_ABS_ZA(zframe_pc) ; save new PC
-  or a,a
+  ; or a,a
   ret
 
 ;; get variables before setting up new call frame
@@ -680,7 +677,7 @@ zexec.call.readvars.done:
   sbc hl,de
   ld b,l
   rr b ; b = # of locals
-  or a,a ; NC
+  ; or a,a ; NC -- b should've always been multiple of 2
   ret
 
 ;; store variables after setting up new call frame
@@ -706,9 +703,9 @@ zexec.call.storevars.loop:
   ld d,(hl)
   push hl
    ex de,hl
-   call zvar_store
+   call nc,zvar_store
   pop hl
-  ret c
+  ; ret c
   djnz zexec.call.storevars.loop
   ret
 

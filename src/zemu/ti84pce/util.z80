@@ -70,6 +70,7 @@ djb2_unputc:
 ;; OUTPUTS:
 ;;  hl = sign-extended from hl[15:0]
 ;; DESTROYS: (none)
+;; PRESERVES FLAGS: CF
 ;; *** portable ***
 wtols:
    push de

@@ -155,6 +155,27 @@ zexec_binop.mod:
   or a,a
   ret
 
+zexec_binop.div:
+  call div_hl_de
+  or a,a
+  ret
+
+zexec_binop.mul:
+  call mul_hl_de
+  or a,a
+  ret
+
+zexec_binop.sub:
+  or a,a
+  sbc hl,de
+  or a,a
+  ret
+
+zexec_binop.add:
+  add hl,de
+  or a,a
+  ret
+
 zexec_binop.loadw:
    ; NOTE: pretend args are unsigned. (???)
    ;; hl = array
@@ -361,18 +382,6 @@ zexec.test:
    jp nc,zexec_cjmp
    ret
 
-zexec.or:
-   call orl
-   call zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.and:
-   call andl
-   call zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
 zexec.test_attr:
    ld hl,zexec_cmp.attr
    call zexec_repbcmp
@@ -402,66 +411,6 @@ zexec.insert_obj:
    ld c,e
    jp zobj_insert
 
-zexec.loadw:
-   call zexec_binop.loadw
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.loadb:
-   call zexec_binop.loadb
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.get_prop:
-   call zexec_binop.propval
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.get_prop_addr:
-   call zexec_binop.propaddr
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.get_next_prop:
-   call zexec_binop.nextprop
-   call nc,zcode_readvarnum
-   jp nc,zvar_store
-   ret
-
-zexec.add:
-  add hl,de
-  call zcode_readvarnum
-  jp nc,zvar_store
-  ret
-
-zexec.sub:
-  or a,a
-  sbc hl,de
-  call zcode_readvarnum
-  jp nc,zvar_store
-  ret
-
-zexec.mul:
-  call mul_hl_de
-  call zcode_readvarnum
-  jp nc,zvar_store
-  ret
-
-zexec.div:
-  call div_hl_de
-  call zcode_readvarnum
-  jp nc,zvar_store
-  ret
-
-zexec.mod:
-  call zexec_binop.mod
-  call zcode_readvarnum
-  jp nc,zvar_store
-  ret
 
 ;; 4 -- zexec.call_2s
 ;; 5 -- zexec.call_2n
@@ -509,8 +458,6 @@ zexec.get_parent:
    ld a,l
    call zobj_parent
    BTOLU_C        ; upcast obj val
-   call nc,zcode_readvarnum
-   call nc,zvar_store
    ret
 
 zexec.get_prop_len:
@@ -522,8 +469,6 @@ zexec.get_prop_len:
    ret c
    call zobj_propid_to_size
    BTOLU
-   call zcode_readvarnum
-   jp nc,zvar_store
    ret
 
 zexec.inc:

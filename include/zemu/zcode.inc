@@ -4,6 +4,7 @@
 #define __ZCODE_INC
 
 #include "zutil.inc"
+#include "util.inc"
 
 ZOPCODE_TYPE_H .equ 7
 ZOPCODE_TYPE_L .equ 6
@@ -24,12 +25,19 @@ ZOP_LARGE .equ $00
 ; ZCODE_0OP_TABSIZE .equ (zcode.0OP_end - zcode.0OP) / LONG_SIZE
 ; ZCODE_VAR_TABSIZE .equ (zcode.VAR_end - zcode.VAR) / LONG_SIZE
 
-ZCODE_ENT.NPARAMS .equ 0
-ZCODE_ENT.HANDLER .equ ZCODE_ENT.NPARAMS + BYTE_SIZE
+
+; %xxxx.xxaa
+; a -- parameter count
+
+ZCODE_ENT.INFO .equ 0
+ZCODE_ENT.HANDLER .equ ZCODE_ENT.INFO + BYTE_SIZE
 SIZEOF_ZCODE_ENT .equ ZCODE_ENT.HANDLER + LONG_SIZE
 
-#macro D_ZCODE_ENT(nparams, handler)
-  .db nparams
+ZCODE_ENT.INFO.NPARAMS .equ %00000011
+ZCODE_ENT.INFO.WRITES_VAR .equ 7 ; bit 7
+
+#macro D_ZCODE_ENT(nparams, var, handler)
+  .db nparams | (var * MASK(ZCODE_ENT.INFO.WRITES_VAR))
   DL handler
 #endmacro
 

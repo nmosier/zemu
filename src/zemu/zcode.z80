@@ -146,7 +146,11 @@ zcode_decode.exec.post:
   pop bc
   ret c
   bit ZCODE_ENT.INFO.WRITES_VAR,b
-  ret z
+  jr nz,zcode_decode.exec.write_var
+  bit ZCODE_ENT.INFO.CJMP,b
+  jp nz,zexec_cjmp
+  ret
+
 zcode_decode.exec.write_var:
   call zcode_readvarnum
   jp nc,zvar_store
@@ -236,15 +240,14 @@ zcode_err.notavail:
 ;;  zframe_pc <- zframe_pc + 1
 ;;  %a contains variable number
 ;; ERRORS: yes.
-;; DESTROYS: all but %hl
+;; DESTROYS: b
 zcode_readvarnum:
-   push hl
+  push hl
    LD_BHL_FROM_ABS_ZA(zframe_pc)
    call zaddr_fetch
-   ret c ; error
    LD_BHL_TO_ABS_ZA(zframe_pc)
-   pop hl
-   ret
+  pop hl
+  ret
 
 ;; zcode_decode_branch -- decode branch in opcode.
 ;; INPUTS:

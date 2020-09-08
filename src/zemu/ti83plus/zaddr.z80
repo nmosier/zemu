@@ -146,7 +146,7 @@ zaddr_trap_cde.trap:
 file_readza:
   ld de,file_readza.buf
   ld bc,3
-  call file_readn
+  call file_memcpy
   ld hl,(file_readza.buf)
   ld a,(file_readza.buf+2)
   ld b,a

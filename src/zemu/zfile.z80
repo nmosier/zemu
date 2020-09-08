@@ -291,7 +291,7 @@ file_appvar_to_OP1:
   ld (de),a
   inc de
   ld bc,VARNAMELEN
-  jp nc,file_readn
+  jp nc,file_memcpy
   ret
 
 

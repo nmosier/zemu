@@ -84,27 +84,6 @@ file_size:
   ret
 
 
-;; file_readn -- read bytes from file into buffer
-;; INPUTS:
-;;  ix = file pointer
-;;  hl = file offset
-;;  de = output buffer
-;;  bc = size (size > 0)
-;; OUTPUTS:
-;;  bc = 0
-;;  hl <- hl + bc
-;;  de <- de + bc
-;; DESTROYS: (all)
-;; ERRORS: ???
-file_readn:
-  push de
-   push bc
-    call file_addr
-   pop bc
-  pop de
-  ret c
-  ldir
-  ret
 
 ;; file_readb -- read byte from file
 ;; INPUTS:

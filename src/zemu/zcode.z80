@@ -149,20 +149,26 @@ zcode_decode.exec.post:
   push bc
    call nz,zcode_decode.exec.write_var
   pop bc
+  ret c
   bit ZCODE_ENT.INFO.REPBCMP,b
   push bc
    call nz,zexec_repbcmp
   pop bc
+  ret c
   bit ZCODE_ENT.INFO.CJMP,b
   push bc
    call nz,zexec_cjmp
   pop bc
   ret
 
+
+
+
 zcode_decode.exec.write_var:
   call zcode_readvarnum
   jp nc,zvar_store
   ret
+
 
 
 ;;-- NOT SUPPORTED --;;

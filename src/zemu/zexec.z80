@@ -408,20 +408,20 @@ zexec.insert_obj:
 ;        1 OP        ;
 ;--------------------;
 zexec.jz:
-   ld hl,zexec_cmp.zero
-   jp zexec_repucmp
+  ld hl,zexec_cmp.zero
+  jp zexec_repucmp
 
 zexec.get_sibling:
-   ;; TODO -- obj downcast
-   ld a,l
-   call zobj_sibling
-   BTOLU_C       ; upcast obj val
-   call nc,zcode_readvarnum
-   push hl
+  ;; TODO -- obj downcast
+  ld a,l
+  call zobj_sibling
+  BTOLU_C       ; upcast obj val
+  call nc,zcode_readvarnum
+  push hl
    call nc,zvar_store
-   pop hl
-   jp nc,zexec_cmp.nonzero
-   ret
+  pop hl
+  jp nc,zexec_cmp.nonzero
+  ret
 
 zexec.get_child:
    ;; TODO -- obj downcast

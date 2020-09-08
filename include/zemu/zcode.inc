@@ -38,6 +38,8 @@ ZCODE_ENT.INFO.WRITES_VAR .equ 7
 ZCODE_ENT.INFO.REPBCMP    .equ 6
 ZCODE_ENT.INFO.CJMP       .equ 5
 
+ZCODE_DECODE.POST.TABLEN .equ 3 ; number of cleanup functions
+
 #macro D_ZCODE_ENT(nparams, var, repbcmp, cjmp, handler)
   .db nparams | (var * MASK(ZCODE_ENT.INFO.WRITES_VAR)) | (cjmp * MASK(ZCODE_ENT.INFO.CJMP)) | (repbcmp * MASK(ZCODE_ENT.INFO.REPBCMP))
   DL handler

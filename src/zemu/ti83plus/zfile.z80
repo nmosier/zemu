@@ -112,8 +112,7 @@ sbc_flash:
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
 file_size:
-  LD_HL_0
-  call file_addr
+  call file_baseaddr
   ret c
   jr z,file_size.RAM
 file_size.flash:
@@ -149,9 +148,9 @@ file_size.buf: .dw 0
 ;; ERRORS: ???
 file_readn:
   push de
-  push bc
-  call file_addr
-  pop bc
+   push bc
+    call file_addr
+   pop bc
   pop de
   ret c
   SYSCALL(_FlashToRAM)
@@ -159,6 +158,7 @@ file_readn:
   ret
 
 
+#if 0
 ;; file_readb -- read byte from file
 ;; INPUTS:
 ;;  ix = file pointer
@@ -176,7 +176,7 @@ file_readb:
   ld a,(file_read.buf)
   or a,a ; success
   ret
-
+#endif
 
 ;; file_readw, file_readl -- read word, long from file
 ;; INPUTS:
@@ -195,7 +195,6 @@ file_readl:
   SYSCALL(_FlashToRAM)
   ld hl,(file_read.buf)
   ret
-
 
 ;; file_writel -- write long to file
 ;; INPUTS:

@@ -38,8 +38,7 @@ zstack_begin:
     push de
      push af
       ld ix,f_stack
-      LD_HL_0
-      call file_addr
+      call file_baseaddr
      pop de
      ld a,d
     pop de

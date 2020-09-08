@@ -98,9 +98,9 @@ file_size:
 ;; ERRORS: ???
 file_readn:
   push de
-  push bc
-  call file_addr
-  pop bc
+   push bc
+    call file_addr
+   pop bc
   pop de
   ret c
   ldir
@@ -132,7 +132,7 @@ file_readb:
 file_readw:
   call file_addr
   ret c
-  ld de,0
+  CLEAR_UPPER_DE
   ld e,(hl)
   inc hl
   ld d,(hl)

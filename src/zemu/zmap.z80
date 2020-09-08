@@ -219,8 +219,7 @@ zmap_header:
     push bc
      push af
       ld ix,zmap_working_file
-      LD_HL_0
-      call file_addr
+      call file_baseaddr
       LD_IX_HL
       call pop_all
   ret

@@ -22,8 +22,7 @@ zwin_buf:
     push af
      push ix
       LEA_IX_IX(ZWIN.FILE)
-      LD_HL_0
-      call file_addr
+      call file_baseaddr
      pop ix
     pop bc
     jr c,_

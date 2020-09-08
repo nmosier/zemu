@@ -59,7 +59,7 @@ zmap_copypage:
     call file_copy
    pop iy
    call nc,zmap_copypage.getfile
-   jr c,zmap_copypage.err1
+   jp c,err1
    ld hl,zmap_copypage.file
    LEA_DE_IX(ZMAP_ENT.FILE) ; flags preserved
    ld bc,SIZEOF_FILE
@@ -68,9 +68,6 @@ zmap_copypage:
   ldir
   ret
 
-zmap_copypage.err1:
-  pop hl
-  ret
 
 zmap_copypage.getfile:
   ld a,(zmap_copypage.pageno)

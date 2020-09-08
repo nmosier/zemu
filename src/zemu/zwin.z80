@@ -749,14 +749,14 @@ zwin_getsn.loop:
      push bc
 #if ZCURSOR
       call zwin_putcursor
-      jr c,zwin_getsn.err4
+      jp c,err4
 #endif
       call zwin_getc_bare ; preserves a
-      jr c,zwin_getsn.err4 ; error
+      jp c,err4 ; error
 #if ZCURSOR
       push af
        call zwin_unputcursor
-       jr c,zwin_getsn.err5
+       jp c,err5
       pop af
 #endif
      pop bc
@@ -766,7 +766,7 @@ zwin_getsn.loop:
 
     pop de \ push de
     call zwin_getsn.handle
-    jr c,zwin_getsn.err2
+    jp c,err2
     jr z,zwin_getsn.done
 
 zwin_getsn.entry:
@@ -824,18 +824,6 @@ zwin_getsn.del:
   dec hl ; delete one char
   inc bc
   jr zwin_getsn.putc
-
-zwin_getsn.err5:
-  pop hl
-zwin_getsn.err4:
-  pop hl
-zwin_getsn.err3:
-  pop hl
-zwin_getsn.err2:
-  pop hl
-zwin_getsn.err1:
-  pop hl
-  ret
 
 
 

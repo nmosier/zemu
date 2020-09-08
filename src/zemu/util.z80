@@ -1113,6 +1113,21 @@ andl:
   ret
 #endif
 
+
+
+err5:
+  pop hl
+err4:
+  pop hl
+err3:
+  pop hl
+err2:
+  pop hl
+err1:
+  pop hl
+err0:
+  ret
+
 ;;;;;;;;;;;;;;;;;
 ;; GLOBAL VARS ;;
 ;;;;;;;;;;;;;;;;;

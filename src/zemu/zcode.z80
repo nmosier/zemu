@@ -136,11 +136,7 @@ zcode_decode.exec:
   and a,ZCODE_ENT.INFO.NPARAMS
   call zop_readn
   ret nc      ; jump to handler on success
-zcode_decode.exec.err3:
-  pop hl      ; discard handler on error
-  pop hl
-  pop hl
-  ret
+  jp err3
 
 zcode_decode.exec.post:
   pop bc

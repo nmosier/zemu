@@ -184,7 +184,7 @@ zsave_save.pages.loop:
      push de
       ld ix,zmap_working_file
       call file_addr
-      jr c,zsave_save.pages.err4
+      jp c,err4
       LD_IX_HL
       bit ZMAP_ENT.FLAGS.SAVE,(ix+ZMAP_ENT.FLAGS)
      pop hl
@@ -199,7 +199,7 @@ zsave_save.pages.loop:
       pop bc
       ld a,c
       call nc,zaddr_pageent
-      jr c,zsave_save.pages.err4
+      jp c,err4
       set ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS) ; mark pages as copy
       LEA_IX_IX(ZMAP_ENT.FILE)
       call file_to_archive
@@ -217,14 +217,6 @@ zsave_save.pages.next:
 zsave_save.pages.done:
   pop ix
   ret
-
-zsave_save.pages.err4:
-  pop hl
-  pop hl
-  pop hl
-  pop hl
-  ret
-
 
 
 ;; zstate_restore -- restore game

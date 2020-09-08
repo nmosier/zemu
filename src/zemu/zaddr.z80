@@ -201,16 +201,13 @@ zaddr_fetchw:
    call zaddr_fetch
    ld d,a
    call nc,zaddr_fetch
-   jr c,zaddr_fetch.err
+   jp c,err1
    ld e,a
    pop af
    ex de,hl
    WTOLS_HL ; upcast
    ex de,hl
    or a,a ; NC
-   ret
-zaddr_fetch.err:
-   pop hl
    ret
 
 ;; zaddr_fetchwu -- fetch unsigned word at logical address
@@ -356,16 +353,12 @@ zaddr_fetchn:
 zaddr_fetchn.loop:
    push af
    call zaddr_fetch ; fetch byte at logical address [b:hl]
-   jr c,zaddr_fetchn.err
+   jp c,err2
    ld (de),a
    inc de
    pop af
    dec a
    jr nz,zaddr_fetchn.loop
-   pop de
-   ret
-zaddr_fetchn.err:
-   pop de
    pop de
    ret
 

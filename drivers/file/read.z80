@@ -57,9 +57,12 @@ done:
 ;;  b = count
 filedump:
   push hl
-  push bc
-  call file_readb
-  pop bc
+   push bc
+    ld de,filedump.buf
+    ld bc,1    
+    call file_memcpy
+    ld a,(filedump.buf)
+   pop bc
   pop hl
   ret c
   inc hl
@@ -76,8 +79,9 @@ filedump:
   or a,a
   ret
 
-hex: .db 0,0,0
+filedump.buf: .db 0
 
+hex: .db 0,0,0
 
 file: D_FILE("ZORKRAA", 0)
 

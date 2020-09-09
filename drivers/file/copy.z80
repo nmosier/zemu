@@ -66,17 +66,18 @@ win_main: D_ZWIN(0, 0, DISP_WIDTH, DISP_HEIGHT, 0, 0, 0)
 ;;  b = count
 filedump:
   push hl
-  push bc
-  call file_readb
-  pop bc
+   push bc
+    ld de,filedump.buf
+    ld bc,1    
+    call file_memcpy
+    ld a,(filedump.buf)
+   pop bc
   pop hl
   ret c
   inc hl
   ex de,hl
   ld hl,hex
   call xtos
-  ld hl,hex
-  ld hl,hex
   ld hl,hex
   push de
   push bc
@@ -86,6 +87,8 @@ filedump:
   djnz filedump
   or a,a
   ret
+
+filedump.buf: .db 0
 
 hex: .db 0,0,0
 

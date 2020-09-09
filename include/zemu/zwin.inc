@@ -44,6 +44,7 @@ ZWIN.RECT   .equ ZWIN.ORGCOL
 
 ZWIN.FLAGS.BUFD .equ 0 ; whether buffered
 ZWIN.FLAGS.PAGD .equ 1 ; whether paged (must be buffered)
+ZWIN.FLAGS.WAIT .equ 2 ; whether to always wait on scroll
 
 ZWIN_SIZE .equ ZWIN.FILE + SIZEOF_FILE
 

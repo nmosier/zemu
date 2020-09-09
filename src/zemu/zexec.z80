@@ -567,7 +567,7 @@ zexec.restore:
    jp zexec_cjmp
 
 zexec.restart:
-   ld hl,zmap_name_canonical
+   ld hl,zmap_canonical_file + FILE.NAME
    jp zsave_restart
 
 zexec.ret_popped:
@@ -747,9 +747,9 @@ zexec.put_prop:
   ; hl = object
   ; de = property
   ; bc = value
-  ld a,l ; object
-  ld c,e ; property
   push bc
+   ld a,l ; object
+   ld c,e ; property
    call zobj_propaddr
   pop de
   ret c

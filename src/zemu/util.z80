@@ -987,7 +987,7 @@ xtos:
   inc hl
   ret
 
-xtos.buf: RESB(2)
+xtos.buf: .db 0,0,0
 
 ;; cp_hl_0 -- compare hl to 0
 ;; INPUTS:

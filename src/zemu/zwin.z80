@@ -246,7 +246,12 @@ zwin_newline_bare:
 zwin_scroll:
   call zwin_trunc
   ret c
-  call nz,zwin_wait ; page if necessary
+  jr nz,zwin_scroll.wait
+  bit ZWIN.FLAGS.WAIT,(ix+ZWIN.FLAGS)
+  jr z,zwin_scroll.continue
+zwin_scroll.wait:
+  call sys_getkey ; page if necessary
+zwin_scroll.continue:
   ld a,SFONT_HEIGHT
   push ix
    LEA_IX_IX_REG(ZWIN.RECT, R_DE)
@@ -262,10 +267,6 @@ zwin_scroll:
 zwin_scroll.setrow:
   ld (ix+ZWIN.CURROW),a
   ret ; always NC
-
-zwin_wait:
-   jp sys_getkey
-
 
 ;; zwin_redraw -- clear and then display contents of window
 ;; INPUTS:

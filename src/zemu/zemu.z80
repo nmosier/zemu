@@ -89,7 +89,7 @@ init_windows:
 
    ld ix,win_dbg1
    ld iy,win_dbg2
-   ld a,75
+   ld a,80
    ld b,0 ; don't buffer
    call zwin_split_bottom
 
@@ -98,6 +98,11 @@ init_windows:
 
    ld ix,win_dbg1
    call zwin_init
+   call zwin_page
+
+   ld ix,win_dbg2
+   call zwin_init
+   call zwin_page
 
    pop iy
 #endif
@@ -116,7 +121,7 @@ win_dbgout: RES_ZWIN ; not buffered
 win_dbgin:  D_ZWIN(0, 0, 0, 0, 0, WIN_DBGIN_BUFSIZE, "ZDBGWIN") ; buffered
 ; win_dbg1:   RES_ZWIN ; not buffered
 win_dbg1:   D_ZWIN(0, 0, 0, 0, MASK(ZWIN.FLAGS.PAGD), 64, "ZDBG1W")
-win_dbg2:   RES_ZWIN ; not buffered
+win_dbg2:   D_ZWIN(0, 0, 0, 0, MASK(ZWIN.FLAGS.PAGD), 64, "ZDBG2W")
 #endif
 
 

@@ -249,7 +249,6 @@ zmap_get_canonical_file:
 
 zmap_working_file: D_FILE("ZEMUMAP", 0)
 zmap_canonical_file: RES_FILE
-zmap_name_canonical: RESB(VARNAMELEN)
 zmap_name_current:   .db "ZEMUMAP",0
 
 #endif

@@ -350,7 +350,7 @@ zdbg_cmd.print.obj.props.loop:
    ; ld b,a
    ex (sp),hl ; swap LBA into hl
    ld de,zdbg_cmd.print.obj.props.buf_bytes
-   push bc
+   push af
     call zaddr_fetchn
    pop bc
    ex (sp),hl

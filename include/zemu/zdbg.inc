@@ -26,7 +26,7 @@ ZDBG_ALERTS_WATCH .equ 0
 
 
 ;; compiler flags
-#define ZDBG_PRINT_PROPDATA 0
+#define ZDBG_PRINT_PROPDATA 1
 
 
 #endif

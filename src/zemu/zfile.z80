@@ -175,26 +175,28 @@ _ pop hl
 file_copy:
   ;; get orig file size
   ;; TODO -- shouldn't need to store this.
-  call file_copy.call ; get %ix
-  push hl
-   call nc,file_size
-   ex de,hl
-  pop hl
-  ret c
-  LD_DE_TO_IX_W(FILE.SIZE)
-  LD_DE_TO_IY_W(FILE.SIZE)
-  LD_IX_IY
-  ld iy,flags ; calls require iy = flags unless iy is a parameter
-  push hl
-   call file_create
-  pop hl
-  ret c
   push iy
+   ld iy,flags
    call file_copy.call ; get %ix
-   jr c,file_copy.done
-   sbc hl,hl ; ld hl,0
+   push hl
+    call nc,file_size
+    ex de,hl
+   pop hl
+   ; ret c
+   ex (sp),iy ; iy <- dst file
+   LD_DE_TO_IX_W(FILE.SIZE)
+   LD_DE_TO_IY_W(FILE.SIZE)
+   LD_IX_IY
+   ex (sp),iy ; iy <- flags
+   push hl
+    call nc,file_create
+   pop hl
+   ; jr c,file_copy.done
+   call nc,file_copy.call ; get %ix
+   ; jr c,file_copy.done
+   sbc hl,hl ; ld hl,0; propogates CF
    push de ; save dst data ptr
-    call file_addr
+    call nc,file_addr
    pop de
    jr c,file_copy.done
    LD_BC_FROM_IX_W(FILE.SIZE)

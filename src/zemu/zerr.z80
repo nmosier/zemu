@@ -73,6 +73,8 @@ zemu_strerror:
    pop hl
    push af
     call nc,file_readw ; read word offset
+    WTOLU_HL           ; upcast address, if necessary
+    call nc,file_addr  ; get address of offset
     ld de,zerr_strbuf
     ld bc,ZERR_MAX_STRLEN
     call nc,file_memcpy

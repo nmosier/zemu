@@ -171,8 +171,10 @@ zsave_save.zmap:
   call strncpy
   ;; copy file
   ld hl,zmap_get_working_file
-  ld iy,zsave_file
-  call file_copy
+  push iy
+   ld iy,zsave_file
+   call file_copy
+  pop iy
   ld ix,zsave_file
   call nc,file_to_archive
   jp nc,file_close

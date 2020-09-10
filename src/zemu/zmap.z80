@@ -59,12 +59,12 @@ zmap_copypage:
     call file_copy
    pop iy
    call nc,zmap_copypage.getfile
-   jp c,err1
    ld hl,zmap_copypage.file
    LEA_DE_IX(ZMAP_ENT.FILE) ; flags preserved
    ld bc,SIZEOF_FILE
    ; ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
   pop ix
+  ret c
   ldir
   ret
 
@@ -83,6 +83,24 @@ zmap_copypage.pageno: .db 0
 zmap_copypage.file: RES_FILE
 
 zemu_pagepfx: .db "ZEMUP",0
+
+
+;; zmap_archivepage -- archive page to free RAM
+;; INPUTS: (none)
+;; OUTPUTS: (none)
+;; ERRORS: ???
+;; DESTROYS: ???
+zmap_archivepage:
+  ;; find first unarchived page
+  push ix
+   call zmap_table
+zmap_archivepage.loop:
+   LEA_IX_IX(ZMAP_ENT.FILE)
+   
+  pop ix
+  ret
+  
+  ;; TODO
 
 ;; zmap_namepage -- rename page after being copied
 ;; INPUTS:
@@ -142,9 +160,6 @@ zmap_load:
 ;; ERRORS: yes.
 zmap_open:
   push ix
-   call nc,zmap_header
-   jr c,zmap_open.done
-   ld b,(ix+ZMAP_HDR_NPAGES)
    call zmap_table
    jr c,zmap_open.done
 zmap_open.loop:
@@ -169,8 +184,6 @@ zmap_open.done:
 ;; OPTIM: write function that takes function and iterates over all entries.
 zmap_close:
   push ix 
-   call zmap_header
-   ld b,(ix+ZMAP_HDR_NPAGES)
    call zmap_table
    jr c,zmap_close.done
 zmap_close.loop:
@@ -210,9 +223,11 @@ zmap_header:
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  ix = pointer to zmap table
+;;  b = npages
 ;; DESTROYS: (none)
 ;; ERRORS: yes.
 ;; OPTIM required.
+;; NOTE: Assumes zmap is in RAM.
 zmap_table:
   push hl
    push de
@@ -220,9 +235,11 @@ zmap_table:
      push af
       call zmap_get_working_file
       ld hl,ZMAP_HDRSIZE
-      call file_addr
+      call nc,file_addr
       LD_IX_HL
       call pop_all
+  ret c
+  ld b,(ix+(ZMAP_HDR_NPAGES-ZMAP_HDRSIZE))
   ret
 
 

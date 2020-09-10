@@ -6,6 +6,8 @@ jp_ix:
   jp (ix)
   
 
+;; syscall -- system 
+
 #if TI83PLUS
 #include "ti83plus/zti.z80"
 #elif TI84PCE

@@ -54,15 +54,19 @@ zmap_copypage:
   call zmap_namepage
   push ix
    push iy
+zmap_copypage.loop:
     ld hl,zmap_copypage.getfile ; getter for source
     ld iy,zmap_copypage.file
     call file_copy
+    jr nc,zmap_copypage.continue
+    call zmap_archivepage
+    jr nc,zmap_copypage.loop
+zmap_copypage.continue:
    pop iy
    call nc,zmap_copypage.getfile
    ld hl,zmap_copypage.file
    LEA_DE_IX(ZMAP_ENT.FILE) ; flags preserved
    ld bc,SIZEOF_FILE
-   ; ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
   pop ix
   ret c
   ldir
@@ -96,11 +100,20 @@ zmap_archivepage:
    call zmap_table
 zmap_archivepage.loop:
    LEA_IX_IX(ZMAP_ENT.FILE)
-   
+   call file_info ; ZF = whether in RAM
+   jr c,zmap_archivepage.done
+   jr z,zmap_archivepage.found
+   LEA_IX_IX(SIZEOF_ZMAP_ENT - ZMAP_ENT.FILE)
+   djnz zmap_open.loop
+   ld a,ZERR_NOMEM
+   scf
+   jr zmap_archivepage.done
+zmap_archivepage.found:
+   call file_to_archive
+zmap_archivepage.done:
   pop ix
   ret
-  
-  ;; TODO
+
 
 ;; zmap_namepage -- rename page after being copied
 ;; INPUTS:

@@ -31,7 +31,7 @@ add_zemu_test(zork-forest
   "ZORK\\n" 75C7D4EE
   "north\\n"      E732B934
   "north\\n"      A749FFF1
-  "climb tree\\n" DCECCC81
+  "climb tree\\n" 26F5FF8D
   "\\d"           E50A7BDD
   "\\d"           4C377625
   "take egg\\n"   11532993

@@ -234,7 +234,9 @@ file_to_RAM:
   ret c           ; error
   inc de \ inc de ; skip size bytes
   ret z           ; already in RAM
-  SYSCALL(_Arc_Unarc)
+  SYSERR_PUSH(file_error.nomem)
+   SYSCALL(_Arc_Unarc)
+  SYSERR_POP
   call file_dirty_all
   jr file_to_RAM  ; try again
 

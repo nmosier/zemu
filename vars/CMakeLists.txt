@@ -28,5 +28,7 @@ function(add_story STORY_NAME STORY_FILE)
 
 endfunction()
 
-add_story(zork ${CMAKE_SOURCE_DIR}/misc/ZORK.DAT)
+add_story(zork ${CMAKE_SOURCE_DIR}/misc/ZORK.DAT
+#  PAGESIZE 2048
+  )
 add_story(tristam ${CMAKE_SOURCE_DIR}/misc/tristam.z3)

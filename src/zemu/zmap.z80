@@ -22,19 +22,26 @@ zmap_fetchpage:
   ret c
   bit ZADDR_WRITE,b
   ret z
-  bit ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS)
-  ret z
-  ld hl,zemu_pagepfx
-  push af
-   call zmap_copypage
-  pop bc
-  ret c
-  ld a,b
-  call zaddr_pageent
-  ret c
-  ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
+  ld (zmap_pageno),a
   LEA_IX_IX(ZMAP_ENT.FILE)
-  jp file_to_RAM
+  bit ZMAP_ENT.FLAGS.COPY,(ix+ZMAP_ENT.FLAGS)
+  jr nz,zmap_fetchpage.copy
+zmap_fetchpage.to_RAM:
+  call file_to_RAM
+  jp nc,zmap_copypage.getfile
+zmap_fetchpage.nomem:
+  call zmap_archivepage
+  call nc,zmap_copypage.getfile
+  jr nc,zmap_fetchpage.to_RAM
+  ret
+
+zmap_fetchpage.copy:
+  ld hl,zemu_pagepfx
+  call zmap_copypage
+  call nc,zmap_copypage.getfile
+  ret c
+  ld (ix-ZMAP_ENT.FILE+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
+  ret
 
 
 
@@ -50,7 +57,7 @@ zmap_fetchpage:
 zmap_copypage:
   ;; get src and dst var names
   ;; name page
-  ld (zmap_copypage.pageno),a
+  ld (zmap_pageno),a
   ld de,zmap_copypage.file + FILE.NAME
   call zmap_namepage
   push ix
@@ -76,7 +83,7 @@ zmap_copypage.continue:
 
 
 zmap_copypage.getfile:
-  ld a,(zmap_copypage.pageno)
+  ld a,(zmap_pageno)
   push de
    call zaddr_pageent
   pop de
@@ -84,7 +91,7 @@ zmap_copypage.getfile:
   LEA_IX_IX(ZMAP_ENT.FILE)
   ret
 
-zmap_copypage.pageno: .db 0
+zmap_pageno: .db 0
 
 zmap_copypage.file: RES_FILE
 
@@ -106,7 +113,7 @@ zmap_archivepage.loop:
    jr c,zmap_archivepage.done
    jr z,zmap_archivepage.found
    LEA_IX_IX(SIZEOF_ZMAP_ENT - ZMAP_ENT.FILE)
-   djnz zmap_open.loop
+   djnz zmap_archivepage.loop
    ld a,ZERR_NOMEM
    scf
    jr zmap_archivepage.done
@@ -134,10 +141,7 @@ zmap_namepage:
     ld bc,VARNAMELEN
     call strncpy
    pop af      ; ID
-   ld hl,xtos.buf
    call xtos
-   dec hl
-   dec hl
    call strncpy
   pop hl
   ret

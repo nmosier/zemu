@@ -964,14 +964,14 @@ xtoc.digit:
 ;; xtos -- convert hex digit pair to character pair
 ;; INPUTS:
 ;;  a
-;;  hl = pointer to 2-char buffer
 ;; OUTPUTS:
 ;;  writes hex representation of %a to (hl),(hl+1)
 ;;  hl <- hl + 2
 ;; ERRORS: no.
 ;; DESTROYS: a
-;; OPTIM: Add entrypoint that sets hl <- xtos.buf.
+;; OPTIM: swap nibble order.
 xtos:
+  ld hl,xtos.buf
   push af
    rrca
    rrca
@@ -985,7 +985,7 @@ xtos:
   and a,$0f
   call xtoc
   ld (hl),a
-  inc hl
+  dec hl
   ret
 
 xtos.buf: .db 0,0,0

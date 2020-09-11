@@ -80,7 +80,7 @@ zemu_strerror:
    pop bc
    ld a,b
   pop ix
-  jr c,zerr_fallback
+  jp c,zerr_fallback
   ld hl,zerr_strbuf
   scf
   ret
@@ -91,24 +91,6 @@ zemu_strerror:
    LD_HL_FROM_IX(0)
    scf
    ret
-#endif
-
-
-#if ZERREXTERN
-
-;; zerr_fallback -- return string of numeric error code
-;; INPUTS:
-;;  a = error code
-;; OUTPUTS:
-;;  hl = temporary buffer containing error code string
-;; DESTROYS: (all)
-zerr_fallback:
-  ld hl,xtos.buf
-  push hl
-   call xtos
-  pop hl
-  ret
-
 #endif
 
 

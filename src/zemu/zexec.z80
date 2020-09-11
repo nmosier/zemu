@@ -86,7 +86,7 @@ zexec_cmp.attr:
    ex de,hl
    call nc,zobj_downcast
    call nc,zobj_attrtest ; sets flags properly
-   ; ret c
+   ret c
    ld a,0
    ret z
    dec a ; ld a,$ff

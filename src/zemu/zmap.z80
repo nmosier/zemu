@@ -59,6 +59,7 @@ zmap_copypage.loop:
     ld iy,zmap_copypage.file
     call file_copy
     jr nc,zmap_copypage.continue
+    ld iy,flags
     call zmap_archivepage
     jr nc,zmap_copypage.loop
 zmap_copypage.continue:

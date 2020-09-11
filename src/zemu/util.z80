@@ -970,6 +970,7 @@ xtoc.digit:
 ;;  hl <- hl + 2
 ;; ERRORS: no.
 ;; DESTROYS: a
+;; OPTIM: Add entrypoint that sets hl <- xtos.buf.
 xtos:
   push af
    rrca

@@ -112,7 +112,9 @@ zaddr_offset:
 ;; *** portable ***
 zaddr_pageent:
   MLT_A(SIZEOF_ZMAP_ENT, R_DE)
-  call zmap_table
+  push bc
+   call zmap_table
+  pop bc
   ret c
   add ix,de ; pointer to table entry
   ret
@@ -266,11 +268,11 @@ zaddr_fetchz .equ zaddr_fetchwu
 ;; *** portable ***
 zaddr_fetchb:
    call zaddr_fetch
-   ret c
+   ; ret c
    ex de,hl
    call btols
    ex de,hl
-   or a,a ; NC
+   ; or a,a ; NC
    ret
 
 ;; zaddr_store -- store byte at logical address

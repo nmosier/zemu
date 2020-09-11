@@ -28,8 +28,9 @@ zmap_fetchpage:
   push af
    call zmap_copypage
   pop bc
+  ret c
   ld a,b
-  call nc,zaddr_pageent
+  call zaddr_pageent
   ret c
   ld (ix+ZMAP_ENT.FLAGS),MASK(ZMAP_ENT.FLAGS.SAVE)
   LEA_IX_IX(ZMAP_ENT.FILE)

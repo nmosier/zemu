@@ -198,7 +198,12 @@ LONG_SIZE .equ WORD_SIZE
 #endmacro
 
 ;; SYSTEM CALLS ;;
-#define SYSCALL(addr) bcall(addr)
+; #define SYSCALL(addr) bcall(addr)
+#macro SYSCALL(addr)
+  call cp_iy_flags
+  bcall(addr)
+#endmacro
+
 #define SYSERR_PUSH(addr) AppOnErr(addr)
 #define SYSERR_POP(addr) AppOffErr
 

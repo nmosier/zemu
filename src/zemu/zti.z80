@@ -6,7 +6,8 @@ jp_ix:
   jp (ix)
   
 
-;; syscall -- system 
+trap:
+  jr trap
 
 #if TI83PLUS
 #include "ti83plus/zti.z80"

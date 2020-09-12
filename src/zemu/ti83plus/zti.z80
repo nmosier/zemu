@@ -71,4 +71,18 @@ _ld_ix_from_ix:
   ret
 
 
+;; DEBUG
+cp_iy_flags:
+  push hl
+   push de
+    ld de,flags
+    push iy \ pop hl
+    or a,a
+    sbc hl,de
+   pop de
+  pop hl
+  jp z,trap
+  ret
+
+
 #endif

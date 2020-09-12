@@ -9,7 +9,7 @@
 ;; DESTROYS: (none)
 ;; OPTIM: inline.
 zframe_pc_get:
-  ld (zframe_pc),hl
+  ld hl,(zframe_pc)
   ret
 
 #endif

@@ -54,6 +54,8 @@ start:
 #ifndef ZDBG
    call zcpu_init
    call nc,zcpu_run
+   ; ld hl,261
+   ; call nc,zcpu_run_ncycles
 #else
    call zdbg_init
    call zdbg_run

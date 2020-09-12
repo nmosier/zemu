@@ -17,7 +17,7 @@
 ;; TODO: use stack mem, not global mem.
 zcode_decode:
    ; fetch first byte
-   LD_BHL_FROM_ABS_ZA(zframe_pc)
+   call zframe_pc_get
    call zaddr_fetch
    ret c ; addr translation error
 zcode_decode.type:
@@ -37,7 +37,7 @@ zcode_decode.types: .db 0
 ;; decode and execute the instruction. Never called directly.
 ;; Upon entry, a = first byte of opcode.
 zcode_decode_short:
-   LD_BHL_TO_ABS_ZA(zframe_pc)
+   call zframe_pc_set
    ld c,a ; save
 zcode_decode_short.operand:
    ; 4.3.1 opcode type (& count) is given by bits 4-5. $$11 = 0OP, otherwise 1OP.
@@ -83,7 +83,7 @@ zcode_decode_long.op2_var
 zcode_decode_long.store_opinfo
    ; store operand information
    ld (zcode_decode.types),a
-   LD_BHL_TO_ABS_ZA(zframe_pc)
+   call zframe_pc_set
 zcode_decode_long.opnum:
    ld a,c ; restore opcode
    and a,$1f
@@ -101,7 +101,7 @@ zcode_decode_variable:
    call zaddr_fetch ; preserves de; hl++
    ret c
    ld (zcode_decode.types),a
-   LD_BHL_TO_ABS_ZA(zframe_pc)
+   call zframe_pc_set
 zcode_decode_variable.opnum:
    ld a,d
    bit 5,a
@@ -254,9 +254,9 @@ zcode_err.notavail:
 ;; DESTROYS: b
 zcode_readvarnum:
   push hl
-   LD_BHL_FROM_ABS_ZA(zframe_pc)
+   call zframe_pc_get
    call zaddr_fetch
-   LD_BHL_TO_ABS_ZA(zframe_pc)
+   call zframe_pc_set
   pop hl
   ret
 

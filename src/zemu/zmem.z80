@@ -62,6 +62,19 @@ zstack_addr:
   ret
 #endif
 
+
+;; zframe_pc_set -- set Z-addr at (zframe_pc)
+;; INPUTS:
+;;  [b:hl] = Z-addr
+;; OUTPUTS:
+;;  (zframe_pc) <- [b:hl]
+;; ERRORS: no.
+;; DESTROYS: (none)
+zframe_pc_set:
+  LD_BHL_TO_ABS_ZA(zframe_pc)
+  ret
+
+
 ;; zmem_init -- initialize memory for zemu. Empty call state and program stack.
 ;; INPUTS: (none)
 ;; OUTPUTS:
@@ -83,8 +96,7 @@ zmem_init:
   xor a,a
   ld (zframe_nl),a
   LD_BHL_IMM(ZADDR_NULL)
-  LD_BHL_TO_ABS_ZA(ZFRAME_PC)
-  ret
+  jp zframe_pc_set
    
 
 ;; zstack_enter -- enter new stack frame
@@ -141,7 +153,14 @@ zstack_leave:
   ret
 
 
+#if TI83PLUS
+#include "ti83plus/zmem.z80"
+#elif TI84PCE
+#include "ti84pce/zmem.z80"
+#endif
+
 #include "zfile.z80"
+
 
 
 #endif

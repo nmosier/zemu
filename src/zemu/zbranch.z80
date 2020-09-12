@@ -16,7 +16,7 @@
 ;; ERRORS: yes.
 zexec_cjmp:
    push af ; save truth value
-   LD_BHL_FROM_ABS_ZA(zframe_pc)
+   call zframe_pc_get
    call zcode_decode_branch
    ex (sp),hl
    ld a,h ; restore truth value
@@ -50,7 +50,7 @@ zexec_cjmp.jump:
    DEC_BHL_ZA ; don't forget to subtract 2!
    ; hl = new PC
 zexec_cjmp.store_pc:
-   LD_BHL_TO_ABS_ZA(zframe_pc)
+   call zframe_pc_set
    or a,a
    ret
 

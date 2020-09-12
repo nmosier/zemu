@@ -31,10 +31,10 @@ zcode_readop:
    ; (hl) = (hl) << 2 | OMITTED
    cp a,ZOP_OMITTED
    ret z
-   LD_BHL_FROM_ABS_ZA(zframe_pc)
+   call zframe_pc_get
    call zcode_fetch_op
    ret c
-   LD_BHL_TO_ABS_ZA(zframe_pc) ; update pointer
+   call zframe_pc_set
    ex de,hl
    or a,$ff ; NZ, NC
    ret

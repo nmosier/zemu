@@ -1,0 +1,15 @@
+#ifndef TI84PCE_ZMEM_Z80
+#define TI84PCE_ZMEM_Z80
+
+;; zframe_pc_get -- get Z-addr at (zframe_pc)
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  [b:hl] = (zframe_pc)
+;; ERRORS: no.
+;; DESTROYS: (none)
+;; OPTIM: inline.
+zframe_pc_get:
+  ld (zframe_pc),hl
+  ret
+
+#endif

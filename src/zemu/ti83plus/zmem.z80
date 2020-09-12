@@ -1,0 +1,18 @@
+#ifndef TI83PLUS_ZMEM_Z80
+#define TI83PLUS_ZMEM_Z80
+
+;; zframe_pc_get -- get Z-addr at (zframe_pc)
+;; INPUTS: (none)
+;; OUTPUTS:
+;;  [b:hl] = (zframe_pc)
+;; ERRORS: no.
+;; DESTROYS: (none)
+zframe_pc_get:
+  ld hl,zframe_pc
+  jp zaddr_load_from_paddr_bhl
+
+
+#include "zaddr.z80"
+  
+
+#endif

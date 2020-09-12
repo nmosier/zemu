@@ -80,17 +80,14 @@ zexec_cmp.in:
 ;; does obj(hl) have attribute attr(de)?
 ;; TODO -- should perform downcasting checks.
 zexec_cmp.attr:
-   ex de,hl
-   call zobj_downcast
-   ld c,a
-   ex de,hl
-   call nc,zobj_downcast
-   call nc,zobj_attrtest ; sets flags properly
-   ret c
-   ld a,0
-   ret z
-   dec a ; ld a,$ff
-   ret
+  ld c,e   ; attribute cast
+  call zobj_downcast
+  call nc,zobj_attrtest ; sets flags properly
+  ret c
+  ld a,0
+  ret z
+  dec a ; ld a,$ff
+  ret
 
 ;-----------------------;
 ;    unary comparisons  ;
@@ -494,7 +491,7 @@ zexec.jump:
    ADD_BHL_CDE_ZA
    DEC_BHL_ZA
    DEC_BHL_ZA
-   LD_BHL_TO_ABS_ZA(zframe_pc)
+   call zframe_pc_set
    or a,a ; NC
    ret
 
@@ -530,11 +527,10 @@ zexec.rfalse:
 
 zexec.print:
    call zstr_reset
-   LD_BHL_FROM_ABS_ZA(zframe_pc)
+   call zframe_pc_get
    ld ix,win_main
    call zstr_puts
-   LD_BHL_TO_ABS_ZA(zframe_pc)
-   ret
+   jp zframe_pc_set
 
 zexec.print_ret:
    call zexec.print
@@ -648,9 +644,7 @@ zexec.call.done:
   add ix,de
   LD_CDE_FROM_ABS_ZA(zframe_pc) ; end of CALL instruction
   LD_CDE_TO_IX_ZA(zframe_pc-zframe_end) ; save return address
-  LD_BHL_TO_ABS_ZA(zframe_pc) ; save new PC
-  ; or a,a
-  ret
+  jp zframe_pc_set			; save new PC
 
 ;; get variables before setting up new call frame
 zexec.call.readvars:

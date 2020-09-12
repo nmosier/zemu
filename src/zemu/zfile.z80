@@ -267,9 +267,13 @@ file_to_archive:
 file_info:
   LEA_HL_IX(FILE.NAME)
   call appvar_to_OP1
-  SYSCALL(_ChkFindSym)
+  push iy
+   ld iy,flags
+   SYSCALL(_ChkFindSym)
+  pop iy
   ld a,ZERR_NOVAR
   ret c
+#endif
 #if TI83PLUS
   ld a,b
   or a,a

@@ -65,8 +65,9 @@ zin_getsn:
    ld ix,win_main
    UCAST_A_TO_BC
    push iy
-   call zwin_nopage  ; don't want to page when getting input
-   call zwin_getsn
+    ld iy,flags
+    call zwin_nopage  ; don't want to page when getting input
+    call zwin_getsn
    pop iy
    jr c,zin_getsn.leave
    call tolowers

@@ -627,14 +627,13 @@ zexec.call:
   ld c,a ; save return varno
   push bc
    call zcall0
-  pop bc
-  ; ret c
-  ld a,c
-  ld (zframe_rv),a ; save return value
-  push hl ; save new address
+  pop de
+  PUSH_BHL_ZA ; save new addr
+   ld b,d ; # of local vars
+   ld a,e ; return varno
+   ld (zframe_rv),a ; save return value
    call nc,zexec.call.storevars
-  pop hl ; restore new address
-  ; ret c
+  POP_BHL_ZA ; restore new addr
 zexec.call.done:
   ld ix,(zframe_fp)
   ex de,hl

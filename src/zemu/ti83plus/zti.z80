@@ -81,8 +81,13 @@ cp_iy_flags:
     sbc hl,de
    pop de
   pop hl
-  jp z,trap
+  jp nz,trap
   ret
 
+
+sys_flashtoram:
+  bcall(_FlashToRAM)
+  ; SYSCALL(_FlashToRAM)
+  ret
 
 #endif

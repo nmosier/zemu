@@ -41,7 +41,7 @@ file_baseaddr.flash:
   ld de,file_baseaddr.namelen
   ld bc,1
   push af ; save page no
-   SYSCALL(_FlashToRAM)
+   call sys_flashtoram
    dec de ; un-increment
    ld a,(de)
    add a,2
@@ -117,7 +117,7 @@ file_size.flash:
   call sub_flash
   ld bc,2
   ld de,file_size.buf
-  SYSCALL(_FlashToRAM)
+  call sys_flashtoram
   ld hl,(file_size.buf)
   or a,a
   ret
@@ -146,7 +146,7 @@ file_readb:
   ret c
   ld de,file_read.buf
   ld bc,1
-  SYSCALL(_FlashToRAM)
+  call sys_flashtoram
   ld a,(file_read.buf)
   or a,a ; success
   ret
@@ -166,7 +166,7 @@ file_readl:
   ret c
   ld de,file_read.buf
   ld bc,2
-  SYSCALL(_FlashToRAM)
+  call sys_flashtoram
   ld hl,(file_read.buf)
   ret
 

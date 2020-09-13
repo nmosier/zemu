@@ -162,7 +162,7 @@ zaddr_fetch:
 #if TI83PLUS
      ld de,zaddr_fetch.buf
      ld bc,1
-     SYSCALL(_FlashToRAM)
+     call sys_flashtoram
      dec de
      ld a,(de)
 #elif TI84PCE
@@ -331,7 +331,7 @@ zaddr_unpack:
 #if TI83PLUS
    add hl,hl
    ld b,0
-   rlc b
+   rl b
 #elif TI84PCE
    add hl,hl
 #endif

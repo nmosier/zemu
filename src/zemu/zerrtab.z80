@@ -3,7 +3,7 @@
 
 #include "zti.inc"
 
-#if ZERREXTERN
+#if ZERR_EXTERN
 #define DERR .dw
 #if TI84PCE
 .assume ADL=1
@@ -11,10 +11,13 @@
 
 .org 0
 
-#else
+#endif
+
+#if ZERR_INTERN
 #define DERR DL
 #endif
 
+#if ZERR_INTERN
 zerrtab:
    DERR zerrmsg_success
    DERR zerrmsg_novar
@@ -74,5 +77,7 @@ zerrmsg_internal:   .db "internal error",0
 zerrmsg_readeof:    .db "read past EOF",0
 zerrmsg_badfd:      .db "bad file descriptor",0
 zerrmsg_toomanyf:   .db "too many open files",0
+
+#endif
 
 #endif

@@ -324,7 +324,7 @@ zaddr_storew:
 ;;  hl = packed address
 ;; OUTPUTS:
 ;;  [b:hl] = byte address
-;; ERRORS: no.
+;; ERRORS: yes.
 ;; DESTROYS: (none)
 ;; *** portable ***
 zaddr_unpack:

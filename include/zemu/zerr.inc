@@ -65,7 +65,9 @@ ZERR_MAX_STRLEN  .equ 36
 #define zerrstr_badfd       "bad file descriptor"
 #define zerrstr_toomanyf    "too many files open"
 
-#if ZERREXTERN
+;; ZERR_EXTERN, ZERR_INTERN, ZERR_BASIC
+
+#if ZERR_EXTERN
 zerr_fallback .equ xtos
 #endif
 

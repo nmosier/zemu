@@ -1,5 +1,8 @@
 ; zstr.z80 -- routines for printing ZSCII codes
 
+#ifndef ZSTR_Z80
+#define ZSTR_Z80
+
 #include "zti.inc"
 #include "zstr.inc"
 #include "zaddr.inc"
@@ -77,15 +80,11 @@ zstr_putc.char.print:
    UCAST_A_TO_DE
    add hl,de
    ld a,(hl)
-   call zstr_putc_raw
-   or a,a
-   ret
+   jp zwin_putc
 
 zstr_putc.space:
    ld a,' '
-   call zstr_putc_raw
-   or a,a
-   ret
+   jp zwin_putc
 
 zstr_putc.abbr_apply:
    ; NOTE: %a still holds unmodified 5-bit code.
@@ -95,11 +94,10 @@ zstr_putc.abbr_apply:
    UCAST_A_TO_DE
    ADD_BHL_DE_ZA
    call zaddr_fetchwu ; get word address to expanded string
-   ret c
    ex de,hl
    ; convert to byte address
-   call zaddr_unpack
-   call zstr_puts
+   call nc,zaddr_unpack
+   call nc,zstr_puts
    ret c
    ld a,(zstr_flags)
    res ZSTR_FLAGS_SHIFT,a
@@ -156,15 +154,10 @@ zstr_putc.wchar_add.10bits:
    res 7,d
    ; convert to ASCII char
    ex de,hl
-   push ix
    call zstr_wchartoch
-   pop ix
-   ret c
-   jp zstr_putc_raw ; put raw ASCII character
+   jp nc,zwin_putc ; put raw ASCII character
+   ret
    
-zstr_putc_raw:
-   jp zwin_putc
-
 ;; zstr_putw -- print Z-string contained in z-word
 ;; INPUTS:
 ;;  hl[15:0] = encoded z-string
@@ -176,35 +169,35 @@ zstr_putc_raw:
 ;; ERRORS: yes.
 ;; *** portable ***
 zstr_putw:
-   ld a,h
-   rrca
-   rrca
-   and a,ZSTR_CODEMASK
-   push hl
+  ld a,h
+  rrca
+  rrca
+  and a,ZSTR_CODEMASK
+  push hl
    call zstr_putc
-   pop hl
-   ret c
-   ld a,h ; lower 2 bits are upper 2 bits of 2nd code
-   ld b,l
-   rl b
-   rla
-   rl b
-   rla
-   rl b
-   rla
-   and a,ZSTR_CODEMASK
-   push hl
+  pop hl
+  ret c
+  ld a,h ; lower 2 bits are upper 2 bits of 2nd code
+  ld b,l
+  rl b
+  rla
+  rl b
+  rla
+  rl b
+  rla
+  and a,ZSTR_CODEMASK
+  push hl
    call zstr_putc
-   pop hl
-   ret c
-   ld a,l
-   and a,ZSTR_CODEMASK
-   push hl
+  pop hl
+  ret c
+  ld a,l
+  and a,ZSTR_CODEMASK
+  push hl
    call zstr_putc
-   pop hl
-   ret c
-   bit 7,h ; whether end of string
-   ret
+  pop hl
+  ; ret c
+  bit 7,h ; whether end of string
+  ret
    
 
 ;; zstr_puts -- print Z-string
@@ -628,11 +621,11 @@ zstr_putln:
 ;; DESTROYS: (none)
 ;; *** portable ***
 zstr_reset:
-   push af
+  push af
    xor a,a ; no flags
    ld (zstr_flags),a
-   pop af
-   ret
+  pop af
+  ret
 
 
 ;; zstr_wchartoch -- convert ZSCII char (wide char) to TI char
@@ -644,15 +637,18 @@ zstr_reset:
 ;; DESTROYS: (all)
 ;; *** portable ***
 zstr_wchartoch:
+  push ix
    call zstr_wchartab_zfind
-   ret c
+   jr c,zstr_wchartoch.done
    LD_DE_FROM_IX(WCHAR_ENT_ZSCII)
-   or a,a
+   ; or a,a
    sbc hl,de ; index in l
    ld a,l
    add a,(ix+WCHAR_ENT_ASCII)
    or a,a ; NC
-   ret
+zstr_wchartoch.done:
+  pop ix
+  ret
 
 
 #macro WCHAR_ENT_RANGE(in_first, in_last, out_first, ioflags)
@@ -803,3 +799,6 @@ zstr_putcode:
    call zwin_page    ; enable paging
    ;; TODO -- special conversion & checks for ZSCII codes
    jp zwin_putc
+
+
+#endif

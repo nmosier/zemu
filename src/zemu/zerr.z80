@@ -7,10 +7,10 @@
 #include "zerr.inc"
 #include "zti.inc"
 
-#if ZERREXTERN
+#if ZERR_EXTERN
 zerr_tabfile: D_FILE("ZEMUERR",0)
 zerr_strbuf: RESB(ZERR_MAX_STRLEN)
-#else
+#elif ZERR_INTERN
 #include "zerrtab.z80"
 #endif
 
@@ -59,8 +59,8 @@ zemu_perror_sep: .db ": ",0
 ;;  CF is set
 ;; DESTROYS: (all), ix
 ;; *** portable ***
+#if ZERR_EXTERN
 zemu_strerror:
-#if ZERREXTERN
   push ix
    push af
     MLT_A(WORD_SIZE, R_HL)
@@ -84,13 +84,16 @@ zemu_strerror:
   ld hl,zerr_strbuf
   scf
   ret
-#else
-   MLT_A(LONG_SIZE, R_DE)
-   ld ix,zerrtab
-   add ix,de
-   LD_HL_FROM_IX(0)
-   scf
-   ret
+#elif ZERR_INTERN
+zemu_strerror:
+  MLT_A(LONG_SIZE, R_DE)
+  ld ix,zerrtab
+  add ix,de
+  LD_HL_FROM_IX(0)
+  scf
+  ret
+#elif ZERR_BASIC
+zemu_strerror .equ xtos
 #endif
 
 

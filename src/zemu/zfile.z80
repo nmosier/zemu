@@ -201,7 +201,7 @@ file_copy:
    jr c,file_copy.done
    LD_BC_FROM_IX_W(FILE.SIZE)
 #if TI83PLUS
-   SYSCALL(_FlashToRAM)
+   call sys_flashtoram
    or a,a
 #elif TI84PCE
    ldir
@@ -320,7 +320,7 @@ file_memcpy:
   pop bc
   ret c
 #if TI83PLUS
-  SYSCALL(_FlashToRAM)
+  call sys_flashtoram
 #elif TI84PCE
   ldir
 #endif
@@ -385,6 +385,7 @@ file_allocate_fd.found:
   ld a,MAX_FILES
   sub a,b
   ret ; NC
+
 
 ;---- FILE TABLE ----;
 ; Each index corresponds to a file descriptor.

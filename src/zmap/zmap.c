@@ -20,6 +20,7 @@
 #define ZMAP_ENT_FLAGS_COPY 0
 
 #define ZHDR_STATIC 0xe
+#define ZHDR_STORYSIZE 0x1a // packed address
 
 #define ZMAP_STORYSIZE_LEN 3
 
@@ -176,8 +177,13 @@ int main(int argc, char *argv[]) {
    hdr.zmh_pagebits = 0;
    for (uint32_t mask = 1; (mask & (zpage_size - 1)); mask <<= 1, ++hdr.zmh_pagebits) {}
    hdr.zmh_pagebits -= 8;
-   hdr.zmh_storysize = storystat.st_size; /* NOTE: don't get this from the story header
-                                           * because some versions don't include it. */
+   /* Older v3 story files don't include file size information, according to the standard.
+    * First check for story size in the header, and if missing (i.e. is zero), default
+    * to file size given by stat(2).
+    */
+   if ((hdr.zmh_storysize = read_be16(storym + ZHDR_STORYSIZE) * 2) == 0) {
+     hdr.zmh_storysize = storystat.st_size;
+   }
    hdr.zmh_npages = (storystat.st_size + zpage_size - 1) / zpage_size;
    hdr.zmh_staticaddr = read_be16(storym + ZHDR_STATIC);
    

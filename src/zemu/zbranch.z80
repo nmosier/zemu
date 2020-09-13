@@ -44,7 +44,7 @@ zexec_cjmp.inv:
    jp z,zexec.rtrue  ; offset == 1 => RTRUE
 zexec_cjmp.jump:
    ; otherwise, apply offset
-   UCAST_HL_TO_BHL_ZA
+   SCAST_HL_TO_BHL_ZA
    ADD_BHL_CDE_ZA
    DEC_BHL_ZA
    DEC_BHL_ZA ; don't forget to subtract 2!

@@ -718,7 +718,9 @@ ktoch.tab:
    .db kQuest, '?'
 ktoch.tab.end:
    .db 0
-   
+
+
+
 ;; isprint -- is printable ASCII character
 ;; INPUTS:
 ;;  a = ASCII char
@@ -1036,7 +1038,7 @@ strchr.done:
 ;; INPUTS: (none)
 ;; OUTPUTS:
 ;;  a = key scan code
-;; DESTROYS: ???
+;; DESTROYS: hl, de, bc, iy
 ;; ERRORS: generates interrupt `error' when `ON' is pressed.
 ;; *** portable ***
 sys_getkey:

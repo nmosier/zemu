@@ -86,8 +86,10 @@ cp_iy_flags:
 
 
 sys_flashtoram:
-  bcall(_FlashToRAM)
-  ; SYSCALL(_FlashToRAM)
+  push iy
+   ld iy,flags
+   SYSCALL(_FlashToRAM)
+  pop iy
   ret
 
 #endif

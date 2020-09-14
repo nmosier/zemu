@@ -51,14 +51,19 @@ start:
    ld hl,zmem_init_str
    jp c,zemu_perror
 
+#if SCRIPT_MODE
+   ld ix,f_script
+   call file_open
+#endif
+
 #ifndef ZDBG
-   call zcpu_init
+   call nc,zcpu_init
    call nc,zcpu_run
    ; ld hl,261
    ; call nc,zcpu_run_ncycles
 #else
-   call zdbg_init
-   call zdbg_run
+   call nc,zdbg_init
+   call nc,zdbg_run
 #endif
    ld hl,zemu_str
    jp c,zemu_perror

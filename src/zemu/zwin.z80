@@ -712,21 +712,51 @@ zwin_split_horiz.org_right:
 ;; ERRORS: yes.
 ;; DESTROYS: bc, de, hl
 ;; *** portable ***
-zwin_getc:
-   call sys_getkey
-   ret c
-   call ktoch
-   jr c,zwin_getc ; ignore unrecognized character
-   or a,a
-   call nz,zwin_putc ; only put non-null characters
-   ret
-   
 zwin_getc_bare:
+  ld b,$ff
+  jr zwin_getc.base
+zwin_getc:
+  ld b,$00
+zwin_getc.base:
+#if SCRIPT_MODE
+  push ix
+   push bc
+    ld hl,(zwin_getc.base.ptr)
+    ld ix,f_script
+    CLEAR_UPPER_DE
+    ld e,(ix+FILE.SIZE+0)
+    ld d,(ix+FILE.SIZE+1)
+    call cp_hl_de
+    scf
+    ld a,ZERR_INTR
+    jr z,zwin_getc.base.done
+    inc hl
+    ld (zwin_getc.base.ptr),hl
+    dec hl
+    ld de,zwin_getc.base.buf
+    ld bc,1
+    call file_memcpy
+zwin_getc.base.done:
+   pop bc
+  pop ix
+  ret c
+  ld a,(zwin_getc.base.buf)
+#else
+  push bc
    call sys_getkey
-   ret c
-   call ktoch
-   jr c,zwin_getc_bare
-   ret
+  pop bc
+  ret c
+  call ktoch
+  jr c,zwin_getc.base ; ignore unrecognized character
+#endif
+  inc b
+  jp nz,zwin_putc
+  ret
+#if SCRIPT_MODE
+f_script: D_FILE("ZSCRIPT", 0)
+zwin_getc.base.ptr: DL 0
+zwin_getc.base.buf: .db 0
+#endif
 
 ;; zwin_getsn -- get input string
 ;; INPUTS:
@@ -836,6 +866,7 @@ zwin_getsn.del:
 ;; NOTE: Safe to call even if buffering isn't enabled on the window.
 ;; *** portable ***
 zwin_page:
+#if 0
    push hl
    bit ZWIN.FLAGS.BUFD,(ix+ZWIN.FLAGS)
    jr z,zwin_page.done            ; cannot page if unbuffered
@@ -856,6 +887,7 @@ zwin_page.newanc:
    LD_HL_TO_IX(ZWIN.BUFANC)
 zwin_page.done:
    pop hl
+#endif
    ret
 
 ;; zwin_nopage -- disable paging for window

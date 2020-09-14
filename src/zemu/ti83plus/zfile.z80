@@ -30,6 +30,52 @@ file_addr:
 ;;  ZF = whether in RAM (Z = RAM, NZ = flash)
 ;; DESTROYS: (all)
 ;; ERRORS: yes.
+#if 1
+file_baseaddr:
+  call file_tabent
+  bit FILETAB_ENT.FLAGS.DIRTY,(hl)
+  jr nz,file_baseaddr.dirty ; dirty, so need to recompute
+  ld l,(ix+FILE.PTR+0)
+  ld h,(ix+FILE.PTR+1)
+  ld a,(ix+FILE.PTR+2)
+  or a,a
+  ret
+
+file_baseaddr.dirty:
+  res FILETAB_ENT.FLAGS.DIRTY,(hl)
+  call file_info
+  ret c
+  ex de,hl		; now [a:hl] is address
+  jr z,file_baseaddr.dirty.RAM
+file_baseaddr.dirty.archive:
+  ld de,9		; offset of name length
+  call add_flash
+  ld de,file_baseaddr.namelen
+  ld bc,1
+  push af		; save pageno
+   call sys_flashtoram
+   dec de		; un-increment
+   ld a,(de)
+   add a,2
+   UCAST_A_TO_DE
+  pop af		; restore pageno
+  call add_flash
+  or a,a
+  jr file_baseaddr.dirty.done
+
+file_baseaddr.dirty.RAM:
+  inc hl
+  inc hl
+file_baseaddr.dirty.done:
+  ld (ix+FILE.PTR+0),l
+  ld (ix+FILE.PTR+1),h
+  ld (ix+FILE.PTR+2),a
+  ret
+
+file_baseaddr.namelen: .db 0
+
+#else
+
 file_baseaddr:
   call file_info
   ret c
@@ -58,7 +104,7 @@ file_baseaddr.RAM:
   ret             ; success
 
 file_baseaddr.namelen: .db 0
-
+#endif
 
 
 ;; add_flash -- add offset to flash pointer

@@ -67,7 +67,11 @@ mul_hl_de:
 	ld bc,0
 	push bc ; top of stack stores accumulator
 	xor a
+#if TI83PLUS
+	ld b,16
+#elif TI84PCE
 	ld b,24
+#endif
 mul_hl_de.loop:
 	add hl,hl
 	ex (sp),hl
@@ -1042,15 +1046,17 @@ strchr.done:
 ;; ERRORS: generates interrupt `error' when `ON' is pressed.
 ;; *** portable ***
 sys_getkey:
-   ld iy,flags
-   SYSCALL(_GetKey)
-   or a,a
-   ret nz
-   ;; ON key
-   res onInterrupt,(iy+onFlags)
-   ld a,ZERR_INTR
-   scf
-   ret
+  ld iy,flags
+  ei
+  SYSCALL(_GetKey)
+  di
+  or a,a
+  ret nz
+  ;; ON key
+  res onInterrupt,(iy+onFlags)
+  ld a,ZERR_INTR
+  scf
+  ret
 
 ;; ldw_bc_from_hl -- load word at (hl) into bc
 ;; INPUTS:

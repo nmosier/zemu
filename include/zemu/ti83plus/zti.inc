@@ -200,8 +200,8 @@ LONG_SIZE .equ WORD_SIZE
 ;; SYSTEM CALLS ;;
 ; #define SYSCALL(addr) bcall(addr)
 #macro SYSCALL(addr)
-  call cp_iy_flags
   bcall(addr)
+  di
 #endmacro
 
 #define SYSERR_PUSH(addr) AppOnErr(addr)

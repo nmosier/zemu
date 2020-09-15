@@ -33,6 +33,7 @@ start:
    ld hl,-VARNAMELEN
    add hl,sp
    ld sp,hl
+   ld bc,VARNAMELEN
    call zemu_selectgame
    call nc,zemu_open ; open story file
    rla                ; preserve error state in bit 0 of a

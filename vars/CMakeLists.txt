@@ -7,7 +7,7 @@ function(add_story STORY_NAME STORY_FILE)
       )
 
     if(NOT DEFINED STORY_PAGESIZE)
-      set(STORY_PAGESIZE 4096)
+      set(STORY_PAGESIZE 2048)
     endif()
 
     # set output directory
